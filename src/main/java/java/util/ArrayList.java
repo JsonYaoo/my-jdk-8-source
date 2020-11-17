@@ -248,11 +248,15 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
         }
     }
 
+    // 20201117 确认内部容量
     private void ensureCapacityInternal(int minCapacity) {
+        // 20201117 如果元素数组为空数组{}
         if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+            // 20201117 则设置最小容量, 默认为10, 否则为指定容量大小
             minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
         }
 
+        // 20201117 确定下一个容量
         ensureExplicitCapacity(minCapacity);
     }
 
@@ -348,7 +352,9 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @param o element whose presence in this list is to be tested
      * @return <tt>true</tt> if this list contains the specified element
      */
+    // 20201117 如果此列表包含指定的元素，则返回true。 更正式地说，当且仅当此列表包含至少一个这样的元素时，才返回true。
     public boolean contains(Object o) {
+        // 20201117 返回-1代表找不到, 此时为false; 找得到索引就>=0, 此时返回true
         return indexOf(o) >= 0;
     }
 
@@ -359,17 +365,21 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>,
      * or -1 if there is no such index.
      */
+    // 20201117 返回指定元素在此列表中首次出现的索引；如果此列表不包含该元素，则返回-1。 更正式地，返回最小的索引i
     public int indexOf(Object o) {
+        // 20201117 如果传入的对象为null
         if (o == null) {
+            // 20201117 则遍历列表, 找到第一个null元素, 返回其下标
             for (int i = 0; i < size; i++)
                 if (elementData[i]==null)
                     return i;
         } else {
+            // 20201117 如果传入的对象不为null, 则遍历找到该对象, 注意的是使用equals去判断, 代表的是同一个实例
             for (int i = 0; i < size; i++)
                 if (o.equals(elementData[i]))
-                    return i;
+                    return i;// 20201117 找到则返回索引
         }
-        return -1;
+        return -1;// 20201117 找不到返回-1
     }
 
     /**
@@ -379,17 +389,22 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>,
      * or -1 if there is no such index.
      */
+    // 20201117 返回指定元素在此列表中最后一次出现的索引；如果此列表不包含该元素，则返回-1。 更正式地讲，返回最大索引i，如果没有这样的索引，则返回-1。
     public int lastIndexOf(Object o) {
+        // 20201117 如果该对象为null
         if (o == null) {
+            // 20201117 则遍历查找null对象
             for (int i = size-1; i >= 0; i--)
+                // 20201117 找到则返回索引
                 if (elementData[i]==null)
                     return i;
         } else {
+            // 2020117 如果该对象不为null, 则遍历查找这个对象, 使用equals判断同一个实例
             for (int i = size-1; i >= 0; i--)
                 if (o.equals(elementData[i]))
-                    return i;
+                    return i;// 20201117 找到则返回索引
         }
-        return -1;
+        return -1;// 20201117 找不到则返回-1
     }
 
     /**
@@ -398,12 +413,18 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      *
      * @return a clone of this <tt>ArrayList</tt> instance
      */
+    // 20201117 返回此ArrayList实例的浅表副本。 （元素本身不会被复制。）
     public Object clone() {
         try {
+            // 20201117 复制列表实例
             ArrayList<?> v = (ArrayList<?>) super.clone();
+
+            // 20201117 设置新列表的元素
             v.elementData = Arrays.copyOf(elementData, size);
+
+            // 20201117 初始化数组结构修改次数
             v.modCount = 0;
-            return v;
+            return v;// 20201117 返回新列表引用
         } catch (CloneNotSupportedException e) {
             // this shouldn't happen, since we are Cloneable
             throw new InternalError(e);
@@ -424,10 +445,18 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @return an array containing all of the elements in this list in
      *         proper sequence
      */
+    // 20201117 以正确的顺序（从第一个元素到最后一个元素）返回包含此列表中所有元素的数组。
     public Object[] toArray() {
+        // 2020117 返回size长度的元素Object类型数组副本
         return Arrays.copyOf(elementData, size);
     }
 
+    /**
+     * 20201117
+     * 返回一个数组，该数组按适当顺序（从第一个元素到最后一个元素）包含此列表中的所有元素；
+     * 返回数组的运行时类型是指定数组的运行时类型。 如果列表适合指定的数组，则将其返回。
+     * 否则，将使用指定数组的运行时类型和此列表的大小分配一个新数组。
+     */
     /**
      * Returns an array containing all of the elements in this list in proper
      * sequence (from first to last element); the runtime type of the returned
@@ -452,12 +481,19 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      *         this list
      * @throws NullPointerException if the specified array is null
      */
+    // 20201117 返回指定类型的数组
     @SuppressWarnings("unchecked")
     public <T> T[] toArray(T[] a) {
+        // 20201117 如果该数组长度小于列表长度
         if (a.length < size)
+            // 20201117 则根据类型返回size长度的数组, 其中已经对元素进行复制了
             // Make a new array of a's runtime type, but my contents:
             return (T[]) Arrays.copyOf(elementData, size, a.getClass());
+
+        // 20201117 如果该数组长度不小于列表长度, 则对其元素进行复制
         System.arraycopy(elementData, 0, a, 0, size);
+
+        // 2020117 如果该数组还有剩余元素, 则设置为null
         if (a.length > size)
             a[size] = null;
         return a;
@@ -465,7 +501,8 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
 
     // Positional Access Operations
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")// 20201117 告诉编译器忽略 unchecked 警告信息，如使用List，ArrayList等未进行参数化产生的警告信息。
+    // 20201117 default修饰的方法 -> 根据索引返回列表数组中的元素
     E elementData(int index) {
         return (E) elementData[index];
     }
@@ -477,9 +514,12 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @return the element at the specified position in this list
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201117 返回此列表中指定位置的元素。
     public E get(int index) {
+        // 2020117 数组越界检查
         rangeCheck(index);
 
+        // 2020117 根据索引返回元素数组中的元素
         return elementData(index);
     }
 
@@ -492,11 +532,18 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @return the element previously at the specified position
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201117 用指定的元素替换此列表中指定位置的元素。
     public E set(int index, E element) {
+        // 20201117 索引越界检查
         rangeCheck(index);
 
+        // 20201117 根据索引获取元素数组的值
         E oldValue = elementData(index);
+
+        // 20201117 根据索引设置元素数组的值
         elementData[index] = element;
+
+        //20201117 返回旧值
         return oldValue;
     }
 
@@ -506,9 +553,15 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @param e element to be appended to this list
      * @return <tt>true</tt> (as specified by {@link Collection#add})
      */
+    // 20201117 将指定的元素追加到此列表的末尾。
     public boolean add(E e) {
-        ensureCapacityInternal(size + 1);  // Increments modCount!!
+        // 20201117 指定容量为size+1, 确认下一个容量, 并增长元素数组到那个容量
+        ensureCapacityInternal(size + 1);  // Increments modCount!! // 20201117 结构修改次数增加
+
+        // 20201117 元素数组设置值, 元素实际个数+1
         elementData[size++] = e;
+
+        // 20201117 添加成功返回true
         return true;
     }
 
@@ -521,12 +574,19 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @param element element to be inserted
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201117 将指定的元素插入此列表中的指定位置。 将当前在该位置的元素（如果有）和任何后续元素右移（将其索引加一）。
     public void add(int index, E element) {
+        // 20201117 索引越界校验
         rangeCheckForAdd(index);
 
+        // 20201117 根据size+1确认下一个容量, 并设置元素数组等于那个容量, 且结构修改次数+1
         ensureCapacityInternal(size + 1);  // Increments modCount!!
+
+        // 20201117 调用native方法对元素数组进行index位置的元素右移操作
         System.arraycopy(elementData, index, elementData, index + 1,
                          size - index);
+
+        // 20201117 元素数组index位置赋值, 并且实际元素个数+1
         elementData[index] = element;
         size++;
     }
@@ -540,21 +600,38 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @return the element that was removed from the list
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201117 删除此列表中指定位置的元素。 将所有后续元素向左移动（从其索引中减去一个）。
     public E remove(int index) {
+        // 20201117 索引越界校验
         rangeCheck(index);
 
+        // 20201117 结构修改次数+1
         modCount++;
+
+        // 20201117 根据索引获取元素数组元素
         E oldValue = elementData(index);
 
+        // 20201117 获取index后有几个元素
         int numMoved = size - index - 1;
+
+        // 20201117 如果有>0个
         if (numMoved > 0)
+            // 2020117 则对index+1处的元素进行左移
             System.arraycopy(elementData, index+1, elementData, index,
                              numMoved);
-        elementData[--size] = null; // clear to let GC do its work
 
+        // 20201117 置空最后一个元素, 并且实际元素个数-1
+        elementData[--size] = null; // clear to let GC do its work // 通知GC回收
+
+        // 20201117 返回旧值
         return oldValue;
     }
 
+    /**
+     * 20201117
+     * 如果存在指定元素，则从该列表中删除该元素的第一次出现。如果列表不包含该元素，则该元素不变。
+     * 更正式地讲，删除索引i最低的元素（如果存在这样的元素）。 如果此列表包含指定的元素，则返回true
+     */
     /**
      * Removes the first occurrence of the specified element from this list,
      * if it is present.  If the list does not contain the element, it is
@@ -568,20 +645,29 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @param o element to be removed from this list, if present
      * @return <tt>true</tt> if this list contained the specified element
      */
+    // 20201117 根据实例删除列表元素
     public boolean remove(Object o) {
+        // 20201117 如果该对象为null
         if (o == null) {
+            // 2020117 则遍历查找元素数组
             for (int index = 0; index < size; index++)
+                // 20201117 如果找到元素为null
                 if (elementData[index] == null) {
-                    fastRemove(index);
-                    return true;
+                    fastRemove(index);// 20201117 则快速删除该元素, 没有返回值
+                    return true;// 20201117 删除成功, 返回true
                 }
         } else {
+            // 20201117 如果该对象不为null, 则遍历元素数组
             for (int index = 0; index < size; index++)
+                // 20201117 如果找到该实例(同一个)
                 if (o.equals(elementData[index])) {
+                    // 20201117 同样, 快速删除该元素, 删除成功返回true
                     fastRemove(index);
                     return true;
                 }
         }
+
+        // 20201117 如果找不到, 则删除失败返回fasle
         return false;
     }
 
@@ -589,12 +675,21 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * Private remove method that skips bounds checking and does not
      * return the value removed.
      */
+    // 20201117 专用的remove方法，跳过边界检查，并且不返回已删除的值。
     private void fastRemove(int index) {
+        // 20201117 结构修改次数+1
         modCount++;
+
+        // 20201117 获取index后的元素个数
         int numMoved = size - index - 1;
+
+        // 20201117 如果元素个数>0
         if (numMoved > 0)
+            // 20201117 则调用native方法对index+1后的元素进行左移
             System.arraycopy(elementData, index+1, elementData, index,
                              numMoved);
+
+        // 20201117 置空最后一个元素, 通知GC回收, 并且实际元素个数-1
         elementData[--size] = null; // clear to let GC do its work
     }
 
@@ -602,16 +697,25 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * Removes all of the elements from this list.  The list will
      * be empty after this call returns.
      */
+    // 20201117 从此列表中删除所有元素。 该调用返回后，该列表将为空。
     public void clear() {
+        // 20201117 结构修改次数+1
         modCount++;
 
         // clear to let GC do its work
+        // 20201117 遍历清空元素数组, 通知GC回收
         for (int i = 0; i < size; i++)
             elementData[i] = null;
 
+        // 20201117 重置实际元素大小为0
         size = 0;
     }
 
+    /**
+     * 20201117
+     * 按照指定集合的Iterator返回的顺序，将指定集合中的所有元素追加到此列表的末尾。
+     * 如果在操作进行过程中修改了指定的集合，则此操作的行为是不确定的。 （这意味着如果指定的集合是此列表，并且此列表是非空的，则此调用的行为是不确定的。）
+     */
     /**
      * Appends all of the elements in the specified collection to the end of
      * this list, in the order that they are returned by the
@@ -625,15 +729,32 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @return <tt>true</tt> if this list changed as a result of the call
      * @throws NullPointerException if the specified collection is null
      */
+    // 20201117 遍历添加列表参数中的元素
     public boolean addAll(Collection<? extends E> c) {
+        // 20201117 获取目标列表的Object类型数组
         Object[] a = c.toArray();
+
+        // 20201117 获取目标数组的长度
         int numNew = a.length;
+
+        // 20201117 根据size+目标数组长度确定下一个容量, 并且增长元素数组到那个容量大小, 且结构修改次数+1
         ensureCapacityInternal(size + numNew);  // Increments modCount
+
+        // 20201117 调用本地方法在元素数组末尾添加目标数组
         System.arraycopy(a, 0, elementData, size, numNew);
+
+        // 20201117 实际元素个数更i性能
         size += numNew;
+
+        // 20201117 如果目标数组长度不为0, 则返回true
         return numNew != 0;
     }
 
+    /**
+     * 20201117
+     * 从指定位置开始，将指定集合中的所有元素插入此列表。 将当前在该位置的元素（如果有）和任何后续元素右移（增加其索引）。
+     * 新元素将按照指定集合的迭代器返回的顺序显示在列表中。
+     */
     /**
      * Inserts all of the elements in the specified collection into this
      * list, starting at the specified position.  Shifts the element
@@ -649,23 +770,44 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @throws NullPointerException if the specified collection is null
      */
+    // 20201117 添加集合中所有元素到指定位置
     public boolean addAll(int index, Collection<? extends E> c) {
+        // 20201117 索引越界校验
         rangeCheckForAdd(index);
 
+        // 20201117 获取目标数组
         Object[] a = c.toArray();
+
+        // 20201117 获取目标数组大小
         int numNew = a.length;
+
+        // 20201117 根据新size确定下一个容量, 并且扩容元素数组以及结构次数+1
         ensureCapacityInternal(size + numNew);  // Increments modCount
 
+        // 20201117 获取index后面元素个数
         int numMoved = size - index;
+
+        // 20201117 如果元素个数>0
         if (numMoved > 0)
+            // 20201117 调用native方法对index后面的元素右移
             System.arraycopy(elementData, index, elementData, index + numNew,
                              numMoved);
 
+        // 20201117 如果元素个数为0, 则直接将元素添加到数组开始的地方索引0的位置
         System.arraycopy(a, 0, elementData, index, numNew);
+
+        // 20201117 更新实际元素个数
         size += numNew;
+
+        // 20201117 如果目标数组长度不为0, 则返回true
         return numNew != 0;
     }
 
+    /**
+     * 20201117
+     * 从此列表中删除索引在from，inclusive和toIndex Exclusive之间的所有元素。
+     * 将所有后续元素向左移动（减少其索引）。 此调用通过（toIndex-fromIndex）元素来缩短列表。 （如果toIndex == fromIndex，则此操作无效。）
+     */
     /**
      * Removes from this list all of the elements whose index is between
      * {@code fromIndex}, inclusive, and {@code toIndex}, exclusive.
@@ -680,17 +822,26 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      *          toIndex > size() ||
      *          toIndex < fromIndex})
      */
+    // 20201117 指定索引范围删除列表元素
     protected void removeRange(int fromIndex, int toIndex) {
+        // 20201117 结构修改次数+1
         modCount++;
+
+        // 20201117 获取index之后的元素个数
         int numMoved = size - toIndex;
+
+        // 20201117 调用native方法对toIndex后的元素左移到fromIndex处
         System.arraycopy(elementData, toIndex, elementData, fromIndex,
                          numMoved);
 
         // clear to let GC do its work
+        // 20201117 遍历置空后面多余的元素, 通知GC回收
         int newSize = size - (toIndex-fromIndex);
         for (int i = newSize; i < size; i++) {
             elementData[i] = null;
         }
+
+        // 20201117 更新实际元素个数
         size = newSize;
     }
 
@@ -700,7 +851,11 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * negative: It is always used immediately prior to an array access,
      * which throws an ArrayIndexOutOfBoundsException if index is negative.
      */
+    // 20201117 检查给定的索引是否在范围内。 如果不是，则抛出适当的运行时异常。
+    // 20201117 此方法不检查索引是否为负：始终在数组访问之前立即使用它，如果索引为负，则抛出ArrayIndexOutOfBoundsException。
+    // 20201117 索引越界检查
     private void rangeCheck(int index) {
+        // 20201117 如果索引大于列表大小时, 则抛出索引越界异常
         if (index >= size)
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
@@ -708,7 +863,9 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
     /**
      * A version of rangeCheck used by add and addAll.
      */
+    // 20201117 add和addAll使用的rangeCheck版本
     private void rangeCheckForAdd(int index) {
+        // 20201117 如果索引大于列表长度 或者 <0, 则抛出索引越界异常
         if (index > size || index < 0)
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
@@ -718,6 +875,8 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      * Of the many possible refactorings of the error handling code,
      * this "outlining" performs best with both server and client VMs.
      */
+    // 20201117 构造一个IndexOutOfBoundsException详细信息。 在错误处理代码的许多可能重构中，此“概述”在服务器和客户端VM上均表现最佳。
+    // 20201117 => index: 2, size: 1
     private String outOfBoundsMsg(int index) {
         return "Index: "+index+", Size: "+size;
     }
@@ -737,7 +896,9 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      *         or if the specified collection is null
      * @see Collection#contains(Object)
      */
+    // 20201117 从此列表中删除指定集合中包含的所有元素。
     public boolean removeAll(Collection<?> c) {
+        // 20201117 对指定的列表进行校验, 如果有元素为null, 则抛出空指针异常
         Objects.requireNonNull(c);
         return batchRemove(c, false);
     }
@@ -763,18 +924,30 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
         return batchRemove(c, true);
     }
 
+    // 20201117 根据指定列表进行批量删除
     private boolean batchRemove(Collection<?> c, boolean complement) {
+        // 20201117 获取元素数组
         final Object[] elementData = this.elementData;
+
+        // 20201117 初始化索引
         int r = 0, w = 0;
+
+        // 20201117 默认为没修改
         boolean modified = false;
         try {
+            // 20201117 遍历元素数组
             for (; r < size; r++)
+                // 20201117 如果元素是否存在于列表中的结果 == 指定的结果
                 if (c.contains(elementData[r]) == complement)
+                    // 20201117 则将该元素赋值到w位置
                     elementData[w++] = elementData[r];
         } finally {
             // Preserve behavioral compatibility with AbstractCollection,
             // even if c.contains() throws.
+            // 20201117 即使c.contains（）抛出异常，仍保留与AbstractCollection的行为兼容性。
+            // 20201117 在结束之前, 如果元素数组没有遍历完
             if (r != size) {
+                // 20201117 则
                 System.arraycopy(elementData, r,
                                  elementData, w,
                                  size - r);
