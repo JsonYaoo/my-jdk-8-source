@@ -30,6 +30,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
+ * // 20201117 集合层次结构中的根接口. 集合表示一组对象，称为其元素.
+ * // 20201117 一些集合允许重复的元素, 而另一些则不允许. 一些是有序的, 而其他则是无序的.
+ * // 20201117 JDK不提供此接口的任何直接实现: 它提供更特定的子接口（如Set和List）的实现.
+ * // 20201117 该接口通常用于传递集合, 并在需要最大通用性的地方操作它们
  * The root interface in the <i>collection hierarchy</i>.  A collection
  * represents a group of objects, known as its <i>elements</i>.  Some
  * collections allow duplicate elements and others do not.  Some are ordered
@@ -140,7 +144,7 @@ import java.util.stream.StreamSupport;
  * @see     AbstractCollection
  * @since 1.2
  */
-
+// 20201117 该接口继承Iterable接口, removeIf()、spliterator()、stream()、parallerStream()方法提供默认实现
 public interface Collection<E> extends Iterable<E> {
     // Query Operations
 

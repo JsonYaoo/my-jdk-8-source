@@ -26,6 +26,7 @@
 package java.lang;
 
 /**
+ * // 20201117 一个类实现Cloneable接口，以向{@link java.lang.Object＃clone（）}方法指示该方法为该类的实例进行逐域复制是合法的
  * A class implements the <code>Cloneable</code> interface to
  * indicate to the {@link java.lang.Object#clone()} method that it
  * is legal for that method to make a
@@ -50,5 +51,6 @@ package java.lang;
  * @see     java.lang.Object#clone()
  * @since   JDK1.0
  */
+// 20201117 标记型接口, 标记允许能够调用Object.clone()
 public interface Cloneable {
 }

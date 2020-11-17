@@ -31,6 +31,7 @@ import java.util.Spliterators;
 import java.util.function.Consumer;
 
 /**
+ * // 20201117 实现了该接口的对象可以进行遍历
  * Implementing this interface allows an object to be the target of
  * the "for-each loop" statement. See
  * <strong>
@@ -42,6 +43,7 @@ import java.util.function.Consumer;
  * @since 1.5
  * @jls 14.14.2 The enhanced for statement
  */
+// 20201117 遍历顶层接口
 public interface Iterable<T> {
     /**
      * Returns an iterator over elements of type {@code T}.

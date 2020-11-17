@@ -26,6 +26,8 @@
 package java.util;
 
 /**
+ * // 20201117 List实现使用的标记接口, 指示它们支持快速（通常为恒定时间）随机访问
+ * // 20201117 该接口的主要目的是允许通用算法更改其行为, 以便在应用于随机访问或顺序访问列表时提供良好的性能
  * Marker interface used by <tt>List</tt> implementations to indicate that
  * they support fast (generally constant time) random access.  The primary
  * purpose of this interface is to allow generic algorithms to alter their
@@ -64,5 +66,6 @@ package java.util;
  *
  * @since 1.4
  */
+// 20201117 标记型接口, 标记允许随机访问
 public interface RandomAccess {
 }

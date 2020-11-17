@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
+ * // 20201117 此类包含用于操纵数组的各种方法（例如排序和搜索）. 此类还包含一个静态工厂, 该工厂允许将数组视为列表
  * This class contains various methods for manipulating arrays (such as
  * sorting and searching). This class also contains a static factory
  * that allows arrays to be viewed as lists.
@@ -3182,6 +3183,14 @@ public class Arrays {
     }
 
     /**
+     * 20201117
+     * 复制指定的数组，截断或填充为空（如果需要），以便副本具有指定的长度。
+     * 对于在原始数组和副本中均有效的所有索引，两个数组将包含相同的值。
+     * 对于副本中有效但原始索引无效的任何索引，副本将包含null。
+     * 当且仅当指定长度大于原始数组的长度时，此类索引才会存在。
+     * 所得数组与原始数组具有完全相同的类。
+     */
+    /**
      * Copies the specified array, truncating or padding with nulls (if necessary)
      * so the copy has the specified length.  For all indices that are
      * valid in both the original array and the copy, the two arrays will
@@ -3205,11 +3214,15 @@ public class Arrays {
      *     an array of class <tt>newType</tt>
      * @since 1.6
      */
+    // 20201117 复制数组
     public static <T,U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
         @SuppressWarnings("unchecked")
+        // 20201117 如果指定返回Object类型, 则之间创建newLength长度的空数组; 否则调用native方法创建指定类型newLength长度的空数组
         T[] copy = ((Object)newType == (Object)Object[].class)
             ? (T[]) new Object[newLength]
             : (T[]) Array.newInstance(newType.getComponentType(), newLength);
+
+        // 20201117 调用native方法复制数组
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
         return copy;

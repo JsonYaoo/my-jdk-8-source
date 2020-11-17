@@ -26,6 +26,7 @@
 package java.util;
 
 /**
+ * // 20201117 此类提供了Collection接口的基本实现，以最大程度地减少实现此接口所需的工作。
  * This class provides a skeletal implementation of the <tt>Collection</tt>
  * interface, to minimize the effort required to implement this interface. <p>
  *
@@ -57,7 +58,7 @@ package java.util;
  * @see Collection
  * @since 1.2
  */
-
+// 20201117 实现了Collection接口大部分方法, 剩余iterator()、size()留到子类去实现
 public abstract class AbstractCollection<E> implements Collection<E> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically

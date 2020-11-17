@@ -26,6 +26,8 @@
 package java.util;
 
 /**
+ * // 20201117 列表迭代器, 允许程序员沿任一方向遍历列表, 在迭代过程中修改列表并获取迭代器在列表中的当前位置
+ * // 20201117 ListIterator没有当前元素. 它的光标位置始终位于上一个代码调用返回的元素和下一个代码调用返回的元素之间
  * An iterator for lists that allows the programmer
  * to traverse the list in either direction, modify
  * the list during iteration, and obtain the iterator's
@@ -57,6 +59,7 @@ package java.util;
  * @see List#listIterator()
  * @since   1.2
  */
+// 2020117 实现了Iterator接口
 public interface ListIterator<E> extends Iterator<E> {
     // Query Operations
 

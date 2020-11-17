@@ -26,6 +26,8 @@
 package java.util;
 
 /**
+ * // 20201117 此类提供了List接口的基本实现, 以最小化实现由“随机访问”数据存储（例如数组）支持的该接口所需的工作
+ * // 20201117 对于顺序访问数据（例如链表）, 应优先使用AbstractSequentialList代替此类
  * This class provides a skeletal implementation of the {@link List}
  * interface to minimize the effort required to implement this interface
  * backed by a "random access" data store (such as an array).  For sequential
@@ -67,7 +69,7 @@ package java.util;
  * @author  Neal Gafter
  * @since 1.2
  */
-
+// 20201117 AbstractList继承抽象AbstractCollection, 实现List接口, 剩余get(int)没有实现
 public abstract class AbstractList<E> extends AbstractCollection<E> implements List<E> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically
@@ -327,6 +329,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         return new ListItr(index);
     }
 
+    // 20201117 内部实现类, 实现Iterator接口
     private class Itr implements Iterator<E> {
         /**
          * Index of element to be returned by subsequent call to next.
@@ -387,6 +390,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         }
     }
 
+    // 20201117 内部实现类, 实现ListIterator接口
     private class ListItr extends Itr implements ListIterator<E> {
         ListItr(int index) {
             cursor = index;
@@ -598,6 +602,11 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
      * does not wish to provide fail-fast iterators, this field may be
      * ignored.
      */
+    /**
+     * 20201117
+     * 已对该列表进行结构修改的次数。
+     * 结构修改是指更改列表大小或以其他方式干扰列表的方式，即正在进行的迭代可能会产生错误的结果。
+     */
     protected transient int modCount = 0;
 
     private void rangeCheckForAdd(int index) {
@@ -610,6 +619,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
     }
 }
 
+// 20201117 实现了AbstractList
 class SubList<E> extends AbstractList<E> {
     private final AbstractList<E> l;
     private final int offset;
@@ -770,6 +780,7 @@ class SubList<E> extends AbstractList<E> {
     }
 }
 
+// 20201117 实现了SubList、RandomAccess接口
 class RandomAccessSubList<E> extends SubList<E> implements RandomAccess {
     RandomAccessSubList(AbstractList<E> list, int fromIndex, int toIndex) {
         super(list, fromIndex, toIndex);

@@ -30,6 +30,8 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 /**
+ * // 20201117 List接口的可调整大小的数组实现. 实现所有可选的列表操作, 并允许所有元素, 包括null
+ * // 20201117 除了实现List接口之外, 此类还提供一些方法来操纵内部用于存储列表的数组的大小(此类与Vector大致等效, 但它是不同步的)
  * Resizable-array implementation of the <tt>List</tt> interface.  Implements
  * all optional list operations, and permits all elements, including
  * <tt>null</tt>.  In addition to implementing the <tt>List</tt> interface,
@@ -102,20 +104,21 @@ import java.util.function.UnaryOperator;
  * @see     Vector
  * @since   1.2
  */
-
-public class ArrayList<E> extends AbstractList<E>
-        implements List<E>, RandomAccess, Cloneable, java.io.Serializable
+// 20201117 实现了AbstractList, List接口, 允许随机访问、Clone调用、可序列化
+public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable
 {
     private static final long serialVersionUID = 8683452581122892189L;
 
     /**
      * Default initial capacity.
      */
+    // 20201117 默认了容量10个元素
     private static final int DEFAULT_CAPACITY = 10;
 
     /**
      * Shared empty array instance used for empty instances.
      */
+    // 20201117 初始空数组
     private static final Object[] EMPTY_ELEMENTDATA = {};
 
     /**
@@ -123,6 +126,7 @@ public class ArrayList<E> extends AbstractList<E>
      * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
      * first element is added.
      */
+    // 20201117 初始空数组, 将此与EMPTY_ELEMENTDATA区别开来, 以了解添加第一个元素时要填入多少
     private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
 
     /**
@@ -131,13 +135,17 @@ public class ArrayList<E> extends AbstractList<E>
      * empty ArrayList with elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA
      * will be expanded to DEFAULT_CAPACITY when the first element is added.
      */
-    transient Object[] elementData; // non-private to simplify nested class access
+    // 20201117 transient:当前属性不参与序列化(敏感信息) => 实际元素数组
+    // 20201117 存储ArrayList的元素的数组缓冲区. ArrayList的容量是此数组缓冲区的长度.
+    // 20201117 任何具有elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA的空ArrayList, 添加第一个元素时, 将扩展为DEFAULT_CAPACITY
+    transient Object[] elementData; // non-private to simplify nested class access // 20201117 非私有以简化嵌套类访问
 
     /**
      * The size of the ArrayList (the number of elements it contains).
      *
      * @serial
      */
+    // 20201117 列表元素个数
     private int size;
 
     /**
@@ -147,12 +155,16 @@ public class ArrayList<E> extends AbstractList<E>
      * @throws IllegalArgumentException if the specified initial capacity
      *         is negative
      */
+    // 20201117 构造一个具有指定初始容量的空列表
     public ArrayList(int initialCapacity) {
         if (initialCapacity > 0) {
+            // 20201117 初始化指定容量大小数组, 元素为{}
             this.elementData = new Object[initialCapacity];
         } else if (initialCapacity == 0) {
+            // 20201117 初始化数组 = {}
             this.elementData = EMPTY_ELEMENTDATA;
         } else {
+            // 20201117 参数非法异常
             throw new IllegalArgumentException("Illegal Capacity: "+
                                                initialCapacity);
         }
@@ -161,7 +173,9 @@ public class ArrayList<E> extends AbstractList<E>
     /**
      * Constructs an empty list with an initial capacity of ten.
      */
+    // 20201117 构造一个初始容量为10的空列表
     public ArrayList() {
+        // 20201117 初始化容量默认为10的空数组 = {}
         this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
     }
 
@@ -173,14 +187,20 @@ public class ArrayList<E> extends AbstractList<E>
      * @param c the collection whose elements are to be placed into this list
      * @throws NullPointerException if the specified collection is null
      */
+    // 20201117 构造一个列表, 该列表包含指定集合的元素, 其顺序由集合的迭代器返回
     public ArrayList(Collection<? extends E> c) {
+        // 20201117 多态性, 调用Collection接口的实现类方法 => 返回值Object[]类型 => 赋值给容器元素数组
         elementData = c.toArray();
+
+        // 20201117 元素个数不为0
         if ((size = elementData.length) != 0) {
             // c.toArray might (incorrectly) not return Object[] (see 6260652)
             if (elementData.getClass() != Object[].class)
+                // 20201117 如果不是Object类型, 则拷贝size个数组元素, 转换为Object类型存到elementData数组中来
                 elementData = Arrays.copyOf(elementData, size, Object[].class);
         } else {
             // replace with empty array.
+            // 20201117 如果元素个数为0, 则默认为{}
             this.elementData = EMPTY_ELEMENTDATA;
         }
     }
@@ -190,9 +210,14 @@ public class ArrayList<E> extends AbstractList<E>
      * list's current size.  An application can use this operation to minimize
      * the storage of an <tt>ArrayList</tt> instance.
      */
+    // 20201117 将此ArrayList实例的容量调整为列表的当前大小。 应用程序可以使用此操作来最小化ArrayList实例的存储。
     public void trimToSize() {
-        modCount++;
+        // 20201117 AbstractList非序列化属性: 数组结构修改次数
+        modCount++;// 2020117 结构修改次数+1
+
+        // 20201117 如果list大小小于数组元素个数
         if (size < elementData.length) {
+            // 20201117 如果list为0, 则初始化数组元素为{}, 否则返回指定size大小的数组元素
             elementData = (size == 0)
               ? EMPTY_ELEMENTDATA
               : Arrays.copyOf(elementData, size);
@@ -206,7 +231,9 @@ public class ArrayList<E> extends AbstractList<E>
      *
      * @param   minCapacity   the desired minimum capacity
      */
+    // 20201117 如有必要，增加此ArrayList实例的容量，以确保它至少可以容纳最小容量参数指定的元素数。
     public void ensureCapacity(int minCapacity) {
+        // 20201117 如果元素数组为空, 则为0; 否则应该为默认容量 => 最小扩展数
         int minExpand = (elementData != DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
             // any size if not default element table
             ? 0
@@ -214,7 +241,9 @@ public class ArrayList<E> extends AbstractList<E>
             // supposed to be at default size.
             : DEFAULT_CAPACITY;
 
+        // 20201117 如果指定容量大于最小扩展数
         if (minCapacity > minExpand) {
+            // 20201117
             ensureExplicitCapacity(minCapacity);
         }
     }
@@ -227,11 +256,14 @@ public class ArrayList<E> extends AbstractList<E>
         ensureExplicitCapacity(minCapacity);
     }
 
+    // 20201117 确定明确的容量 -> 容量增加为下一个规则容量
     private void ensureExplicitCapacity(int minCapacity) {
-        modCount++;
+        modCount++;// 20201117 数组结构修改次数
 
         // overflow-conscious code
+        // 20201117 指定的最小容量大于数组元素个数时
         if (minCapacity - elementData.length > 0)
+            // 20201117 指定列表数组增长到指定容量的数组, 多余的为null
             grow(minCapacity);
     }
 
@@ -241,6 +273,8 @@ public class ArrayList<E> extends AbstractList<E>
      * Attempts to allocate larger arrays may result in
      * OutOfMemoryError: Requested array size exceeds VM limit
      */
+    // 20201117 要分配的最大数组大小。 一些虚拟机在数组中保留一些头字。 尝试分配更大的阵列可能会导致OutOfMemoryError：请求的阵列大小超出VM限制
+    // 20201117 列表最大长度 = 0x7fffffff - 0x0000001000
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     /**
@@ -249,21 +283,37 @@ public class ArrayList<E> extends AbstractList<E>
      *
      * @param minCapacity the desired minimum capacity
      */
+    // 20201117 增加容量以确保其至少可以容纳最小容量参数指定的元素数。
+    // 20201117 指定列表数组增长到指定容量的数组, 多余的为null
     private void grow(int minCapacity) {
-        // overflow-conscious code
+        // overflow-conscious code // 20201117 有溢出意识的代码
+        // 20201117 旧容量为旧的数组元素大小
         int oldCapacity = elementData.length;
+
+        // 20201117 新容量 = 旧容量 + 旧容量/2 = 旧容量 * (1 + 1/2) => 增加的容量为原始容量的一半
         int newCapacity = oldCapacity + (oldCapacity >> 1);
+
+        // 20201117 如果新容量小于旧容量
         if (newCapacity - minCapacity < 0)
+            // 20201117 则新容量 = 旧容量
             newCapacity = minCapacity;
+
+        // 20201117 如果新容量超出最大容量
         if (newCapacity - MAX_ARRAY_SIZE > 0)
+            // 20201117 则获取列表最大长度
             newCapacity = hugeCapacity(minCapacity);
         // minCapacity is usually close to size, so this is a win:
+        // 20201117 创建指定容量的数组, 并且拷贝旧的数组过去, 多余的为null
         elementData = Arrays.copyOf(elementData, newCapacity);
     }
 
+    // 2020117 获取最大列表长度
     private static int hugeCapacity(int minCapacity) {
+        // 20201117 如果指定容量小于0, 则报内存溢出
         if (minCapacity < 0) // overflow
             throw new OutOfMemoryError();
+
+        // 20201117 如果大于列表最大长度, 则为0x7fffffff, 否则为列表最大长度
         return (minCapacity > MAX_ARRAY_SIZE) ?
             Integer.MAX_VALUE :
             MAX_ARRAY_SIZE;
@@ -274,8 +324,9 @@ public class ArrayList<E> extends AbstractList<E>
      *
      * @return the number of elements in this list
      */
+    // 20201117 返回此列表中的元素数。
     public int size() {
-        return size;
+        return size;// 20201117 列表元素个数
     }
 
     /**
@@ -283,6 +334,7 @@ public class ArrayList<E> extends AbstractList<E>
      *
      * @return <tt>true</tt> if this list contains no elements
      */
+    // 20201117 判断列表元素个数是否为0
     public boolean isEmpty() {
         return size == 0;
     }

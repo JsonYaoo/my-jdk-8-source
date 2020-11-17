@@ -26,6 +26,9 @@
 package java.io;
 
 /**
+ * // 20201117 通过实现java.io.Serializable接口的类, 可以启用类的可序列化性
+ * // 20201117 未实现此接口的类将不会对其状态进行序列化或反序列化. 可序列化类的所有子类型本身都是可序列化的.
+ * // 2020117 序列化接口没有方法或字段, 仅用于标识可序列化的语义
  * Serializability of a class is enabled by the class implementing the
  * java.io.Serializable interface. Classes that do not implement this
  * interface will not have any of their state serialized or
@@ -166,5 +169,6 @@ package java.io;
  * @see java.io.Externalizable
  * @since   JDK1.1
  */
+// 20201117 标记型接口, 标记可序列化
 public interface Serializable {
 }
