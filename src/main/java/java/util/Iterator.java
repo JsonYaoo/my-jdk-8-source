@@ -51,7 +51,12 @@ import java.util.function.Consumer;
  * @see Iterable
  * @since 1.2
  */
+// 20201118 集合上的迭代器
 public interface Iterator<E> {
+    /**
+     * 20201118
+     * 如果此列表迭代器在向前遍历列表时有更多元素，则返回true。（换句话说，如果#next将返回元素而不是引发异常，则返回true。）
+     */
     /**
      * Returns {@code true} if the iteration has more elements.
      * (In other words, returns {@code true} if {@link #next} would
@@ -67,8 +72,14 @@ public interface Iterator<E> {
      * @return the next element in the iteration
      * @throws NoSuchElementException if the iteration has no more elements
      */
+    // 20201118 返回迭代中的下一个元素。
     E next();
 
+    /**
+     * 20201118
+     * 从基础集合中移除此迭代器返回的最后一个元素（可选操作）。每次调用#next只能调用此方法一次。
+     * 如果在迭代过程中以任何方式（而不是通过调用此方法）修改基础集合，则未指定迭代器的行为。
+     */
     /**
      * Removes from the underlying collection the last element returned
      * by this iterator (optional operation).  This method can be called
@@ -89,10 +100,15 @@ public interface Iterator<E> {
      *         been called after the last call to the {@code next}
      *         method
      */
+    // 20201118 删除迭代器最后一个元素(每次迭代时), 默认抛出异常
     default void remove() {
         throw new UnsupportedOperationException("remove");
     }
 
+    /**
+     * 20201118
+     * 对剩余的每个元素执行给定的操作，直到所有元素都已处理或操作引发异常。如果指定了迭代顺序，则按迭代顺序执行操作。操作引发的异常被中继到调用方。
+     */
     /**
      * Performs the given action for each remaining element until all elements
      * have been processed or the action throws an exception.  Actions are
@@ -110,8 +126,12 @@ public interface Iterator<E> {
      * @throws NullPointerException if the specified action is null
      * @since 1.8
      */
+    // 2020118 指定规则进行迭代元素
     default void forEachRemaining(Consumer<? super E> action) {
+        // 20201118 空指针校验
         Objects.requireNonNull(action);
+
+        // 20201118 如果有一个元素, 则使用指定规则遍历
         while (hasNext())
             action.accept(next());
     }

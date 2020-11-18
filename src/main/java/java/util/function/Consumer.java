@@ -27,6 +27,10 @@ package java.util.function;
 import java.util.Objects;
 
 /**
+ * 20201118
+ * 表示接受单个输入参数但不返回结果的操作。与大多数其他功能接口不同，Consumeris预计会通过副作用来操作。
+ */
+/**
  * Represents an operation that accepts a single input argument and returns no
  * result. Unlike most other functional interfaces, {@code Consumer} is expected
  * to operate via side-effects.
@@ -46,6 +50,7 @@ public interface Consumer<T> {
      *
      * @param t the input argument
      */
+    // 20201118 对给定参数执行此操作。
     void accept(T t);
 
     /**

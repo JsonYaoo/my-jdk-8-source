@@ -422,6 +422,10 @@ public class ObjectOutputStream
     }
 
     /**
+     * 20201118
+     * 将当前类的非静态和非瞬态字段写入此流。这只能从正在序列化的类的writeObject方法调用。如果以其他方式调用它，它将抛出NotActivieException。
+     */
+    /**
      * Write the non-static and non-transient fields of the current class to
      * this stream.  This may only be called from the writeObject method of the
      * class being serialized. It will throw the NotActiveException if it is
@@ -430,6 +434,7 @@ public class ObjectOutputStream
      * @throws  IOException if I/O errors occur while writing to the underlying
      *          <code>OutputStream</code>
      */
+    // 20201118 限定只能从wirteObejct()写出
     public void defaultWriteObject() throws IOException {
         SerialCallbackContext ctx = curContext;
         if (ctx == null) {

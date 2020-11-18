@@ -37,6 +37,7 @@ import java.util.Objects;
  *
  * @since 1.8
  */
+// 20201118 表示接受一个参数并生成结果的函数。
 @FunctionalInterface
 public interface Function<T, R> {
 

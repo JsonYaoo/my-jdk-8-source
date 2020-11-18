@@ -36,6 +36,7 @@ import java.util.Objects;
  *
  * @since 1.8
  */
+// 20201118 表示一个参数的谓词（布尔值函数）。
 @FunctionalInterface
 public interface Predicate<T> {
 
@@ -46,6 +47,7 @@ public interface Predicate<T> {
      * @return {@code true} if the input argument matches the predicate,
      * otherwise {@code false}
      */
+    // 20201118 在给定参数上计算此谓词。
     boolean test(T t);
 
     /**
@@ -64,6 +66,7 @@ public interface Predicate<T> {
      * AND of this predicate and the {@code other} predicate
      * @throws NullPointerException if other is null
      */
+    // 20201118 返回一个组合谓词，该谓词表示此谓词和另一个谓词的短路逻辑“与”。在计算组合谓词时，如果该谓词是{@code false}，则不计算{@code other}谓词。
     default Predicate<T> and(Predicate<? super T> other) {
         Objects.requireNonNull(other);
         return (t) -> test(t) && other.test(t);
@@ -76,10 +79,15 @@ public interface Predicate<T> {
      * @return a predicate that represents the logical negation of this
      * predicate
      */
+    // 20201118 返回一个表示此谓词逻辑否定的谓词。
     default Predicate<T> negate() {
         return (t) -> !test(t);
     }
 
+    /**
+     * 20201118
+     * 返回一个组合谓词，该谓词表示此谓词和另一个谓词的短路逻辑“或”。在计算组合谓词时，如果该谓词是{@code true}，则不计算{@code other}谓词。
+     */
     /**
      * Returns a composed predicate that represents a short-circuiting logical
      * OR of this predicate and another.  When evaluating the composed
@@ -101,6 +109,10 @@ public interface Predicate<T> {
         return (t) -> test(t) || other.test(t);
     }
 
+    /**
+     * 20201118
+     * {根据@Object}返回两个相等的Object}参数。
+     */
     /**
      * Returns a predicate that tests if two arguments are equal according
      * to {@link Objects#equals(Object, Object)}.

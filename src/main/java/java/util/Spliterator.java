@@ -293,7 +293,14 @@ import java.util.function.LongConsumer;
  * @see Collection
  * @since 1.8
  */
+// 20201118 用于遍历和划分源元素的对象。拆分器覆盖的元素源可以是数组、{@link Collection}、IO通道或生成器函数。
 public interface Spliterator<T> {
+
+    /**
+     * 20201118
+     * 如果剩余元素存在，则对其执行给定的操作，返回{@code true}；否则返回{@code false}。
+     * 如果这个拆分器是{@link{ORDERED}，那么操作将按遭遇顺序在下一个元素上执行。操作引发的异常被中继到调用方。
+     */
     /**
      * If a remaining element exists, performs the given action on it,
      * returning {@code true}; else returns {@code false}.  If this
@@ -308,6 +315,11 @@ public interface Spliterator<T> {
      */
     boolean tryAdvance(Consumer<? super T> action);
 
+    /**
+     * 20201118
+     * 对当前线程中剩余的每个元素按顺序执行给定的操作，直到处理完所有元素或该操作引发异常。
+     * 如果这个拆分器是{@link#ORDERED}，那么操作将按遭遇顺序执行。操作引发的异常被中继到调用方。
+     */
     /**
      * Performs the given action for each remaining element, sequentially in
      * the current thread, until all elements have been processed or the action
@@ -367,6 +379,7 @@ public interface Spliterator<T> {
      * @return a {@code Spliterator} covering some portion of the
      * elements, or {@code null} if this spliterator cannot be split
      */
+    // 20201118 如果可以对这个spliterator进行分区，则返回一个包含元素的spliterator，从该方法返回时，此spliterator将不覆盖该元素。
     Spliterator<T> trySplit();
 
     /**
@@ -392,6 +405,7 @@ public interface Spliterator<T> {
      * @return the estimated size, or {@code Long.MAX_VALUE} if infinite,
      *         unknown, or too expensive to compute.
      */
+    // 20201118 返回{@link}forEachRemaining}遍历将遇到的元素数的估计值，或返回{@link Long#MAX_VALUE}如果无穷大、未知或计算开销太大。
     long estimateSize();
 
     /**
@@ -404,10 +418,16 @@ public interface Spliterator<T> {
      *
      * @return the exact size, if known, else {@code -1}.
      */
+    // 20201118 便利方法，如果Spliterator是{@link#size}，否则是{@code-1}。
     default long getExactSizeIfKnown() {
         return (characteristics() & SIZED) == 0 ? -1L : estimateSize();
     }
 
+    /**
+     * 20201118
+     * 返回此拆分器及其元素的一组特征。结果被表示为{@link{ORDERED}、{@link{DISTINCT}、{@link{SORTED}、{@link{link}、NONNULL}、{@link}不可变}、
+     * {@link}、CONCURRENT}、{@link}SUBSIZED}。在对{@code trySplit}的调用之前或之间，对给定拆分器的{@code characteristics（）}的重复调用应始终返回相同的结果。
+     */
     /**
      * Returns a set of characteristics of this Spliterator and its
      * elements. The result is represented as ORed values from {@link
@@ -443,10 +463,16 @@ public interface Spliterator<T> {
      * @return {@code true} if all the specified characteristics are present,
      * else {@code false}
      */
+    // 20201118 如果此拆分器的{@link#特征}包含所有给定特征，则返回{@code true}。
     default boolean hasCharacteristics(int characteristics) {
         return (characteristics() & characteristics) == characteristics;
     }
 
+    /**
+     * 20201118
+     * 如果这个拆分器的源是{@link}按{@link Comparator}排序的，则返回{@code Comparator}。如果源代码是{@code SORTED}（按{@linkplain可比自然顺序）}，
+     * 则返回{@code null}。否则，如果源不是{@code SORTED}，则抛出{@link illeglastateException}。
+     */
     /**
      * If this Spliterator's source is {@link #SORTED} by a {@link Comparator},
      * returns that {@code Comparator}. If the source is {@code SORTED} in
@@ -465,6 +491,11 @@ public interface Spliterator<T> {
         throw new IllegalStateException();
     }
 
+    /**
+     * 20201118
+     * 表示为元素定义遭遇顺序的特征值。如果是这样，这个Spliterator保证方法{@link\#trySplit}分割元素的严格前缀，方法{@link}按前缀顺序按一个元素执行，
+     * 并且{@link}forEachRemaining}按遭遇顺序执行操作。
+     */
     /**
      * Characteristic value signifying that an encounter order is defined for
      * elements. If so, this Spliterator guarantees that method
@@ -490,6 +521,7 @@ public interface Spliterator<T> {
      * encountered elements {@code x, y}, {@code !x.equals(y)}. This
      * applies for example, to a Spliterator based on a {@link Set}.
      */
+    // 20201118 特征值，表示对于每对遇到的元素{@code x，y}，{@code！x、 等于（y）}。例如，这适用于基于{@link Set}的拆分器。
     public static final int DISTINCT   = 0x00000001;
 
     /**
@@ -504,8 +536,13 @@ public interface Spliterator<T> {
      * @apiNote The spliterators for {@code Collection} classes in the JDK that
      * implement {@link NavigableSet} or {@link SortedSet} report {@code SORTED}.
      */
+    // 20201118 表示遇到顺序遵循定义的排序顺序的特征值。如果是这样，方法{@link#getComparator（）}返回关联的比较器，如果所有元素都是{@link Comparable}并按其自然顺序排序，则返回{@code null}。
     public static final int SORTED     = 0x00000004;
 
+    /**
+     * 20201118
+     * 特征值，表示在遍历或拆分之前从{@code estimateSize（）}返回的值表示有限大小，在没有结构源修改的情况下，表示完全遍历将遇到的元素数的精确计数。
+     */
     /**
      * Characteristic value signifying that the value returned from
      * {@code estimateSize()} prior to traversal or splitting represents a
@@ -525,8 +562,15 @@ public interface Spliterator<T> {
      * encountered elements will not be {@code null}. (This applies,
      * for example, to most concurrent collections, queues, and maps.)
      */
+    // 20201118 表示源代码保证遇到的元素不会是{@code null}的特征值。（例如，这适用于大多数并发集合、队列和映射。）
     public static final int NONNULL    = 0x00000100;
 
+    /**
+     * 20201118
+     * 特征值表示该特征值表示不能在结构上修改元素源；也就是说，不能添加、替换或删除元素，因此在遍历期间不会发生此类更改。
+     * 不报告{@code IMMUTABLE}或{@code CONCURRENT}的拆分器应该有一个文档化的策略（例如抛出{@link ConcurrentModificationException}），
+     * 该策略涉及在穿越source保证遇到的元素不会是{@code null}。（例如，这适用于大多数并发集合、队列和映射。）
+     */
     /**
      * Characteristic value signifying that the element source cannot be
      * structurally modified; that is, elements cannot be added, replaced, or
@@ -538,6 +582,10 @@ public interface Spliterator<T> {
      */
     public static final int IMMUTABLE  = 0x00000400;
 
+    /**
+     * 20201118
+     * 表示元素源可以由多个线程安全地并发修改（允许添加、替换和/或删除），而无需外部同步。如果是这样的话，Spliterator应该有一个关于遍历期间修改影响的文档化策略。
+     */
     /**
      * Characteristic value signifying that the element source may be safely
      * concurrently modified (allowing additions, replacements, and/or removals)
@@ -560,6 +608,11 @@ public interface Spliterator<T> {
      */
     public static final int CONCURRENT = 0x00001000;
 
+    /**
+     * 20201118
+     * 表示从{@code trySplit（）}生成的所有拆分器都将是{@link#size}和{@link#SUBSIZED}的特征值。
+     * （这意味着所有子拆分器，无论是直接拆分器还是间接拆分器，都将是{@code-size}）
+     */
     /**
      * Characteristic value signifying that all Spliterators resulting from
      * {@code trySplit()} will be both {@link #SIZED} and {@link #SUBSIZED}.
@@ -596,6 +649,7 @@ public interface Spliterator<T> {
      * @see Spliterator.OfDouble
      * @since 1.8
      */
+    // 20201118 专门用于原始值的拆分器。
     public interface OfPrimitive<T, T_CONS, T_SPLITR extends Spliterator.OfPrimitive<T, T_CONS, T_SPLITR>>
             extends Spliterator<T> {
         @Override
@@ -641,6 +695,7 @@ public interface Spliterator<T> {
      * A Spliterator specialized for {@code int} values.
      * @since 1.8
      */
+    // 20201118 专门用于{@code int}值的拆分器。
     public interface OfInt extends OfPrimitive<Integer, IntConsumer, OfInt> {
 
         @Override
@@ -705,6 +760,7 @@ public interface Spliterator<T> {
      * A Spliterator specialized for {@code long} values.
      * @since 1.8
      */
+    // 20201118 专门用于{@code long}值的拆分器。
     public interface OfLong extends OfPrimitive<Long, LongConsumer, OfLong> {
 
         @Override
@@ -769,6 +825,7 @@ public interface Spliterator<T> {
      * A Spliterator specialized for {@code double} values.
      * @since 1.8
      */
+    // 20201118 专门用于{@code double}值的拆分器。
     public interface OfDouble extends OfPrimitive<Double, DoubleConsumer, OfDouble> {
 
         @Override

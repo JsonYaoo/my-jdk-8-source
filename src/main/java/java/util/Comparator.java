@@ -33,6 +33,13 @@ import java.util.function.ToDoubleFunction;
 import java.util.Comparators;
 
 /**
+ * 20201118
+ * 一种比较函数，它对某些对象集合施加总的排序。可以将比较器传递给排序方法（例如{@link Collections#sort（List，Comparator））集合.sort}
+ * 或{@link Arrays#sort（Object[]，比较器）数组.排序})允许对分拣顺序进行精确控制。
+ * 比较器还可以用于控制某些数据结构的顺序（例如{@link SortedSet sorted sets}或{@link SortedMap sortedmaps}），
+ * 或者为没有{@link Comparable natural ordering}的对象集合提供排序。
+ */
+/**
  * A comparison function, which imposes a <i>total ordering</i> on some
  * collection of objects.  Comparators can be passed to a sort method (such
  * as {@link Collections#sort(List,Comparator) Collections.sort} or {@link

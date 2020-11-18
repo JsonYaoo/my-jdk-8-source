@@ -37,6 +37,7 @@ package java.util.function;
  * @see Function
  * @since 1.8
  */
+// 20201118 表示在单个操作数上生成与其操作数类型相同的结果的操作。这是{@code Function}在操作数和结果属于同一类型的情况下的特殊化。
 @FunctionalInterface
 public interface UnaryOperator<T> extends Function<T, T> {
 
@@ -46,6 +47,7 @@ public interface UnaryOperator<T> extends Function<T, T> {
      * @param <T> the type of the input and output of the operator
      * @return a unary operator that always returns its input argument
      */
+    // 20201118 返回一元运算符，该运算符始终返回其输入参数。
     static <T> UnaryOperator<T> identity() {
         return t -> t;
     }

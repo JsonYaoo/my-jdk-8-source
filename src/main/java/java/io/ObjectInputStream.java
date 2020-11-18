@@ -479,6 +479,10 @@ public class ObjectInputStream
     }
 
     /**
+     * 20201118
+     * 从这个流中读取当前类的非静态和非瞬态字段。这只能从正在反序列化的类的readObject方法调用。如果以其他方式调用它，它将抛出NotActivieException。
+     */
+    /**
      * Read the non-static and non-transient fields of the current class from
      * this stream.  This may only be called from the readObject method of the
      * class being deserialized. It will throw the NotActiveException if it is
@@ -490,6 +494,7 @@ public class ObjectInputStream
      * @throws  NotActiveException if the stream is not currently reading
      *          objects.
      */
+    // 20201118 限定只能读取readObject()内容
     public void defaultReadObject()
         throws IOException, ClassNotFoundException
     {

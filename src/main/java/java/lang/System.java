@@ -399,6 +399,11 @@ public final class System {
     public static native long nanoTime();
 
     /**
+     * 20201118
+     * 从指定的源数组将数组从指定位置开始复制到目标数组的指定位置。数组组件的子序列从src引用的源数组复制到dest引用的目标数组。
+     * 复制的组件数等于长度参数。源数组中位于srcPos到srcPos+length-1的组件分别复制到目标的destPos到destPos+length-1的位置
+     */
+    /**
      * Copies an array from the specified source array, beginning at the
      * specified position, to the specified position of the destination array.
      * A subsequence of array components are copied from the source
@@ -490,6 +495,7 @@ public final class System {
      * @exception  NullPointerException if either <code>src</code> or
      *               <code>dest</code> is <code>null</code>.
      */
+    // 20201118 复制srcPos~src.length-1到destPos~dest.length-1
     public static native void arraycopy(Object src,  int  srcPos,
                                         Object dest, int destPos,
                                         int length);
