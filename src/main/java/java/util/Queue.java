@@ -36,6 +36,13 @@
 package java.util;
 
 /**
+ * 20201118
+ * 设计用于在处理之前保存元素的集合。
+ * 除了基本的{@linkjava.util.CollectionCollection}操作、队列提供附加的插入、提取和检查操作。
+ * 这些方法都有两种形式：一种在操作失败时抛出异常，另一种方法返回一个特殊值（根据操作的不同，{@code null}或{@code false}）。
+ * 后一种形式的插入操作是专门为容量受限的{@code Queue}实现而设计的；在大多数实现中，插入操作不会失败。
+ */
+/**
  * A collection designed for holding elements prior to processing.
  * Besides basic {@link java.util.Collection Collection} operations,
  * queues provide additional insertion, extraction, and inspection
@@ -141,6 +148,7 @@ package java.util;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
+// 20201118 仅仅提供一些操作元素的方法声明
 public interface Queue<E> extends Collection<E> {
     /**
      * Inserts the specified element into this queue if it is possible to do so

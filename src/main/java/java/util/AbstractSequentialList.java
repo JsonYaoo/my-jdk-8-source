@@ -26,6 +26,11 @@
 package java.util;
 
 /**
+ * 20201118
+ * 这个类提供列表接口的框架实现，以最小化实现由“顺序访问”数据存储（如链接列表）支持的接口所需的工作量。
+ * 对于随机存取资料（例如阵列），应该优先使用AbstractList而不是这个类别。
+ */
+/**
  * This class provides a skeletal implementation of the <tt>List</tt>
  * interface to minimize the effort required to implement this interface
  * backed by a "sequential access" data store (such as a linked list).  For
@@ -65,7 +70,7 @@ package java.util;
  * @see AbstractCollection
  * @since 1.2
  */
-
+// 20201117 实现了大部分AbstractList接口方法, 剩余listIterator留到子类去实现 => 随机访问不用AbstractSequentialList
 public abstract class AbstractSequentialList<E> extends AbstractList<E> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically

@@ -36,6 +36,11 @@
 package java.util;
 
 /**
+ * 20201118
+ * 在两端支持元素插入和删除的线性集合。deque是“双头队列”的缩写，通常发音为“deck”。
+ * 大多数{@codedeque}实现对它们可能包含的元素数量没有固定的限制，但是这个接口支持容量受限的deques以及没有固定大小限制的deques。
+ */
+/**
  * A linear collection that supports element insertion and removal at
  * both ends.  The name <i>deque</i> is short for "double ended queue"
  * and is usually pronounced "deck".  Most {@code Deque}
@@ -190,6 +195,7 @@ package java.util;
  * @since  1.6
  * @param <E> the type of elements held in this collection
  */
+// 20201118 双头队列接口
 public interface Deque<E> extends Queue<E> {
     /**
      * Inserts the specified element at the front of this deque if it is

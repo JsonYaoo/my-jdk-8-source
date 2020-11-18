@@ -28,6 +28,10 @@ package java.util;
 import java.util.function.UnaryOperator;
 
 /**
+ * 20201118
+ * 有序集合（也称为序列）。此接口的用户可以精确控制列表中每个元素的插入位置。用户可以通过其整数索引（在列表中的位置）访问元素，并在列表中搜索元素。
+ */
+/**
  * An ordered collection (also known as a <i>sequence</i>).  The user of this
  * interface has precise control over where in the list each element is
  * inserted.  The user can access elements by their integer index (position in
@@ -107,7 +111,7 @@ import java.util.function.UnaryOperator;
  * @see AbstractSequentialList
  * @since 1.2
  */
-
+// 20201118 有序集合即序列, 可以根据索引获取列表元素 -> 除了排序和基本方法大部分都是方法声明, 没有实现
 public interface List<E> extends Collection<E> {
     // Query Operations
 

@@ -28,6 +28,10 @@ package java.util;
 import java.util.function.Consumer;
 
 /**
+ * 20201118
+ * {@code list}和{@codedeque}接口的双链接列表实现。实现所有可选的列表操作，并允许所有元素（包括{@code null}）。
+ */
+/**
  * Doubly-linked list implementation of the {@code List} and {@code Deque}
  * interfaces.  Implements all optional list operations, and permits all
  * elements (including {@code null}).
@@ -79,11 +83,10 @@ import java.util.function.Consumer;
  * @since 1.2
  * @param <E> the type of elements held in this collection
  */
-
-public class LinkedList<E>
-    extends AbstractSequentialList<E>
-    implements List<E>, Deque<E>, Cloneable, java.io.Serializable
+// 20201118 继承AbstractSequentialList, 实现List、Deque、Cloneable、Serializble接口, 代表是可克隆、可序列化的
+public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>, Deque<E>, Cloneable, java.io.Serializable
 {
+    // 20201118 实际元素个数 -> transient禁止该属性参与序列化
     transient int size = 0;
 
     /**
@@ -91,6 +94,7 @@ public class LinkedList<E>
      * Invariant: (first == null && last == null) ||
      *            (first.prev == null && first.item != null)
      */
+    // 20201118 头结点指针
     transient Node<E> first;
 
     /**
@@ -98,11 +102,13 @@ public class LinkedList<E>
      * Invariant: (first == null && last == null) ||
      *            (last.next == null && last.item != null)
      */
+    // 20201118 末尾结点指针
     transient Node<E> last;
 
     /**
      * Constructs an empty list.
      */
+    // 20201118 构造方法
     public LinkedList() {
     }
 
@@ -114,6 +120,7 @@ public class LinkedList<E>
      * @param  c the collection whose elements are to be placed into this list
      * @throws NullPointerException if the specified collection is null
      */
+    // 20201118 构造方法 -> 根据指定集合进行构造
     public LinkedList(Collection<? extends E> c) {
         this();
         addAll(c);
@@ -383,10 +390,17 @@ public class LinkedList<E>
      * @return {@code true} if this list changed as a result of the call
      * @throws NullPointerException if the specified collection is null
      */
+    // 20201118 添加集合元素到末尾
     public boolean addAll(Collection<? extends E> c) {
         return addAll(size, c);
     }
 
+    /**
+     * 20201118
+     * 从指定位置开始，将指定集合中的所有元素插入此列表。
+     * 将当前位于该位置的元素（如果有）和任何后续元素向右移动（增加其索引）。
+     * 新元素将按照指定集合的迭代器返回的顺序出现在列表中。
+     */
     /**
      * Inserts all of the elements in the specified collection into this
      * list, starting at the specified position.  Shifts the element
@@ -402,41 +416,53 @@ public class LinkedList<E>
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @throws NullPointerException if the specified collection is null
      */
+    // 20201118 添加结合元素到指定位置 -> index前方
     public boolean addAll(int index, Collection<? extends E> c) {
+        // 20201118 指针索引校验
         checkPositionIndex(index);
 
+        // 20201118 获取目标数组
         Object[] a = c.toArray();
         int numNew = a.length;
         if (numNew == 0)
             return false;
 
+        // 20201118 初始化临时结点, succ节点为当前节点, pred节点为前一个节点
         Node<E> pred, succ;
-        if (index == size) {
+        if (index == size) {// 如果指定添加到末尾
             succ = null;
-            pred = last;
+            pred = last;// pred为末尾结点
         } else {
-            succ = node(index);
-            pred = succ.prev;
+            succ = node(index);// 否则创建index位置结点
+            pred = succ.prev;// pred结点为succ结点的前一个结点
         }
 
+        // 20201118 遍历目标数组
         for (Object o : a) {
+            // 20201118 获取元素创建节点
             @SuppressWarnings("unchecked") E e = (E) o;
             Node<E> newNode = new Node<>(pred, e, null);
+
+            // 20201118  如果链表为空
             if (pred == null)
-                first = newNode;
+                first = newNode;// 20201118 则赋值给头指针
             else
-                pred.next = newNode;
-            pred = newNode;
+                pred.next = newNode;// 20201118 如果不为空, 则追加结点
+            pred = newNode;// 更新pred结点到新结点位置, 准备开始新一轮遍历
         }
 
+        // 20201118 如果是追加到链表末尾
         if (succ == null) {
-            last = pred;
-        } else {
+            last = pred;// 20201118 则把遍历后的pred结点赋值给末尾结点
+        } else {// 20201118 否则, 添加到链表中间时, 则指定index结点为末尾结点
             pred.next = succ;
             succ.prev = pred;
         }
 
+        // 20201118 更新实际元素个数
         size += numNew;
+
+        // 20201118 更新结构修改次数
         modCount++;
         return true;
     }
@@ -537,6 +563,7 @@ public class LinkedList<E>
      * Tells if the argument is the index of a valid position for an
      * iterator or an add operation.
      */
+    // 20201118 索引大于0且小于等于size时返回true
     private boolean isPositionIndex(int index) {
         return index >= 0 && index <= size;
     }
@@ -555,6 +582,7 @@ public class LinkedList<E>
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
 
+    // 20201118 指针索引校验
     private void checkPositionIndex(int index) {
         if (!isPositionIndex(index))
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
@@ -563,15 +591,19 @@ public class LinkedList<E>
     /**
      * Returns the (non-null) Node at the specified element index.
      */
+    // 20201118 内部结点构造方法, 指定位置构造
     Node<E> node(int index) {
         // assert isElementIndex(index);
 
+        // 20201118 如果指针在链表的前半部分
         if (index < (size >> 1)) {
+            // 20201118 则从前半部分查找, 返回index位置结点
             Node<E> x = first;
             for (int i = 0; i < index; i++)
                 x = x.next;
             return x;
         } else {
+            // 20201118 则从后半部分查找, 返回index位置结点
             Node<E> x = last;
             for (int i = size - 1; i > index; i--)
                 x = x.prev;
@@ -967,10 +999,11 @@ public class LinkedList<E>
         }
     }
 
+    // 20201118 内部静态结点类
     private static class Node<E> {
-        E item;
-        Node<E> next;
-        Node<E> prev;
+        E item;// 实际元素
+        Node<E> next;// 下一个结点
+        Node<E> prev;// 上一个结点
 
         Node(Node<E> prev, E element, Node<E> next) {
             this.item = element;
