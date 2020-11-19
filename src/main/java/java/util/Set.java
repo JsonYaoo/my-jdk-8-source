@@ -26,6 +26,12 @@
 package java.util;
 
 /**
+ * 20201119
+ * 不包含重复元素的集合。
+ * 更正式地说，集合不包含一对元素<code> e1 </ code>和<code> e2 </ code>这样的元素，例如<code> e1.equals（e2）</ code>，最多包含一个null元素。
+ * 顾名思义，该接口对数学<i> set </ i>抽象进行建模。
+ */
+/**
  * A collection that contains no duplicate elements.  More formally, sets
  * contain no pair of elements <code>e1</code> and <code>e2</code> such that
  * <code>e1.equals(e2)</code>, and at most one null element.  As implied by
@@ -81,7 +87,7 @@ package java.util;
  * @see Collections#EMPTY_SET
  * @since 1.2
  */
-
+// 20201119 继承Collection接口, 方法基本没有实现, 只实现了分割器方法
 public interface Set<E> extends Collection<E> {
     // Query Operations
 

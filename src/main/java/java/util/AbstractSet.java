@@ -26,6 +26,7 @@
 package java.util;
 
 /**
+ * // 20201119 此类提供了<tt> Set </ tt>接口的基本实现，以最大程度地减少实现此接口所需的工作。
  * This class provides a skeletal implementation of the <tt>Set</tt>
  * interface to minimize the effort required to implement this
  * interface. <p>
@@ -54,7 +55,7 @@ package java.util;
  * @see Set
  * @since 1.2
  */
-
+// 20201119 继承AbstractCollection, 实现Set接口, 只实现了equals()、hashCode()、removeAll()
 public abstract class AbstractSet<E> extends AbstractCollection<E> implements Set<E> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically

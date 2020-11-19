@@ -627,7 +627,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
             // 20201119 如果散列表不为空 且目标Map实际长度大于当前阈值
             else if (s > threshold)
-                resize();// 20201119 则
+                resize();// 20201119 初始化 | 重置散列表
+
+            // 20201119 遍历map中的所有entry
             for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
                 K key = e.getKey();
                 V value = e.getValue();
@@ -683,20 +685,27 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * @param key the key
      * @return the node, or null if none
      */
+    // 20201119 实现Map.get和相关方法 => 根据key和key的hash获取结点
     final Node<K,V> getNode(int hash, Object key) {
+        // 20201119 初始化散列表, 桶头指针, 当前容量, 键值
         Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
-        if ((tab = table) != null && (n = tab.length) > 0 &&
-            (first = tab[(n - 1) & hash]) != null) {
+
+        // 20201119 赋值散列表tab, 当前容量n, 获取新hash桶的结点first
+        if ((tab = table) != null && (n = tab.length) > 0 && (first = tab[(n - 1) & hash]) != null) {
+            // 20201119 如果first结点hash相等, key值也相等, key对象任意相等
             if (first.hash == hash && // always check first node
                 ((k = first.key) == key || (key != null && key.equals(k))))
-                return first;
+                return first;// 20201119 则代表找到结点, 返回first结点
             if ((e = first.next) != null) {
+                // 20201119 否则继续遍历链表
                 if (first instanceof TreeNode)
+                    // 20201119 如果链表属于红黑树结点, 则使用红黑树结点获取方法获取
                     return ((TreeNode<K,V>)first).getTreeNode(hash, key);
                 do {
+                    // 20201119 否则属于普通结点
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
-                        return e;
+                        return e;// 20201119 如果hash、key值、key对象任意相等, 则返回当前结点
                 } while ((e = e.next) != null);
             }
         }
@@ -877,33 +886,44 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
                     // 20201119 如果当前桶属于红黑树结点
                     else if (e instanceof TreeNode)
-                        // 20201119 则
+                        // 20201119 则分割成红黑树
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
+                        // 20201119 如果不属于红黑树结点
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;
+
+                        // 20201119 则遍历添加到当前链表合适位置
                         do {
                             next = e.next;
+
+                            // 20201119 如当前结点的hash小于旧容量, 则存放到lo链表中
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
-                                    loHead = e;
+                                    loHead = e;// 20201119 初始化lo链表头指针
                                 else
-                                    loTail.next = e;
+                                    loTail.next = e;// 20201119 追加结点到lo链表
                                 loTail = e;
                             }
+
+                            // 20201119 否则存放到hi链表中
                             else {
                                 if (hiTail == null)
-                                    hiHead = e;
+                                    hiHead = e;// 20201119 初始化hi链表
                                 else
-                                    hiTail.next = e;
+                                    hiTail.next = e;// 20201119 追加结点到hi链表
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
+
+                        // 20201119 如果lo链表不为空, 则设置lo链表头指针到当前桶中
                         if (loTail != null) {
                             loTail.next = null;
                             newTab[j] = loHead;
                         }
+
+                        // 20201119 如果hi链表不为空, 则设置hi链表头指针到桶偏移+旧容量的新桶中
                         if (hiTail != null) {
                             hiTail.next = null;
                             newTab[j + oldCap] = hiHead;
@@ -912,6 +932,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                 }
             }
         }
+
+        // 20201119 返回新的散列表
         return newTab;
     }
 
@@ -973,48 +995,68 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * @param hash hash for key
      * @param key the key
      * @param value the value to match if matchValue, else ignored
-     * @param matchValue if true only remove if value is equal
-     * @param movable if false do not move other nodes while removing
+     * @param matchValue if true only remove if value is equal // 20201119 如果为true，则仅在值相等时删除
+     * @param movable if false do not move other nodes while removing // 20201119 如果为false，则在删除时不要移动其他节点
      * @return the node, or null if none
      */
+    // 20201119 根据key的hash、key值、value值删除结点
     final Node<K,V> removeNode(int hash, Object key, Object value,
                                boolean matchValue, boolean movable) {
         Node<K,V>[] tab; Node<K,V> p; int n, index;
-        if ((tab = table) != null && (n = tab.length) > 0 &&
-            (p = tab[index = (n - 1) & hash]) != null) {
+
+        // 20201119 当前散列表tab、容量n、新桶p
+        if ((tab = table) != null && (n = tab.length) > 0 && (p = tab[index = (n - 1) & hash]) != null) {
             Node<K,V> node = null, e; K k; V v;
-            if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
-                node = p;
+
+            // 20201119 如果新桶头结点hash相等、key值相等、key对象相等
+            if (p.hash == hash && ((k = p.key) == key || (key != null && key.equals(k))))
+                node = p;// 20201119 则标记当前结点为待删除结点node
             else if ((e = p.next) != null) {
+                // 20201119 否则继续遍历该链表
                 if (p instanceof TreeNode)
+                    // 20201119 如果属于红黑树结点, 则使用红黑树方法获取结点
                     node = ((TreeNode<K,V>)p).getTreeNode(hash, key);
                 else {
+                    // 20201119 否则为普通结点
                     do {
-                        if (e.hash == hash &&
-                            ((k = e.key) == key ||
-                             (key != null && key.equals(k)))) {
-                            node = e;
+                        // 20201119 如果结点hash相等、key值相等、key对象相等
+                        if (e.hash == hash && ((k = e.key) == key || (key != null && key.equals(k)))) {
+                            node = e;// 20201119 则标记当前结点为待删除结点node
                             break;
                         }
                         p = e;
                     } while ((e = e.next) != null);
                 }
             }
-            if (node != null && (!matchValue || (v = node.value) == value ||
-                                 (value != null && value.equals(v)))) {
+
+            // 20201119 如果存在待删除结点node, 且该结点的值相等, 值对象也相等
+            if (node != null && (!matchValue || (v = node.value) == value || (value != null && value.equals(v)))) {
+                // 20201119 如果该结点又属于红黑树结点
                 if (node instanceof TreeNode)
+                    // 20201119 则使用红黑树方法删除该结点
                     ((TreeNode<K,V>)node).removeTreeNode(this, tab, movable);
-                else if (node == p)
+                else if (node == p)// 20201119 否则如果该结点为该桶的头结点
+                    // 20201119 删除该结点, 并重新设置该桶的头节点
                     tab[index] = node.next;
                 else
+                    // 20201119 否则清空该结点与下一个结点的关系, 链接该结点与下一个结点
                     p.next = node.next;
+
+                // 20201119 结构修改次数+1
                 ++modCount;
+
+                // 20201119 实际元素个数-1
                 --size;
+
+                // 20201119 LinkedHashMap回调函数 => 空实现
                 afterNodeRemoval(node);
+
+                // 20201119 返回当前结点
                 return node;
             }
         }
+
+        // 20201119 找不到则返回null
         return null;
     }
 
@@ -1022,9 +1064,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * Removes all of the mappings from this map.
      * The map will be empty after this call returns.
      */
+    // 20201119 从该map中删除所有映射。 此调用返回后，map将为空。
     public void clear() {
         Node<K,V>[] tab;
+
+        // 20201119 结构修改次数+1
         modCount++;
+
+        // 20201119 遍历散列表, 将散列表每个桶都清空
         if ((tab = table) != null && size > 0) {
             size = 0;
             for (int i = 0; i < tab.length; ++i)
@@ -1146,6 +1193,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     /**
+     * 20201119
+     * 返回此map中包含的映射的{@link Set}视图。该map集受map支持，因此对map的更改会反映在该map集中，反之亦然。
+     * 如果在对集合进行迭代时修改了map（通过迭代器自己的<tt> remove </ tt>操作 或 通过迭代器返回的映射项上的<tt> setValue </ tt>操作除外） ）的迭代结果不确定。
+     * 该集合支持元素删除，该元素通过<tt> Iterator.remove </ tt，<tt> Set.remove </ tt>，<tt> removeAll </ tt>，<tt>从map中删除相应的映射。
+     * keepAll </ tt>和<tt> clear </ tt>操作。 它不支持<tt> add </ tt>或<tt> addAll </ tt>操作。
+     */
+    /**
      * Returns a {@link Set} view of the mappings contained in this map.
      * The set is backed by the map, so changes to the map are
      * reflected in the set, and vice-versa.  If the map is modified
@@ -1161,32 +1215,56 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *
      * @return a set view of the mappings contained in this map
      */
+    // 20201119 返回map所有的key值集合
     public Set<Map.Entry<K,V>> entrySet() {
         Set<Map.Entry<K,V>> es;
+
+        // 20201119 构造并返回entrySet
         return (es = entrySet) == null ? (entrySet = new EntrySet()) : es;
     }
 
+    // 20201119 用于keySet（）和values（）的Set集合, 继承AbstractSet
     final class EntrySet extends AbstractSet<Map.Entry<K,V>> {
+        // 20201119 获取实际元素个数
         public final int size()                 { return size; }
+
+        // 20201119 清空map => 得到一个空的散列表
         public final void clear()               { HashMap.this.clear(); }
+
+        // 20201119 获取EntryIterator
         public final Iterator<Map.Entry<K,V>> iterator() {
             return new EntryIterator();
         }
+
+        // 20201119 判断是否包含指定对象
         public final boolean contains(Object o) {
+            // 20201119 如果该对象不属于Map.Entry类型, 则返回false
             if (!(o instanceof Map.Entry))
                 return false;
+
+            // 20201119 否则根据key的hash和key值获取对应的结点
             Map.Entry<?,?> e = (Map.Entry<?,?>) o;
             Object key = e.getKey();
             Node<K,V> candidate = getNode(hash(key), key);
+
+            // 20201119 判断两结点是否相等
             return candidate != null && candidate.equals(e);
         }
+
+        // 20201119 移除指定对象
         public final boolean remove(Object o) {
+            // 20201119 类型校验
             if (o instanceof Map.Entry) {
+                // 20201119 如果属于Map.Entry类型
                 Map.Entry<?,?> e = (Map.Entry<?,?>) o;
                 Object key = e.getKey();
                 Object value = e.getValue();
+
+                // 20201119 则根据key的hash、key值、value值删除, 只有在值相等时才删除, 且删除时需要移动结点
                 return removeNode(hash(key), key, value, true, true) != null;
             }
+
+            // 20201119 否则返回false
             return false;
         }
         public final Spliterator<Map.Entry<K,V>> spliterator() {
@@ -1569,7 +1647,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
     /* ------------------------------------------------------------ */
     // iterators
-
+    // HashMap迭代器
     abstract class HashIterator {
         Node<K,V> next;        // next entry to return
         Node<K,V> current;     // current entry
@@ -1590,6 +1668,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
             return next != null;
         }
 
+        // 20201119 返回下一个结点
         final Node<K,V> nextNode() {
             Node<K,V>[] t;
             Node<K,V> e = next;
@@ -1626,8 +1705,11 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         public final V next() { return nextNode().value; }
     }
 
+    // 20201119 继承HashIterator
     final class EntryIterator extends HashIterator
         implements Iterator<Map.Entry<K,V>> {
+
+        // 20201119  迭代器迭代方法 => 返回下一个结点
         public final Map.Entry<K,V> next() { return nextNode(); }
     }
 
@@ -1903,7 +1985,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     // For conversion from TreeNodes to plain nodes
+    // 20201119 用于从TreeNodes转换为纯节点
     Node<K,V> replacementNode(Node<K,V> p, Node<K,V> next) {
+        // 20201119 使用当前结点p, 下一结点next, 构造普通结点
         return new Node<>(p.hash, p.key, p.value, next);
     }
 
@@ -1972,7 +2056,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * Returns root of tree containing this node.
          */
-        // 20201119 返回跟结点
+        // 20201119 返回根结点
         final TreeNode<K,V> root() {
             // 20201119 从当前结点向上遍历, 找到根结点(没有父结点的结点)则返回
             for (TreeNode<K,V> r = this, p;;) {
@@ -2022,7 +2106,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         // 20201119 则设置原来first桶的前指针为该新桶的结点
                         first.prev = root;
 
-                    // 20201119 新桶的后指针为first桶的结点
+                    // 20201119 新桶的后指针为first桶的结点, 相当于first作为下一个桶
                     root.next = first;
 
                     // 20201119 新桶的前指针置为空
@@ -2039,40 +2123,58 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * The kc argument caches comparableClassFor(key) upon first use
          * comparing keys.
          */
+        // 20201119 查找具有给定哈希值和键的从根p开始的节点。 kc参数在首次使用比较键时会缓存可比较的ClassFor（key）
         final TreeNode<K,V> find(int h, Object k, Class<?> kc) {
-            TreeNode<K,V> p = this;
+            // 20201119 初始化结点P结点
+            TreeNode<K,V> p = this;// 20201119 this代表调用find()的实例结点
+
+            // 20201119 开始循环
             do {
+                // 20201119 初始化p结点的hash ph, 比较结果dir, p结点的key pk
                 int ph, dir; K pk;
+
+                // 20201119 初始化p的左孩子结点pl, 右孩子结点pr, 查找结果结点q
                 TreeNode<K,V> pl = p.left, pr = p.right, q;
+
+                // 20201119 如果哈希ph 大于 h
                 if ((ph = p.hash) > h)
-                    p = pl;
+                    p = pl;// 20201119 则比较结果在左子树
                 else if (ph < h)
-                    p = pr;
-                else if ((pk = p.key) == k || (k != null && k.equals(pk)))
-                    return p;
-                else if (pl == null)
-                    p = pr;
-                else if (pr == null)
-                    p = pl;
+                    p = pr;// 20201119 否则在右子树
+                else if ((pk = p.key) == k || (k != null && k.equals(pk)))// 20201119 否则如果哈希相等, 且key值也相等
+                    return p;// 20201119 则代表就是这个结点, 直接返回p
+                else if (pl == null)// 20201119 如果哈希相等, 但key值不相等, 且左孩子为叶子结点
+                    p = pr;// 20201119 则比较结果在右子树
+                else if (pr == null)// 20201119 如果哈希相等, 但key值不相等, 且右孩子为叶子结点
+                    p = pl;// 20201119 则比较结果在左子树
                 else if ((kc != null ||
                           (kc = comparableClassFor(k)) != null) &&
-                         (dir = compareComparables(kc, k, pk)) != 0)
-                    p = (dir < 0) ? pl : pr;
-                else if ((q = pr.find(h, k, kc)) != null)
-                    return q;
+                         (dir = compareComparables(kc, k, pk)) != 0)// 20201119 如果都有左右孩子且有比较器, 则使用比较器比较key值 k和pk
+                    p = (dir < 0) ? pl : pr;// 20201119 如果k比较小, 则比较结果在左子树, 否则在右子树
+                else if ((q = pr.find(h, k, kc)) != null)// 20201119 如果使用比较器比较key值的结果相等
+                    return q;// 20201119 递归完成返回查找结果q
                 else
-                    p = pl;
-            } while (p != null);
+                    p = pl;// 20201119 如果q结果为空, 则比较结果在左子树
+            } while (p != null);// 20201119 继续循环查找p子树
+
             return null;
         }
 
         /**
          * Calls find for root node.
          */
+        // 20201119 查找根结点
         final TreeNode<K,V> getTreeNode(int h, Object k) {
+            // 20201119 如果父节点为空, 则该结点就是根结点, 如果父节点不为空, 则使用hash和key值去遍历查找根结点
             return ((parent != null) ? root() : this).find(h, k, null);
         }
 
+        /**
+         * 20201119
+         * 破译实用程序，用于在hashCodes相等且不可比较时对插入进行排序。
+         * 我们不需要顺序，只需一个一个的插入规则即可在再平衡中保持相等。
+         * 打破平局比必要的要多，从而简化了测试。
+         */
         /**
          * Tie-breaking utility for ordering insertions when equal
          * hashCodes and non-comparable. We don't require a total
@@ -2080,13 +2182,11 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * equivalence across rebalancings. Tie-breaking further than
          * necessary simplifies testing a bit.
          */
+        // 20201119 比较a和b两个对象, Class相等, 再比较hashCode
         static int tieBreakOrder(Object a, Object b) {
             int d;
-            if (a == null || b == null ||
-                (d = a.getClass().getName().
-                 compareTo(b.getClass().getName())) == 0)
-                d = (System.identityHashCode(a) <= System.identityHashCode(b) ?
-                     -1 : 1);
+            if (a == null || b == null || (d = a.getClass().getName().compareTo(b.getClass().getName())) == 0)
+                d = (System.identityHashCode(a) <= System.identityHashCode(b) ? -1 : 1);
             return d;
         }
 
@@ -2094,45 +2194,70 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * Forms tree of the nodes linked from this node.
          * @return root of tree
          */
+        // 20201119 将this结点红黑树化进散列表
         final void treeify(Node<K,V>[] tab) {
+            // 20201119 初始化红黑树根结点
             TreeNode<K,V> root = null;
+
+            // 20201119 从当前结点开始遍历链表
             for (TreeNode<K,V> x = this, next; x != null; x = next) {
                 next = (TreeNode<K,V>)x.next;
+
+                // 20201119 初始化左右孩子结点
                 x.left = x.right = null;
+
+                // 20201119 如果树为空
                 if (root == null) {
+                    // 20201119 则设置当前结点为根结点(黑色)
                     x.parent = null;
                     x.red = false;
                     root = x;
                 }
                 else {
+                    // 20201119 否则设置k为x的键, h为x的hash
                     K k = x.key;
                     int h = x.hash;
+
+                    // 20201119 初始化键值Class对象数组比较参数
                     Class<?> kc = null;
+
+                    // 20201119 遍历根结点
                     for (TreeNode<K,V> p = root;;) {
+                        // 20201119 初始化比较结果dir, p的hash ph
                         int dir, ph;
                         K pk = p.key;
+
+                        // 20201119 如果p的hash大于当前结点的hash
                         if ((ph = p.hash) > h)
-                            dir = -1;
+                            dir = -1;// 20201119 则比较结果为-1
                         else if (ph < h)
-                            dir = 1;
+                            dir = 1;// 20201119 否则比较结果为1
                         else if ((kc == null &&
                                   (kc = comparableClassFor(k)) == null) ||
                                  (dir = compareComparables(kc, k, pk)) == 0)
+                            // 20201119 如果比较相等, 则进行hashCode比较
                             dir = tieBreakOrder(k, pk);
 
+                        // 20201119 备份根节点开始指针
                         TreeNode<K,V> xp = p;
+
+                        // 20201119 如果比较结果<=0, 则取左孩子结点, 否则取右孩子结点
                         if ((p = (dir <= 0) ? p.left : p.right) == null) {
-                            x.parent = xp;
-                            if (dir <= 0)
-                                xp.left = x;
+                            x.parent = xp;// 如果结点为空则设置为当前结点的父节点
+                            if (dir <= 0)// 20201119 如果比较结果<=0
+                                xp.left = x;// 20201119 则当前结点为根节点开始的左孩子
                             else
-                                xp.right = x;
+                                xp.right = x;// 20201119 则当前结点为根节点开始的右孩子
+
+                            // 20201119 插入后平衡红黑树
                             root = balanceInsertion(root, x);
                             break;
                         }
                     }
                 }
             }
+
+            // 20201119 移动根结点到散列表桶中的第一个元素
             moveRootToFront(tab, root);
         }
 
@@ -2140,16 +2265,25 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * Returns a list of non-TreeNodes replacing those linked from
          * this node.
          */
+        // 20201119 返回非TreeNode列表，该列表替换从该节点链接的非TreeNode => 拆除Map的红黑树
         final Node<K,V> untreeify(HashMap<K,V> map) {
+            // 20201119 初始化hd、tl普通结点
             Node<K,V> hd = null, tl = null;
+
+            // 20201119 q结点位当前结点, 遍历当前链表
             for (Node<K,V> q = this; q != null; q = q.next) {
+                // 20201119 构造普通结点
                 Node<K,V> p = map.replacementNode(q, null);
+
+                // 20201119 如果tl链表为空
                 if (tl == null)
-                    hd = p;
+                    hd = p;// 20201119 则初始化hd链表 => 作为tl结点的头指针
                 else
-                    tl.next = p;
-                tl = p;
+                    tl.next = p;// 20201119 否则最加到tl链表中
+                tl = p;// 20201119 初始化tl链表
             }
+
+            // 20201119 返回hd链表, 即返回普通链表的头指针
             return hd;
         }
 
@@ -2203,6 +2337,12 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
 
         /**
+         * 20201119
+         * 删除在此调用之前必须存在的给定节点。
+         * 这比典型的红黑删除代码更为混乱，因为我们无法将内部节点的内容与由“ next”指针固定的叶子后继者交换，该叶子后继者在访问期间可以独立访问遍历。
+         * 因此，我们交换树链接。 如果当前树的节点似乎太少，则将bin转换回普通bin。 （该测试触发2到6个节点之间的某个位置，具体取决于树的结构）。
+         */
+        /**
          * Removes the given node, that must be present before this call.
          * This is messier than typical red-black deletion code because we
          * cannot swap the contents of an interior node with a leaf
@@ -2212,98 +2352,179 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * the bin is converted back to a plain bin. (The test triggers
          * somewhere between 2 and 6 nodes, depending on tree structure).
          */
-        final void removeTreeNode(HashMap<K,V> map, Node<K,V>[] tab,
-                                  boolean movable) {
+        // 20201119 使用红黑树方法删除结点
+        final void removeTreeNode(HashMap<K,V> map, Node<K,V>[] tab, boolean movable) {
             int n;
             if (tab == null || (n = tab.length) == 0)
                 return;
+
+            // 20201119 当前结点的新hash
             int index = (n - 1) & hash;
+
+            // 20201119 桶头结点first, 根结点root, 左孩子结点rl, 桶前指针pred, 桶后指针succ
             TreeNode<K,V> first = (TreeNode<K,V>)tab[index], root = first, rl;
             TreeNode<K,V> succ = (TreeNode<K,V>)next, pred = prev;
+
+            // 20201119 如果pred为空, 则初始化新桶, 新桶指针为succ那个桶, 并且succ结点作为桶头结点
             if (pred == null)
                 tab[index] = first = succ;
             else
+                // 20201119 否则链接桶前指针和桶后指针
                 pred.next = succ;
+
+            // 20201119 如果桶后结点不为空, 说明散列表至少有两个桶有值
             if (succ != null)
-                succ.prev = pred;
+                succ.prev = pred;// 20201119 则链接前后两个桶
+
+            // 20201119 如果桶头结点为空, 则直接返回, 删除失败
             if (first == null)
                 return;
+
+            // 20201119 如果根结点的父节点不为空
             if (root.parent != null)
-                root = root.root();
+                root = root.root();// 20021119 则设置父节点为新的根结点
+
+            // 20201119 如果根结点为空, 左孩子rl, 右孩子都为null
             if (root == null || root.right == null ||
                 (rl = root.left) == null || rl.left == null) {
-                tab[index] = first.untreeify(map);  // too small
+                tab[index] = first.untreeify(map);  // too small // 20201119 则代表该链表太小了, 则拆除该桶的红黑树
                 return;
             }
+
+            // 20201119 当前结点p, 左节点pl, 右结点pr, 替换结点replacement
             TreeNode<K,V> p = this, pl = left, pr = right, replacement;
+
+            // 20201119 如果左右孩子都不为空
             if (pl != null && pr != null) {
                 TreeNode<K,V> s = pr, sl;
+
+                // 20021119 则遍历左子树, 左孩子的左孩子sl
                 while ((sl = s.left) != null) // find successor
                     s = sl;
+
+                // 20201119 交换当前结点与左孩子的颜色
                 boolean c = s.red; s.red = p.red; p.red = c; // swap colors
+
+                // 20201119 左孩子的右孩子sr, 父节点pp
                 TreeNode<K,V> sr = s.right;
                 TreeNode<K,V> pp = p.parent;
+
+                // 20201119 如果p是左孩子s的父节点
                 if (s == pr) { // p was s's direct parent
+                    // 20201119 对左孩子进行右旋
                     p.parent = s;
                     s.right = p;
                 }
+
+                // 20201119 如果p不是左孩子s的父节点
                 else {
+                    // 20201119 获取左孩子s的父节点sp
                     TreeNode<K,V> sp = s.parent;
+
+                    // 20201119 设置当前结点的父节点为sp, 且sp不为空时
                     if ((p.parent = sp) != null) {
+                        // 20201119 如果s确实是sp的左孩子
                         if (s == sp.left)
-                            sp.left = p;
+                            sp.left = p;// 20201119 则更新sp的左孩子为当前结点
                         else
-                            sp.right = p;
+                            sp.right = p;// 20201119 否则, 设置sp的右孩子为当前结点
                     }
+
+                    // 20201119 如果s的右节点为当前结点的右孩子, 且不为空时
                     if ((s.right = pr) != null)
-                        pr.parent = s;
+                        pr.parent = s;// 20201119 设置右孩子结点的父节点为s结点
                 }
+
+                // 20201119 处理完左孩子, 清空p的左孩子
                 p.left = null;
+
+                // 20201119 当前节点的右孩子sr, 如果不为叶子结点时
                 if ((p.right = sr) != null)
-                    sr.parent = p;
+                    sr.parent = p;// 20201119 设置sr的父节点为p
+
+                // 20201119 当前结点的左孩子赋值给s结点的左孩子, 如果不为叶子节点时
                 if ((s.left = pl) != null)
-                    pl.parent = s;
+                    pl.parent = s;// 20201119 设置左孩子的父节点为s结点
+
+                // 20201119 当前结点的父节点赋值给s的父亲结点
                 if ((s.parent = pp) == null)
-                    root = s;
+                    root = s;// 20201119 如果为空, 说明s结点应该为新的根结点
+
+                // 20201119 否则如果当前结点属于父亲节点的左孩子
                 else if (p == pp.left)
-                    pp.left = s;
+                    pp.left = s;// 20201119 则设置父亲结点的左孩子为s结点
                 else
-                    pp.right = s;
+                    pp.right = s;// 20201119 否则设置父亲结点的右孩子为s结点
+
+                // 20201119 如果s结点的右孩子不为叶子结点
                 if (sr != null)
+                    // 20201119 则替换结点就为那个右孩子
                     replacement = sr;
                 else
+                    // 20201119 否则p为替换结点
                     replacement = p;
             }
+
+            // 20201119 如果当前节点的左孩子不为空
             else if (pl != null)
-                replacement = pl;
+                replacement = pl;// 20201119 则替换结点为左孩子
+
+            // 20201119 如果当前节点的右孩子不为空
             else if (pr != null)
-                replacement = pr;
+                replacement = pr;// 20201119 则替换结点为右孩子
             else
-                replacement = p;
+                replacement = p;// 20201119 如果当前结点为叶子结点, 则当前结点就为替换结点
+
+            // 20201119 如果替换结点不为当前结点
             if (replacement != p) {
+                // 20201119 当前结点的父节点pp
                 TreeNode<K,V> pp = replacement.parent = p.parent;
+
+                // 20201119 如果父节点为空
                 if (pp == null)
+                    // 20201119 则替换结点设置为新的根结点
                     root = replacement;
+
+                // 20201119 如果当前结点为父节点的左孩子
                 else if (p == pp.left)
+                    // 20201119 替换结点设置为父节点的左孩子
                     pp.left = replacement;
                 else
+                    // 20201119 否则设置为父节点的右孩子
                     pp.right = replacement;
+
+                // 20201119 清空p结点关系 => 通知GC回收
                 p.left = p.right = p.parent = null;
             }
 
+            // 20201119 删除后平衡红黑树
             TreeNode<K,V> r = p.red ? root : balanceDeletion(root, replacement);
 
+            // 20201119 如果替换结点为当前结点
             if (replacement == p) {  // detach
+                // 20201119 当前结点父节点pp
                 TreeNode<K,V> pp = p.parent;
+
+                // 20201119 清空当前结点与父节点的关系
                 p.parent = null;
+
+                // 20201119 如果父节点不为空
                 if (pp != null) {
+                    // 20201119 且如果当前结点是父节点的左孩子
                     if (p == pp.left)
+                        // 20201119 则清空父节点与当前节点左孩子的关系
                         pp.left = null;
+
+                        // 20201119 且如果当前结点是父节点的右孩子
                     else if (p == pp.right)
+                        // 20201119 则清空父节点与当前节点右孩子的关系
                         pp.right = null;
                 }
             }
+
+            // 20201119 如果允许移动
             if (movable)
+                // 20201119 则移动红黑树的根结点为桶的头结点
                 moveRootToFront(tab, r);
         }
 
@@ -2312,55 +2533,94 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * or untreeifies if now too small. Called only from resize;
          * see above discussion about split bits and indices.
          *
-         * @param map the map
+         * @param map the map // 20201119 当前map对象
          * @param tab the table for recording bin heads // 20201119 分割后存放的新散列表
          * @param index the index of the table being split  // 20201119 要分割的旧散列表桶的位置
-         * @param bit the bit of hash to split on       // 20201119 要分割的散列表
+         * @param bit the bit of hash to split on       // 20201119 旧的散列表容量
          */
         // 20201119 将树容器中的节点拆分为较低和较高的树容器，如果现在太小，则取消搜索。仅从resize调用；请参阅上面关于拆分位和索引的讨论。
         final void split(HashMap<K,V> map, Node<K,V>[] tab, int index, int bit) {
             // 20201119 初始化红黑树结点
-            TreeNode<K,V> b = this;
+            TreeNode<K,V> b = this;// 20201119 this指引用该方法的对象, 因为这是他本身的方法, 所以才叫this
+
             // Relink into lo and hi lists, preserving order
-            TreeNode<K,V> loHead = null, loTail = null;
-            TreeNode<K,V> hiHead = null, hiTail = null;
+            // 20201119 重新链接到lo和hi列表，保留顺序
+            TreeNode<K,V> loHead = null, loTail = null;// 20201119 lo列表
+            TreeNode<K,V> hiHead = null, hiTail = null;// 20201119 hi列表
+
+            // 20201119 初始化lo列表阈值、hi列表阈值
             int lc = 0, hc = 0;
+
+            // 20201119 遍历当前结点链表, 初始化lo链表和hi链表
             for (TreeNode<K,V> e = b, next; e != null; e = next) {
+                // 20201119 下一结点
                 next = (TreeNode<K,V>)e.next;
+
+                // 20201119 置空下一结点
                 e.next = null;
+
+                // 20201119 如果当前结点的hash与上旧散列表容量, 即新的hash位0的话, 说明该结点hash小于容量 => 哈希规则: 此部分放在li链表
                 if ((e.hash & bit) == 0) {
+                    // 20201119 loTail赋值给前一结点, 如果loTail为空
                     if ((e.prev = loTail) == null)
-                        loHead = e;
+                        loHead = e;// 20201119 说明lo链表为空, 则初始化loHead
                     else
+                        // 20201119 lo链表非空, 则添加e结点到lo链表末尾
                         loTail.next = e;
+
+                    // 20201119 更新lo链表尾结点
                     loTail = e;
+
+                    // 20201119 lo链表阈值+1
                     ++lc;
                 }
+                // 20201119 否则放在hi链表
                 else {
+                    // 20201119 hiTail赋值给前一结点, 如果hiTail为空
                     if ((e.prev = hiTail) == null)
-                        hiHead = e;
+                        hiHead = e;// 20201119 说明hi链表为空, 则初始化hiHead
                     else
+                        // 20201119 hi链表非空, 添加e结点到hi链表末尾
                         hiTail.next = e;
+
+                    // 20201119 更新hi链表尾结点
                     hiTail = e;
+
+                    // 20201119 hi链表阈值+1
                     ++hc;
                 }
             }
 
+            // 20201119 如果lo链表不为空
             if (loHead != null) {
+                // 20201119 检查红黑树拆除阈值
                 if (lc <= UNTREEIFY_THRESHOLD)
-                    tab[index] = loHead.untreeify(map);
+                    // 20201119 如果li链表阈值<=拆除链表6, 则拆除红黑树
+                    tab[index] = loHead.untreeify(map);// 20201119 拆除后返回当前桶的普通链表
                 else {
+                    // 20201119 否则不需要拆除红黑树, 则该桶头指针位lo链表的头指针
                     tab[index] = loHead;
+
+                    // 20201119 如果hi链表也不为空
                     if (hiHead != null) // (else is already treeified)
+                        // 20201119 则将lo链表红黑树化进tab散列表
                         loHead.treeify(tab);
                 }
             }
+
+            // 20201119 如果hi链表不为空
             if (hiHead != null) {
+                // 20201119 检查红黑树拆除阈值
                 if (hc <= UNTREEIFY_THRESHOLD)
+                    // 20201119 拆除红黑树, 存放的桶位置偏移旧容量的大小即2^n
                     tab[index + bit] = hiHead.untreeify(map);
                 else {
+                    // 20201119 否则不需要拆除红黑树, 则该桶头指针为hi链表的头指针
                     tab[index + bit] = hiHead;
+
+                    // 20201119 如果lo链表也不为空
                     if (loHead != null)
+                        // 20201119 则将hi链表红黑树化进tab散列表
                         hiHead.treeify(tab);
                 }
             }
@@ -2405,37 +2665,64 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
             return root;
         }
 
-        static <K,V> TreeNode<K,V> balanceInsertion(TreeNode<K,V> root,
-                                                    TreeNode<K,V> x) {
+        // 20201119 插入后平衡红黑树
+        static <K,V> TreeNode<K,V> balanceInsertion(TreeNode<K,V> root, TreeNode<K,V> x) {
+            // 20201119 标记当前插入结点为红结点
             x.red = true;
+
+            // 20201119 初始化xp、xpp、xppl、xpp结点
             for (TreeNode<K,V> xp, xpp, xppl, xppr;;) {
+                // 20201119 xp结点为当前结点父结点
                 if ((xp = x.parent) == null) {
+                    // 20201119 如果父节点为空, 则设置当前结点为红色
                     x.red = false;
                     return x;
                 }
+
+                // 20201119 xpp结点为爷结点, 如果父节点为根结点
                 else if (!xp.red || (xpp = xp.parent) == null)
-                    return root;
+                    return root;// 20201119 则直接返回根结点
+
+                // 20201119 xppl为爷结点的左孩子, 如果父节点为爷结点的左孩子
                 if (xp == (xppl = xpp.left)) {
+                    // 20201119 且如果叔结点不为空, 且为爷结点的右孩子, 且为红结点
                     if ((xppr = xpp.right) != null && xppr.red) {
+                        // 20201119 则标记叔结点为黑色, 父节点为黑色, 爷结点为黑色
                         xppr.red = false;
                         xp.red = false;
                         xpp.red = true;
+
+                        // 20201119 爷结点为当前新结点
                         x = xpp;
                     }
                     else {
+                        // 20201119 否则如果当前结点为父节点的右孩子
                         if (x == xp.right) {
+                            // 2020119 则对父节点左旋, 且父节点作为新的当前结点
                             root = rotateLeft(root, x = xp);
+
+                            // 20201119 xp为父节点, 如果为空, 则xpp爷结点为空, 否则为父节点的父节点
                             xpp = (xp = x.parent) == null ? null : xp.parent;
                         }
+
+                        // 20201119 如果父节点不为空
                         if (xp != null) {
+                            // 20201119 则设置父节点为黑节点
                             xp.red = false;
+
+                            // 20201119 如果爷结点不为空
                             if (xpp != null) {
+                                // 20201119 则设置爷结点为红结点
                                 xpp.red = true;
+
+                                // 20201119 对爷结点进行右旋
                                 root = rotateRight(root, xpp);
                             }
                         }
                     }
                 }
+
+                // 20201119 同理, 如果叔结点为爷结点的右孩子, 进行反向操作
                 else {
                     if (xppl != null && xppl.red) {
                         xppl.red = false;
@@ -2460,57 +2747,112 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
             }
         }
 
-        static <K,V> TreeNode<K,V> balanceDeletion(TreeNode<K,V> root,
-                                                   TreeNode<K,V> x) {
+        // 20201119 删除后平衡红黑树
+        static <K,V> TreeNode<K,V> balanceDeletion(TreeNode<K,V> root, TreeNode<K,V> x) {
+            // 20201119 遍历红黑树
             for (TreeNode<K,V> xp, xpl, xpr;;)  {
+                // 20201119 如果当前结点x为空, 或者为根结点
                 if (x == null || x == root)
-                    return root;
+                    return root;// 20201119 则无序调整, 直接返回原本的红黑树
+
+                // 20201119 如果当前结点父节点xp不为空
                 else if ((xp = x.parent) == null) {
+                    // 20201119 则设置当前结点为黑结点
                     x.red = false;
+
+                    // 20201119 返回当前结点
                     return x;
                 }
+
+                // 20201119 如果当前结点为红结点
                 else if (x.red) {
+                    // 20201119 则设置当前结点为黑结点
                     x.red = false;
+
+                    // 20201119 返回当前结点
                     return root;
                 }
+
+                // 20201119 当前结点为黑结点, 如果当前结点属于父节点的左孩子xpl
                 else if ((xpl = xp.left) == x) {
+                    // 20201119 如果叔结点xpr为父节点的右孩子, 且为红结点时
                     if ((xpr = xp.right) != null && xpr.red) {
+                        // 20201119 设置叔结点为黑结点
                         xpr.red = false;
+
+                        // 20201119 父节点为红结点
                         xp.red = true;
+
+                        // 20201119 对父亲接待你进行左旋
                         root = rotateLeft(root, xp);
+
+                        // 20201119 如果左旋后当前结点的父节点为空, 则叔结点为null, 否则为新父节点的右孩子
                         xpr = (xp = x.parent) == null ? null : xp.right;
                     }
+
+                    // 20201119 如果叔结点不存在
                     if (xpr == null)
-                        x = xp;
+                        x = xp;// 20201119 则设置父亲结点为新的当前结点
+
+                    // 20201119 如果叔结点存在, 但为黑结点
                     else {
+                        // 20201119 叔结点的左孩子sl, 叔结点的右孩子sr
                         TreeNode<K,V> sl = xpr.left, sr = xpr.right;
-                        if ((sr == null || !sr.red) &&
-                            (sl == null || !sl.red)) {
+
+                        // 20201119 如果叔结点的左孩子和右孩子都为黑结点
+                        if ((sr == null || !sr.red) && (sl == null || !sl.red)) {
+                            // 2020119 则将叔结点设置为红结点
                             xpr.red = true;
+
+                            // 20201119 设置父节点为新的当前结点
                             x = xp;
                         }
+
+                        // 20201119 否则叔结点的任意一个子结点为红色
                         else {
+                            // 20201119 如果叔结点的右孩子为黑结点
                             if (sr == null || !sr.red) {
+                                // 20201119 如果叔结点的左孩子为空
                                 if (sl != null)
+                                    // 20201119 则设置叔结点的左孩子为黑结点
                                     sl.red = false;
+
+                                // 20201119 否则设置叔结点的右孩子为黑结点
                                 xpr.red = true;
+
+                                // 20201119 对叔结点的右孩子进行右旋
                                 root = rotateRight(root, xpr);
-                                xpr = (xp = x.parent) == null ?
-                                    null : xp.right;
+
+                                // 20201119 如果右旋后的父节点xp为空, 则xpr为空, 否则为新父节点xp的右孩子
+                                xpr = (xp = x.parent) == null ? null : xp.right;
                             }
+
+                            // 20201119 如果叔结点的右孩子为红结点
                             if (xpr != null) {
+                                // 20201119 如果父节点也为空, 置为黑结点, 否则设置与父节点相同的颜色
                                 xpr.red = (xp == null) ? false : xp.red;
+
+                                // 20201119 如果叔结点的右孩子不为空
                                 if ((sr = xpr.right) != null)
-                                    sr.red = false;
+                                    sr.red = false;// 20201119 则设置该节点为黑结点
                             }
+
+                            // 20201119 如果当前结点的父节点不为叶子结点
                             if (xp != null) {
+                                // 20201119 则设置父节点为黑结点
                                 xp.red = false;
+
+                                // 20201119 对父节点进行左旋
                                 root = rotateLeft(root, xp);
                             }
+
+                            // 20201119 设置当前结点为根结点
                             x = root;
                         }
                     }
                 }
+
+                // 20201119 同理, 如果当前结点属于父节点的右孩子时, 则进行反向操作
                 else { // symmetric
                     if (xpl != null && xpl.red) {
                         xpl.red = false;
@@ -2557,24 +2899,43 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          */
         // 20201119 递归不变检查 => 红黑树结点检查
         static <K,V> boolean checkInvariants(TreeNode<K,V> t) {
+            // 20201119 初始化父节点tp, 左孩子结点tl, 右孩子结点tr, 桶的前指针tb, 桶的后指针tn
             TreeNode<K,V> tp = t.parent, tl = t.left, tr = t.right,
                 tb = t.prev, tn = (TreeNode<K,V>)t.next;
+
+            // 20201119 如果前指针不为空, 且前指针的下一个结点不是t, 则返回false
             if (tb != null && tb.next != t)
                 return false;
+
+            // 20201119 如果后指针不为空, 且后指针的上一个结点不是t, 则返回false
             if (tn != null && tn.prev != t)
                 return false;
+
+            // 20201119 如果父结点不为空, 且tp的左右孩子都不是t, 则返回false
             if (tp != null && t != tp.left && t != tp.right)
                 return false;
+
+            // 20201119 如果左孩子结点不为空, 且左孩子的父亲不是t 或者 大于父亲的hash, 则返回false
             if (tl != null && (tl.parent != t || tl.hash > t.hash))
                 return false;
+
+            // 20201119 如果右孩子结点不为空, 且右孩子的父亲不是t 或者 小于父亲的hash, 则返回false
             if (tr != null && (tr.parent != t || tr.hash < t.hash))
                 return false;
-            if (t.red && tl != null && tl.red && tr != null && tr.red)
-                return false;
+
+            // 20201119 如果t结点是红节点, 且左右孩子都是红结点, 则返回false
+            if (t.red && tl != null && tl.red && tr != null && tr.red)// 20201119 节点红, 左孩子红, 右孩子黑, 也算红黑树?
+                return false;// 20201119 如果结点为红结点, 那么左右孩子结点肯定为黑结点
+
+            // 20201119 如果左孩子不为叶子结点, 则继续校验左子树
             if (tl != null && !checkInvariants(tl))
                 return false;
+
+            // 20201119 如果右孩子不为叶子结点, 则继续校验右子树
             if (tr != null && !checkInvariants(tr))
                 return false;
+
+            // 20201119 否则证明的确是一颗红黑树
             return true;
         }
     }
