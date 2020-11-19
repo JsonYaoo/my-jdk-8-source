@@ -319,6 +319,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the first element in this list
      * @throws NoSuchElementException if this list is empty
      */
+    // 20201119 获取头结点元素
     public E getFirst() {
         final Node<E> f = first;
         if (f == null)
@@ -332,6 +333,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the last element in this list
      * @throws NoSuchElementException if this list is empty
      */
+    // 20201119 获取末尾结点元素
     public E getLast() {
         final Node<E> l = last;
         if (l == null)
@@ -345,6 +347,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the first element from this list
      * @throws NoSuchElementException if this list is empty
      */
+    // 20201119 删除头结点
     public E removeFirst() {
         final Node<E> f = first;
         if (f == null)
@@ -358,6 +361,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the last element from this list
      * @throws NoSuchElementException if this list is empty
      */
+    // 20201119 删除末尾结点
     public E removeLast() {
         final Node<E> l = last;
         if (l == null)
@@ -370,6 +374,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *
      * @param e the element to add
      */
+    // 20201119 头结点前添加元素
     public void addFirst(E e) {
         linkFirst(e);
     }
@@ -381,6 +386,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *
      * @param e the element to add
      */
+    // 20201119 末尾结点后添加元素
     public void addLast(E e) {
         linkLast(e);
     }
@@ -394,6 +400,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @param o element whose presence in this list is to be tested
      * @return {@code true} if this list contains the specified element
      */
+    // 20201119 判断是否包含指定元素, 包含返回true, 不包含false
     public boolean contains(Object o) {
         return indexOf(o) != -1;
     }
@@ -403,6 +410,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *
      * @return the number of elements in this list
      */
+    // 20201119 获取实际元素个数
     public int size() {
         return size;
     }
@@ -415,6 +423,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @param e element to be appended to this list
      * @return {@code true} (as specified by {@link Collection#add})
      */
+    // 20201119 添加元素到末尾
     public boolean add(E e) {
         linkLast(e);
         return true;
@@ -433,22 +442,28 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @param o element to be removed from this list, if present
      * @return {@code true} if this list contained the specified element
      */
+    // 20201119 删除指定元素
     public boolean remove(Object o) {
+        // 20201119 如果元素为null
         if (o == null) {
+            // 20201119 则遍历找到第一个null, 解除该结点
             for (Node<E> x = first; x != null; x = x.next) {
                 if (x.item == null) {
                     unlink(x);
-                    return true;
+                    return true;// 删除成功返回true
                 }
             }
         } else {
+            // 20201119 遍历找到同一个元素, 解除该结点
             for (Node<E> x = first; x != null; x = x.next) {
                 if (o.equals(x.item)) {
                     unlink(x);
-                    return true;
+                    return true;// 删除成功返回true
                 }
             }
         }
+
+        // 20201119 找不到元素, 删除失败返回false
         return false;
     }
 
@@ -545,20 +560,30 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * Removes all of the elements from this list.
      * The list will be empty after this call returns.
      */
+    // 20201119 清空链表
     public void clear() {
         // Clearing all of the links between nodes is "unnecessary", but:
         // - helps a generational GC if the discarded nodes inhabit
         //   more than one generation
         // - is sure to free memory even if there is a reachable Iterator
+        // 20201119 遍历链表
         for (Node<E> x = first; x != null; ) {
             Node<E> next = x.next;
+
+            // 清空每一个节点
             x.item = null;
             x.next = null;
             x.prev = null;
             x = next;
         }
+
+        // 20201119 清空头尾结点
         first = last = null;
+
+        // 20201119 初始化实际元素个数
         size = 0;
+
+        // 20201119 更新结构修改次数
         modCount++;
     }
 
@@ -572,8 +597,12 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the element at the specified position in this list
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201119 根据索引获取元素
     public E get(int index) {
+        // 20201119 索引越界校验
         checkElementIndex(index);
+
+        // 20201119 根据索引获取结点, 返回该结点元素
         return node(index).item;
     }
 
@@ -586,11 +615,21 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the element previously at the specified position
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201119 设置元素到指定位置
     public E set(int index, E element) {
+        // 20201119 索引越界校验
         checkElementIndex(index);
+
+        // 20201119 根据索引获取结点
         Node<E> x = node(index);
+
+        // 20201119 获取该结点元素
         E oldVal = x.item;
+
+        // 20201119 替换结点元素
         x.item = element;
+
+        // 20201119 返回旧值
         return oldVal;
     }
 
@@ -603,12 +642,16 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @param element element to be inserted
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201119 添加元素到指定索引位置
     public void add(int index, E element) {
+        // 20201119 索引指针校验
         checkPositionIndex(index);
 
+        // 20201119 如果是末尾, 则添加到末尾
         if (index == size)
             linkLast(element);
         else
+            // 20201119 否则添加到索引之前的位置
             linkBefore(element, node(index));
     }
 
@@ -621,14 +664,19 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the element previously at the specified position
      * @throws IndexOutOfBoundsException {@inheritDoc}
      */
+    // 20201119 根据索引删除元素
     public E remove(int index) {
+        // 20201119 索引越界校验
         checkElementIndex(index);
+
+        // 20201119 根据索引获取结点, 然后解除结点
         return unlink(node(index));
     }
 
     /**
      * Tells if the argument is the index of an existing element.
      */
+    // 20201119 index >= && index < size => true
     private boolean isElementIndex(int index) {
         return index >= 0 && index < size;
     }
@@ -651,7 +699,9 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
         return "Index: "+index+", Size: "+size;
     }
 
+    // 20201119 索引越界校验
     private void checkElementIndex(int index) {
+        // 20201119 index >= && index < size => true
         if (!isElementIndex(index))
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }
@@ -665,7 +715,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
     /**
      * Returns the (non-null) Node at the specified element index.
      */
-    // 20201118 内部结点构造方法, 指定位置构造
+    // 20201118 根据索引获取结点
     Node<E> node(int index) {
         // assert isElementIndex(index);
 
@@ -698,21 +748,28 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the index of the first occurrence of the specified element in
      *         this list, or -1 if this list does not contain the element
      */
+    // 20201118 获取指定元素的索引
     public int indexOf(Object o) {
         int index = 0;
+
+        // 20201118 如果元素为null
         if (o == null) {
+            // 20201118 遍历找到第一个null元素, 返回当前索引
             for (Node<E> x = first; x != null; x = x.next) {
                 if (x.item == null)
                     return index;
                 index++;
             }
         } else {
+            // 20201118 否则遍历找到同一个元素(equals), 返回当期索引
             for (Node<E> x = first; x != null; x = x.next) {
                 if (o.equals(x.item))
                     return index;
                 index++;
             }
         }
+
+        // 20201118 找不到则返回-1
         return -1;
     }
 
@@ -727,21 +784,27 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the index of the last occurrence of the specified element in
      *         this list, or -1 if this list does not contain the element
      */
+    // 20201119 获取元素最后的索引
     public int lastIndexOf(Object o) {
+        // 20201119 从尾部开始遍历
         int index = size;
         if (o == null) {
+            // 20201119 如果元素为null
             for (Node<E> x = last; x != null; x = x.prev) {
                 index--;
                 if (x.item == null)
-                    return index;
+                    return index;// 20201119 找到尾部第一个null元素, 返回索引
             }
         } else {
+            // 20201119 如果元素不为null
             for (Node<E> x = last; x != null; x = x.prev) {
                 index--;
                 if (o.equals(x.item))
-                    return index;
+                    return index;// 20201119 找到同一个元素, 返回索引
             }
         }
+
+        // 20201119 如果找不到则返回-1
         return -1;
     }
 
@@ -753,8 +816,12 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the head of this list, or {@code null} if this list is empty
      * @since 1.5
      */
+    // 20201119 Deque接口实现-检索但不删除此列表的头（第一个元素）。
     public E peek() {
+        // 20201119 获取头结点
         final Node<E> f = first;
+
+        // 20201119 如果头结点为空则返回null, 如果头结点不为空, 则返回头结点元素
         return (f == null) ? null : f.item;
     }
 
@@ -765,6 +832,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @throws NoSuchElementException if this list is empty
      * @since 1.5
      */
+    // 20201119 Deque接口实现-获取头结点元素
     public E element() {
         return getFirst();
     }
@@ -775,8 +843,12 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return the head of this list, or {@code null} if this list is empty
      * @since 1.5
      */
+    // 20201119 Deque接口实现-检索并删除此列表的头（第一个元素）。
     public E poll() {
+        // 20201119 获取头结点
         final Node<E> f = first;
+
+        // 20201119 删除头结点
         return (f == null) ? null : unlinkFirst(f);
     }
 
@@ -787,6 +859,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @throws NoSuchElementException if this list is empty
      * @since 1.5
      */
+    // 20201119 Deque接口实现-获取删除头结点
     public E remove() {
         return removeFirst();
     }
@@ -798,6 +871,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return {@code true} (as specified by {@link Queue#offer})
      * @since 1.5
      */
+    // 20201119 Deque接口实现-添加指定的元素作为此列表的尾部（最后一个元素）。
     public boolean offer(E e) {
         return add(e);
     }
@@ -810,6 +884,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return {@code true} (as specified by {@link Deque#offerFirst})
      * @since 1.6
      */
+    // 20201119 Deque接口实现-在此列表的前面插入指定的元素。
     public boolean offerFirst(E e) {
         addFirst(e);
         return true;
@@ -822,6 +897,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return {@code true} (as specified by {@link Deque#offerLast})
      * @since 1.6
      */
+    // 20201119 Deque接口实现-在此列表的末尾插入指定的元素。
     public boolean offerLast(E e) {
         addLast(e);
         return true;
@@ -835,6 +911,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *         if this list is empty
      * @since 1.6
      */
+    // 20201119 Deque接口实现-检索但不删除此列表的第一个元素，如果该列表为空，则返回{@code null}。
     public E peekFirst() {
         final Node<E> f = first;
         return (f == null) ? null : f.item;
@@ -848,6 +925,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *         if this list is empty
      * @since 1.6
      */
+    // 20201119 Deque接口实现-检索但不删除此列表的最后一个元素，如果此列表为空，则返回{@code null}。
     public E peekLast() {
         final Node<E> l = last;
         return (l == null) ? null : l.item;
@@ -861,6 +939,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *     this list is empty
      * @since 1.6
      */
+    // 20201119 Deque接口实现-检索并删除此列表的第一个元素，如果此列表为空，则返回{@code null}。
     public E pollFirst() {
         final Node<E> f = first;
         return (f == null) ? null : unlinkFirst(f);
@@ -874,6 +953,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *     this list is empty
      * @since 1.6
      */
+    // 20201119 Deque接口实现-检索并删除此列表的最后一个元素，如果此列表为空，则返回{@code null}。
     public E pollLast() {
         final Node<E> l = last;
         return (l == null) ? null : unlinkLast(l);
@@ -888,6 +968,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @param e the element to push
      * @since 1.6
      */
+    // 20201119 Deque接口实现-将元素推到由此列表表示的堆栈上。换句话说，在列表前面插入元素。
     public void push(E e) {
         addFirst(e);
     }
@@ -903,6 +984,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @throws NoSuchElementException if this list is empty
      * @since 1.6
      */
+    // 20201119 Deque接口实现-从这个列表表示的堆栈中弹出一个元素。换句话说，删除并返回此列表的第一个元素。
     public E pop() {
         return removeFirst();
     }
@@ -916,6 +998,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return {@code true} if the list contained the specified element
      * @since 1.6
      */
+    // 20201119 删除此列表中指定元素的第一个匹配项（从头到尾遍历列表时）。如果列表中不包含元素，则它将保持不变。
     public boolean removeFirstOccurrence(Object o) {
         return remove(o);
     }
@@ -929,6 +1012,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return {@code true} if the list contained the specified element
      * @since 1.6
      */
+    // 20201119 删除此列表中指定元素的最后一个匹配项（从头到尾遍历列表时）。如果列表中不包含元素，则它将保持不变。
     public boolean removeLastOccurrence(Object o) {
         if (o == null) {
             for (Node<E> x = last; x != null; x = x.prev) {
@@ -969,11 +1053,16 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @throws IndexOutOfBoundsException {@inheritDoc}
      * @see List#listIterator(int)
      */
+    // 20201119 返回此列表中元素的列表迭代器（按正确的顺序），从列表中指定的位置开始。遵守{@代码的总合同列表迭代器（内景）}。
     public ListIterator<E> listIterator(int index) {
+        // 20201119 指针索引校验
         checkPositionIndex(index);
+
+        // 20201119 返回ListIterator实现类
         return new ListItr(index);
     }
 
+    // 20201119 ListIterator内部实现类
     private class ListItr implements ListIterator<E> {
         private Node<E> lastReturned;
         private Node<E> next;
@@ -1089,6 +1178,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
     /**
      * @since 1.6
      */
+    // 20201119 逆序迭代器
     public Iterator<E> descendingIterator() {
         return new DescendingIterator();
     }
@@ -1096,6 +1186,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
     /**
      * Adapter to provide descending iterators via ListItr.previous
      */
+    // 20201119 适配器提供降序迭代ListItr.previous
     private class DescendingIterator implements Iterator<E> {
         private final ListItr itr = new ListItr(size());
         public boolean hasNext() {
@@ -1109,6 +1200,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
         }
     }
 
+    // 20201119 获取链表的浅复制对象
     @SuppressWarnings("unchecked")
     private LinkedList<E> superClone() {
         try {
@@ -1124,6 +1216,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *
      * @return a shallow copy of this {@code LinkedList} instance
      */
+    // 20201119 返回此{@code LinkedList}的浅副本。（元素本身不会被克隆。）
     public Object clone() {
         LinkedList<E> clone = superClone();
 
@@ -1153,6 +1246,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return an array containing all of the elements in this list
      *         in proper sequence
      */
+    // 20201119 遍历获取链表元素Object数组
     public Object[] toArray() {
         Object[] result = new Object[size];
         int i = 0;
@@ -1199,19 +1293,27 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *         this list
      * @throws NullPointerException if the specified array is null
      */
+    // 20201119 遍历获取链表元素指定类型数组 -> 可以学到返回指定类型对象的写法
     @SuppressWarnings("unchecked")
     public <T> T[] toArray(T[] a) {
+        // 20201119 如果数组长度小于实际元素个数
         if (a.length < size)
+            // 20201119 则构建size长度的T类型数组
             a = (T[])java.lang.reflect.Array.newInstance(
                                 a.getClass().getComponentType(), size);
+
+        // 20201119 开始遍历链表
         int i = 0;
-        Object[] result = a;
+        Object[] result = a;// 20201119 给予a指针给result
         for (Node<E> x = first; x != null; x = x.next)
+            // 20201119 填充a数组
             result[i++] = x.item;
 
+        // 20201119 填充剩余元素为null
         if (a.length > size)
             a[size] = null;
 
+        // 20201119 返回a数组
         return a;
     }
 
@@ -1225,6 +1327,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      *             contains) is emitted (int), followed by all of its
      *             elements (each an Object) in the proper order.
      */
+    // 20201119 序列化写方法
     private void writeObject(java.io.ObjectOutputStream s)
         throws java.io.IOException {
         // Write out any hidden serialization magic
@@ -1242,6 +1345,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * Reconstitutes this {@code LinkedList} instance from a stream
      * (that is, deserializes it).
      */
+    // 20201119 反序列化读方法
     @SuppressWarnings("unchecked")
     private void readObject(java.io.ObjectInputStream s)
         throws java.io.IOException, ClassNotFoundException {
@@ -1272,11 +1376,13 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      * @return a {@code Spliterator} over the elements in this list
      * @since 1.8
      */
+    // 20201119 分割器
     @Override
     public Spliterator<E> spliterator() {
         return new LLSpliterator<E>(this, -1, 0);
     }
 
+    // 20201119 分割器实现类
     /** A customized variant of Spliterators.IteratorSpliterator */
     static final class LLSpliterator<E> implements Spliterator<E> {
         static final int BATCH_UNIT = 1 << 10;  // batch array size increment
