@@ -108,7 +108,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
     /**
      * Constructs an empty list.
      */
-    // 20201118 构造方法
+    // 20201118 构造方法 -> 空参构造
     public LinkedList() {
     }
 
@@ -122,90 +122,149 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
      */
     // 20201118 构造方法 -> 根据指定集合进行构造
     public LinkedList(Collection<? extends E> c) {
-        this();
-        addAll(c);
+        this();// 20201118 调用普通构造方法
+        addAll(c);// 20201118 添加集合元素到末尾
     }
 
     /**
      * Links e as first element.
      */
+    // 20201118 链接到头指针前
     private void linkFirst(E e) {
-        final Node<E> f = first;
-        final Node<E> newNode = new Node<>(null, e, f);
-        first = newNode;
-        if (f == null)
-            last = newNode;
+        final Node<E> f = first;// 20201118 备份头指针
+        final Node<E> newNode = new Node<>(null, e, f);// 20201118 在头指针前创建结点
+        first = newNode;// 20201118 更新头指针指向新结点
+        if (f == null)// 20201118 如果该结点为第一个元素
+            last = newNode;// 20201118 则再赋值给末尾指针
         else
-            f.prev = newNode;
+            f.prev = newNode;// 20201118 否则赋值给连接该结点
+
+        // 20201118 更新实际元素个数
         size++;
+
+        // 20201118 结构修改次数+1
         modCount++;
     }
 
     /**
      * Links e as last element.
      */
+    // 20201118 链接到末尾结点后
     void linkLast(E e) {
+        // 20201118 备份末尾结点
         final Node<E> l = last;
+
+        // 20201118 在末尾结点后创建结点
         final Node<E> newNode = new Node<>(l, e, null);
+
+        // 20201118 更新末尾结点为当前结点
         last = newNode;
+
+        // 20201118 如果为第一个元素
         if (l == null)
-            first = newNode;
+            first = newNode;// 20201118 则再赋值给头指针
         else
-            l.next = newNode;
+            l.next = newNode;// 20201118 否则链接该结点
+
+        // 20201118 更新实际元素个数
         size++;
+
+        // 20201118 更新结构修改次数
         modCount++;
     }
 
     /**
      * Inserts element e before non-null Node succ.
      */
+    // 20201118 插入一个元素到某个结点前
     void linkBefore(E e, Node<E> succ) {
         // assert succ != null;
+        // 20201118 获取succ结点的前结点
         final Node<E> pred = succ.prev;
+
+        // 20201118 在pred与succ结点之间创建新结点
         final Node<E> newNode = new Node<>(pred, e, succ);
+
+        // 20201118 succ链接新结点
         succ.prev = newNode;
+
+        // 20201118 如果前结点为空, 说明succ结点为第一个结点
         if (pred == null)
-            first = newNode;
+            first = newNode;// 20201118 则设置新结点为头指针
         else
-            pred.next = newNode;
+            pred.next = newNode;// 20201118 否则前结点也链接新结点
+
+        // 20201118 实际元素大小+1
         size++;
+
+        // 20201118 结构修改次数+1
         modCount++;
     }
 
     /**
      * Unlinks non-null first node f.
      */
+    // 20201118 解除头结点链接
     private E unlinkFirst(Node<E> f) {
         // assert f == first && f != null;
+        // 20201118 获取该结点元素
         final E element = f.item;
+
+        // 20201118 获取该结点的下一个结点
         final Node<E> next = f.next;
+
+        // 20201118 清空该结点
         f.item = null;
-        f.next = null; // help GC
+        f.next = null; // help GC // 20201118 通知GC回收
+
+        // 20201118 头节点更新为next结点
         first = next;
+
+        // 20201118 如果没有next结点, 说明为最后一个结点, 解除后, 将不存在结点
         if (next == null)
-            last = null;
+            last = null;// 20201118 则末尾结点为null
         else
-            next.prev = null;
+            next.prev = null;// 20201118 否则, 头节点的前结点置为null
+
+        // 20201118 更新实际元素个数
         size--;
+
+        // 20201118 更新结构修改次数
         modCount++;
+
+        // 20201118 返回头节点中的元素
         return element;
     }
 
     /**
      * Unlinks non-null last node l.
      */
+    // 20201118 解除末尾结点
     private E unlinkLast(Node<E> l) {
         // assert l == last && l != null;
+        // 20201118 获取末尾结点元素
         final E element = l.item;
+
+        // 20201118 获取前一个结点prev
         final Node<E> prev = l.prev;
+
+        // 20201118 清空该结点
         l.item = null;
         l.prev = null; // help GC
+
+        // 20201118 更新末尾结点为前结点prev
         last = prev;
+
+        // 20201118 如果前结点为空, 说明为第一个元素, 解除后链表将不存在元素
         if (prev == null)
-            first = null;
+            first = null;// 20201118 这时置空头指针
         else
-            prev.next = null;
+            prev.next = null;// 20201118 否则前结点为末尾结点
+
+        // 20201118 更新实际元素个数
         size--;
+
+        // 20201118 更新结构修改次数
         modCount++;
         return element;
     }
@@ -213,29 +272,44 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
     /**
      * Unlinks non-null node x.
      */
+    // 20201118 解除指定结点
     E unlink(Node<E> x) {
         // assert x != null;
+        // 20201118 获取该结点的元素
         final E element = x.item;
+
+        // 20201118 获取该结点的后结点
         final Node<E> next = x.next;
+
+        // 20201118 获取该结点的前结点
         final Node<E> prev = x.prev;
 
+        // 20201118 如果前结点为空, 说明为第一个元素
         if (prev == null) {
-            first = next;
-        } else {
-            prev.next = next;
-            x.prev = null;
+            first = next;// 20201118 则头节点为后结点
+        } else {// 20201118 否则说明不为第一个元素
+            prev.next = next;// 20201118 则链接前结点与后结点
+            x.prev = null;// 20201118 解除该结点与前结点的关系
         }
 
+        // 20201118 同理如果后结点为空, 说明为最后一个元素
         if (next == null) {
-            last = prev;
-        } else {
-            next.prev = prev;
-            x.next = null;
+            last = prev;// 20201118 则末尾结点为前结点
+        } else {// 20201118 否则说明不为最后一个元素
+            next.prev = prev;// 20201118 则链接前结点与后结点
+            x.next = null;// 20201118 解除该结点与后结点的关系
         }
 
+        // 20201118 清空该节点元素, 通知GC回收
         x.item = null;
+
+        // 20201118 更新实际元素个数
         size--;
+
+        // 20201118 更新结构修改次数
         modCount++;
+
+        // 20201118 返回该结点原来的元素
         return element;
     }
 
