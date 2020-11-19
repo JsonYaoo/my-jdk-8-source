@@ -31,6 +31,12 @@ import java.util.function.BiFunction;
 import java.io.IOException;
 
 /**
+ * 20201119
+ * 具有可预测迭代顺序的<tt>Map</tt>接口的哈希表和链表实现。这个实现不同于HashMap</tt>，因为它维护一个双链接的列表，该列表贯穿其所有条目。
+ * 这个链表定义了迭代顺序，通常是键插入映射的顺序（<i>插入顺序</i>）。请注意，如果键被重新插入到映射中，则插入顺序不会受到影响。
+ * （如果<tt>m.containsKey（k）</tt>将在调用前立即返回<tt>true</tt>时调用m.put（k，v）</tt>，则键<tt>k</tt>将重新插入映射<tt>m</tt>。）
+ */
+/**
  * <p>Hash table and linked list implementation of the <tt>Map</tt> interface,
  * with predictable iteration order.  This implementation differs from
  * <tt>HashMap</tt> in that it maintains a doubly-linked list running through
@@ -160,9 +166,8 @@ import java.io.IOException;
  * @see     Hashtable
  * @since   1.4
  */
-public class LinkedHashMap<K,V>
-    extends HashMap<K,V>
-    implements Map<K,V>
+// 20201119 哈希Map的实现 -> 基于双向链表的实现
+public class LinkedHashMap<K,V> extends HashMap<K,V> implements Map<K,V>
 {
 
     /*

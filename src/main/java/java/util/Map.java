@@ -126,6 +126,7 @@ import java.io.Serializable;
  * @see Set
  * @since 1.2
  */
+// 20201119 将关键点映射到值的对象。映射不能包含重复的键；每个键最多只能映射到一个值。 => 默认实现foreach()、replace()等操作
 public interface Map<K,V> {
     // Query Operations
 
@@ -360,6 +361,11 @@ public interface Map<K,V> {
     Set<Map.Entry<K, V>> entrySet();
 
     /**
+     * 20201119
+     * 映射项（键值对）。这个Map.entrySet返回映射的集合视图，其元素属于此类。获取映射项引用的唯一方法是从此集合视图的迭代器获取。这些Map。
+     * 入口对象仅在迭代期间有效；更正式地说，如果在迭代器返回项后修改了支持映射，则映射项的行为是未定义的，除非通过对映射项执行setValue操作。
+     */
+    /**
      * A map entry (key-value pair).  The <tt>Map.entrySet</tt> method returns
      * a collection-view of the map, whose elements are of this class.  The
      * <i>only</i> way to obtain a reference to a map entry is from the
@@ -372,6 +378,7 @@ public interface Map<K,V> {
      * @see Map#entrySet()
      * @since 1.2
      */
+    // 20201119 Map映射键, 迭代器迭代里不能被修改
     interface Entry<K,V> {
         /**
          * Returns the key corresponding to this entry.
@@ -381,6 +388,7 @@ public interface Map<K,V> {
          *         required to, throw this exception if the entry has been
          *         removed from the backing map.
          */
+        // 20201119 返回与此项对应的键。
         K getKey();
 
         /**
@@ -393,6 +401,7 @@ public interface Map<K,V> {
          *         required to, throw this exception if the entry has been
          *         removed from the backing map.
          */
+        // 20201119 返回与此项对应的值。如果映射已从支持映射中删除（通过迭代器的<tt>remove</tt>操作），则此调用的结果是未定义的。
         V getValue();
 
         /**
@@ -415,6 +424,7 @@ public interface Map<K,V> {
          *         required to, throw this exception if the entry has been
          *         removed from the backing map.
          */
+        // 20201119 用指定值替换与此项对应的值（可选操作）。（写入映射。）如果映射已经从映射中移除（通过迭代器的<tt>remove</tt>操作），则此调用的行为是未定义的。
         V setValue(V value);
 
         /**
@@ -435,6 +445,8 @@ public interface Map<K,V> {
          * @return <tt>true</tt> if the specified object is equal to this map
          *         entry
          */
+        // 20201119 将指定的对象与此项进行相等性比较。如果给定的对象也是一个映射项，并且这两个项表示相同的映射，则返回<tt>true</tt>。
+        // 20201119 更正式地说，两个条目<tt>e1</tt>和<tt>e2</tt>表示相同的映射
         boolean equals(Object o);
 
         /**
@@ -453,6 +465,7 @@ public interface Map<K,V> {
          * @see Object#equals(Object)
          * @see #equals(Object)
          */
+        // 20201119 返回此映射项的hashCode。 => 键的hashCode ^ 值的hashCode
         int hashCode();
 
         /**
@@ -467,6 +480,7 @@ public interface Map<K,V> {
          * @see Comparable
          * @since 1.8
          */
+        // 20201119 返回在key上按自然顺序排列{Map.Entry}的比较器
         public static <K extends Comparable<? super K>, V> Comparator<Map.Entry<K,V>> comparingByKey() {
             return (Comparator<Map.Entry<K, V>> & Serializable)
                 (c1, c2) -> c1.getKey().compareTo(c2.getKey());
@@ -484,6 +498,7 @@ public interface Map<K,V> {
          * @see Comparable
          * @since 1.8
          */
+        // 20201119 返回在value上按自然顺序排列{Map.Entry}的比较器
         public static <K, V extends Comparable<? super V>> Comparator<Map.Entry<K,V>> comparingByValue() {
             return (Comparator<Map.Entry<K, V>> & Serializable)
                 (c1, c2) -> c1.getValue().compareTo(c2.getValue());
@@ -502,6 +517,7 @@ public interface Map<K,V> {
          * @return a comparator that compares {@link Map.Entry} by the key.
          * @since 1.8
          */
+        // 20201119 返回按指定key比较规则的{Map.Entry}的比较器
         public static <K, V> Comparator<Map.Entry<K, V>> comparingByKey(Comparator<? super K> cmp) {
             Objects.requireNonNull(cmp);
             return (Comparator<Map.Entry<K, V>> & Serializable)
@@ -521,6 +537,7 @@ public interface Map<K,V> {
          * @return a comparator that compares {@link Map.Entry} by the value.
          * @since 1.8
          */
+        // 20201119 返回按指定value比较规则的{Map.Entry}的比较器
         public static <K, V> Comparator<Map.Entry<K, V>> comparingByValue(Comparator<? super V> cmp) {
             Objects.requireNonNull(cmp);
             return (Comparator<Map.Entry<K, V>> & Serializable)

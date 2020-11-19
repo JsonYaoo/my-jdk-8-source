@@ -27,6 +27,10 @@ package java.util;
 import java.util.Map.Entry;
 
 /**
+ * 20201119
+ * 此类提供Map接口的框架实现，以最小化实现此接口所需的工作量。
+ */
+/**
  * This class provides a skeletal implementation of the <tt>Map</tt>
  * interface, to minimize the effort required to implement this interface.
  *
@@ -64,7 +68,7 @@ import java.util.Map.Entry;
  * @see Collection
  * @since 1.2
  */
-
+// 20201119 实现Map接口 -> 实现类大部分方法, 剩余entrySet()方法没有实现
 public abstract class AbstractMap<K,V> implements Map<K,V> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically

@@ -93,6 +93,7 @@ import java.util.*;
  * @see java.util.Comparator
  * @since 1.2
  */
+// 20201119 这个接口对实现它的每个类的对象施加一个总的顺序。这种排序称为类的<i>自然排序</i>，类的<tt>compareTo</tt>方法称为其<i>自然比较方法</i>。
 public interface Comparable<T> {
     /**
      * Compares this object with the specified object for order.  Returns a
