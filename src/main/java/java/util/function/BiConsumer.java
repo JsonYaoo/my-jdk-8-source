@@ -41,6 +41,7 @@ import java.util.Objects;
  * @see Consumer
  * @since 1.8
  */
+// 20201120 表示接受两个输入参数且不返回结果的操作。这是{@link Consumer}的两个arity专门化。与大多数其他功能接口不同，{@codebiconsumer}被期望通过副作用来操作。
 @FunctionalInterface
 public interface BiConsumer<T, U> {
 

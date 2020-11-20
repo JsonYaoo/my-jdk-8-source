@@ -596,7 +596,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         // 20201119 使用默认的加载因子
         this.loadFactor = DEFAULT_LOAD_FACTOR;
 
-
+        // 20201119 添加m的所有key-value对, 处于表创建模式
         putMapEntries(m, false);
     }
 
@@ -633,6 +633,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
             for (Map.Entry<? extends K, ? extends V> e : m.entrySet()) {
                 K key = e.getKey();
                 V value = e.getValue();
+
+                // 20201120 添加key-value对, 可以替换旧值, evict代表是否可以处于表创建模式
                 putVal(hash(key), key, value, false, evict);
             }
         }
@@ -720,6 +722,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * @return <tt>true</tt> if this map contains a mapping for the specified
      * key.
      */
+    // 20201120 如果此映射包含指定键的映射，则返回<tt>true</tt>。
     public boolean containsKey(Object key) {
         return getNode(hash(key), key) != null;
     }
@@ -743,52 +746,89 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     /**
      * Implements Map.put and related methods
      *
-     * @param hash hash for key
-     * @param key the key
-     * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
-     * @param evict if false, the table is in creation mode.
+     * @param hash hash for key       // 20201120 key的hash
+     * @param key the key             // 20201120 key值
+     * @param value the value to put    // 20201120 value值
+     * @param onlyIfAbsent if true, don't change existing value     // 20201120 true时不能替换旧值
+     * @param evict if false, the table is in creation mode.        // 20201120 如果为false，则表处于创建模式。
      * @return previous value, or null if none
      */
-    final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
-                   boolean evict) {
+    // 20201120 Map.put的方法实现, 添加key-value对
+    final V putVal(int hash, K key, V value, boolean onlyIfAbsent, boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
+
+        // 20201120 如果当前散列表tab为空, 或者容量n为0
         if ((tab = table) == null || (n = tab.length) == 0)
+            // 20201120 则初始化散列表
             n = (tab = resize()).length;
+
+        // 20201120 根据新的容量n以及旧的hash计算新桶头结点p
         if ((p = tab[i = (n - 1) & hash]) == null)
+            // 20201120 如果新桶为空, 则创建普通结点, 然后作为新桶的头结点
             tab[i] = newNode(hash, key, value, null);
+
+        // 20201120 否则, 如果新桶不为空
         else {
             Node<K,V> e; K k;
-            if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
+
+            // 20201120 如果新桶头结点p的hash、key相等, 则设置p为当前结点e
+            if (p.hash == hash && ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
+
+            // 20201120 如果p为红黑树结点
             else if (p instanceof TreeNode)
+                // 20201120 则使用红黑树的结点添加方法
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
+                // 20201120 否则为普通结点, 则遍历散列表
                 for (int binCount = 0; ; ++binCount) {
+                    // 20201120 如果下一个结点e不为空
                     if ((e = p.next) == null) {
+                        // 20201120 则创建hash桶的普通结点
                         p.next = newNode(hash, key, value, null);
+
+                        // 20201120 如果桶链表长度达到了红黑树转换的阈值8时
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                            // 20201120 红黑树化指定hash桶
                             treeifyBin(tab, hash);
                         break;
                     }
-                    if (e.hash == hash &&
-                        ((k = e.key) == key || (key != null && key.equals(k))))
-                        break;
+
+                    // 20201120 如下一个结点e的hash与hash桶的hash相等 且 key也相等
+                    if (e.hash == hash && ((k = e.key) == key || (key != null && key.equals(k))))
+                        break;// 20201120 则跳出循环, 代表找到了对应的结点
+
+                    // 20201120 继续遍历新桶的链表
                     p = e;
                 }
             }
-            if (e != null) { // existing mapping for key
+
+            // 20201120 当前结点e不为空
+            if (e != null) { // existing mapping for key // 20201120 键的现有映射
+                // 20201120 则获取旧值
                 V oldValue = e.value;
+
+                // 20201120 如果可以替换旧值, 或者旧值为null
                 if (!onlyIfAbsent || oldValue == null)
+                    // 20201120 则填充新值
                     e.value = value;
+
+                // 20201120 触发LinkedHashMap结点替换后的回调访问函数
                 afterNodeAccess(e);
+
+                // 20201120 返回旧值
                 return oldValue;
             }
         }
+
+        // 20201120 如果不是结点替换, 而是插入到新桶中, 则更新结构修改次数
         ++modCount;
+
+        // 20201120 如果插入后实际元素个数大于阈值(下一个目标的容量)时, 则进行重置散列表
         if (++size > threshold)
             resize();
+
+        // 20201120 触发LinkedHashMap结点插入后的回调访问函数
         afterNodeInsertion(evict);
         return null;
     }
@@ -941,23 +981,37 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * Replaces all linked nodes in bin at index for given hash unless
      * table is too small, in which case resizes instead.
      */
+    // 20201120 替换给定哈希的索引处bin中的所有链接节点，除非表太小，在这种情况下会调整大小 => 红黑树化普通结点
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
+
+        // 20201120 如果散列表为空, 或者散列表容量n小于红黑树化列表阈值64时
         if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
-            resize();
+            resize();// 20201120 则重置散列表
+
+        // 20201120 如果散列表满足红黑树化条件, 且新桶e不为空
         else if ((e = tab[index = (n - 1) & hash]) != null) {
             TreeNode<K,V> hd = null, tl = null;
+
+            // 20201120 遍历当前桶链表
             do {
+                // 20201120 替换新桶e结点为红黑树结点
                 TreeNode<K,V> p = replacementTreeNode(e, null);
+
+                // 20201120 tl指针还没被初始化
                 if (tl == null)
-                    hd = p;
+                    hd = p;// 20201120 则备份新桶头指针p
                 else {
+                    // 20201120 否则追加链表结点到hd链表中
                     p.prev = tl;
                     tl.next = p;
                 }
                 tl = p;
             } while ((e = e.next) != null);
+
+            // 20201120 新链表hd设置为新桶的头结点, 如果不为空
             if ((tab[index] = hd) != null)
+                // 20201120 则将链表红黑树化
                 hd.treeify(tab);
         }
     }
@@ -970,7 +1024,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * @param m mappings to be stored in this map
      * @throws NullPointerException if the specified map is null
      */
+    // 20201120 将指定映射中的所有映射复制到此映射。这些映射将替换此映射对指定映射中当前任何键的任何映射。
     public void putAll(Map<? extends K, ? extends V> m) {
+        // 20201120 添加m的所有key-value对, 可以替换旧值, 不处于表创建模式, 是添加模式
         putMapEntries(m, true);
     }
 
@@ -983,6 +1039,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *         (A <tt>null</tt> return can also indicate that the map
      *         previously associated <tt>null</tt> with <tt>key</tt>.)
      */
+    // 20201120 从该映射中删除指定键的映射（如果存在）。
     public V remove(Object key) {
         Node<K,V> e;
         return (e = removeNode(hash(key), key, null, false, true)) == null ?
@@ -1087,20 +1144,35 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * @return <tt>true</tt> if this map maps one or more keys to the
      *         specified value
      */
+    // 20201119 如果此映射将一个或多个键映射到指定值，则返回<tt>true</tt>。
     public boolean containsValue(Object value) {
         Node<K,V>[] tab; V v;
+
+        // 20201120 散列表tab, 如果实际元素个数>0
         if ((tab = table) != null && size > 0) {
+            // 20201120 则遍历散列表
             for (int i = 0; i < tab.length; ++i) {
+                // 20201120 遍历每个桶的链表
                 for (Node<K,V> e = tab[i]; e != null; e = e.next) {
-                    if ((v = e.value) == value ||
-                        (value != null && value.equals(v)))
+                    // 20201120 如果找到值相等的结点, 在返回true
+                    if ((v = e.value) == value || (value != null && value.equals(v)))
                         return true;
                 }
             }
         }
+
+        // 202011120 否则返回false
         return false;
     }
 
+    /**
+     * 20201120
+     * 返回此映射中包含的键的{@link Set}视图。
+     * 集合由映射支持，因此对映射的更改将反映在集合中，反之亦然。
+     * 如果在对集合进行迭代时修改映射（除了通过迭代器自己的<tt>remove</tt>操作），则迭代的结果是未定义的。
+     * 集合支持元素移除，元素移除通过<tt>迭代器.remove</tt>，<tt>设置。删除</tt>，<tt>移除所有</tt>，<tt>返回</tt>，和<tt>清除</tt>操作。
+     * 它不支持<tt>add</tt>或<tt>addAll</tt>操作。
+     */
     /**
      * Returns a {@link Set} view of the keys contained in this map.
      * The set is backed by the map, so changes to the map are
@@ -1116,11 +1188,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *
      * @return a set view of the keys contained in this map
      */
+    // 20201120 返回map的键的集合
     public Set<K> keySet() {
         Set<K> ks;
         return (ks = keySet) == null ? (keySet = new KeySet()) : ks;
     }
 
+    // 20201120 map键的集合, 继承了AbstractSet
     final class KeySet extends AbstractSet<K> {
         public final int size()                 { return size; }
         public final void clear()               { HashMap.this.clear(); }
@@ -1132,10 +1206,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         public final Spliterator<K> spliterator() {
             return new KeySpliterator<>(HashMap.this, 0, -1, 0, 0);
         }
+
+        // 20201120 根据指定规则迭代
         public final void forEach(Consumer<? super K> action) {
             Node<K,V>[] tab;
             if (action == null)
                 throw new NullPointerException();
+
+            // 20201120 迭代散列表、每个桶的结点
             if (size > 0 && (tab = table) != null) {
                 int mc = modCount;
                 for (int i = 0; i < tab.length; ++i) {
@@ -1148,6 +1226,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
     }
 
+    /**
+     * 20201120
+     * 返回此映射中包含的值的{@link Collection}视图。
+     * 集合由映射支持，因此对映射的更改将反映在集合中，反之亦然。
+     * 如果在对集合进行迭代时修改了映射（除了通过迭代器自己的<tt>remove</tt>操作），则迭代的结果是未定义的。
+     * 集合支持元素移除，元素移除通过<tt>迭代器.remove</tt>，<tt>集合.删除</tt>，<tt>移除所有</tt>，<tt>返回</tt>和<tt>清除</tt>操作。
+     * 它不支持<tt>add</tt>或<tt>addAll</tt>操作。
+     */
     /**
      * Returns a {@link Collection} view of the values contained in this map.
      * The collection is backed by the map, so changes to the map are
@@ -1163,11 +1249,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *
      * @return a view of the values contained in this map
      */
+    // 20201120 返回map的值的集合
     public Collection<V> values() {
         Collection<V> vs;
         return (vs = values) == null ? (values = new Values()) : vs;
     }
 
+    // 20201120 map的值的结合, 继承了AbstractCollection
     final class Values extends AbstractCollection<V> {
         public final int size()                 { return size; }
         public final void clear()               { HashMap.this.clear(); }
@@ -1215,7 +1303,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *
      * @return a set view of the mappings contained in this map
      */
-    // 20201119 返回map所有的key值集合
+    // 20201119 返回map所有的entry集合
     public Set<Map.Entry<K,V>> entrySet() {
         Set<Map.Entry<K,V>> es;
 
@@ -1287,38 +1375,52 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     // Overrides of JDK8 Map extension methods
-
+    // 20201120 带默认值的获取, 如果获取不到key的元素, 则返回默认值
     @Override
     public V getOrDefault(Object key, V defaultValue) {
         Node<K,V> e;
         return (e = getNode(hash(key), key)) == null ? defaultValue : e.value;
     }
 
+    // 20201120 处于创建模式下的key-value添加, 不能替换旧值
     @Override
     public V putIfAbsent(K key, V value) {
         return putVal(hash(key), key, value, true, true);
     }
 
+    // 20201120 根据key-value删除结点
     @Override
     public boolean remove(Object key, Object value) {
         return removeNode(hash(key), key, value, true, true) != null;
     }
 
+    // 20201120 key-value相等时, 替换结点的值
     @Override
     public boolean replace(K key, V oldValue, V newValue) {
         Node<K,V> e; V v;
-        if ((e = getNode(hash(key), key)) != null &&
-            ((v = e.value) == oldValue || (v != null && v.equals(oldValue)))) {
+
+        // 20201120 如果key相等、值相等
+        if ((e = getNode(hash(key), key)) != null && ((v = e.value) == oldValue || (v != null && v.equals(oldValue)))) {
+            // 20201120 则旧值替换成新值
             e.value = newValue;
+
+            // 20201120 LinkedHashMap回调函数
             afterNodeAccess(e);
+
+            // 20201120 替换成功返回true
             return true;
         }
+
+        // 20201120 替换失败返回false
         return false;
     }
 
+    // 20201120 key相等时, 新值替换掉旧值, 返回旧值
     @Override
     public V replace(K key, V value) {
         Node<K,V> e;
+
+        // 20201120 如果key值相等, 则新值替换旧值, 返回旧值
         if ((e = getNode(hash(key), key)) != null) {
             V oldValue = e.value;
             e.value = value;
@@ -1328,9 +1430,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return null;
     }
 
+    // 20201120 通过Function计算key, 得出新值然后替换key的旧值
     @Override
-    public V computeIfAbsent(K key,
-                             Function<? super K, ? extends V> mappingFunction) {
+    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
         if (mappingFunction == null)
             throw new NullPointerException();
         int hash = hash(key);
@@ -1382,8 +1484,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return v;
     }
 
-    public V computeIfPresent(K key,
-                              BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    // 20201120 通过Function计算key和旧值, 得出新值然后替换key的旧值
+    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         if (remappingFunction == null)
             throw new NullPointerException();
         Node<K,V> e; V oldValue;
@@ -1402,9 +1504,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return null;
     }
 
+    // 20201120 通过Function计算key和旧值, 得出新值然后生成新的结点
     @Override
-    public V compute(K key,
-                     BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         if (remappingFunction == null)
             throw new NullPointerException();
         int hash = hash(key);
@@ -1455,9 +1557,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return v;
     }
 
+    // 20201120 通过Function计算旧值和value, 得出新值然后生成新的结点
     @Override
-    public V merge(K key, V value,
-                   BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
         if (value == null)
             throw new NullPointerException();
         if (remappingFunction == null)
@@ -1514,6 +1616,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return value;
     }
 
+    // 202011120 使用key和value进行比较得到的迭代结果
     @Override
     public void forEach(BiConsumer<? super K, ? super V> action) {
         Node<K,V>[] tab;
@@ -1530,6 +1633,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
     }
 
+    // 20201120 通过key和value的比较进行替换旧值
     @Override
     public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
         Node<K,V>[] tab;
@@ -1556,6 +1660,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *
      * @return a shallow copy of this map
      */
+    // 200211120 返回这个<tt>HashMap</tt>实例的一个浅拷贝：键和值本身不被克隆。
     @SuppressWarnings("unchecked")
     @Override
     public Object clone() {
@@ -1571,12 +1676,15 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return result;
     }
 
-    // These methods are also used when serializing HashSets
-    final float loadFactor() { return loadFactor; }
+    // These methods are also used when serializing HashSets // 20201120 在序列化HashSets也使用这些方法
+    // 20201120 获取加载因子
+    final float loadFactor() {
+        return loadFactor;
+    }
+
+    // 20201120 获取散列表容量 => 如果散列表不为空, 则返回散列表当前的长度, 否则判断阈值是否大于0, 如果大于0则返回阈值, 否则返回默认容量16
     final int capacity() {
-        return (table != null) ? table.length :
-            (threshold > 0) ? threshold :
-            DEFAULT_INITIAL_CAPACITY;
+        return (table != null) ? table.length : (threshold > 0) ? threshold : DEFAULT_INITIAL_CAPACITY;
     }
 
     /**
@@ -1590,6 +1698,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *             for each key-value mapping.  The key-value mappings are
      *             emitted in no particular order.
      */
+    // 202011120 序列化时调用的写方法
     private void writeObject(java.io.ObjectOutputStream s)
         throws IOException {
         int buckets = capacity();
@@ -1604,6 +1713,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * Reconstitute the {@code HashMap} instance from a stream (i.e.,
      * deserialize it).
      */
+    // 20201120 反序列化调用的读方法
     private void readObject(java.io.ObjectInputStream s)
         throws IOException, ClassNotFoundException {
         // Read in the threshold (ignored), loadfactor, and any hidden stuff
@@ -1695,13 +1805,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
     }
 
-    final class KeyIterator extends HashIterator
-        implements Iterator<K> {
+    // 20201120 key的迭代器
+    final class KeyIterator extends HashIterator implements Iterator<K> {
         public final K next() { return nextNode().key; }
     }
 
-    final class ValueIterator extends HashIterator
-        implements Iterator<V> {
+    // 20201120 value的迭代器
+    final class ValueIterator extends HashIterator implements Iterator<V> {
         public final V next() { return nextNode().value; }
     }
 
@@ -1971,6 +2081,11 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     // LinkedHashMap support
 
 
+    /**
+     * 20201120
+     * 以下受包保护的方法被设计为由LinkedHashMap重写，而不是由任何其他子类重写。
+     * 几乎所有其他内部方法也受到包保护，但声明为final，因此可以由LinkedHashMap、视图类和HashSet使用。
+     */
     /*
      * The following package-protected methods are designed to be
      * overridden by LinkedHashMap, but not by any other subclass.
@@ -1978,7 +2093,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * but are declared final, so can be used by LinkedHashMap, view
      * classes, and HashSet.
      */
-
+    // 20201120 根据hash、key、value、netx结点创建普通结点
     // Create a regular (non-tree) node
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> next) {
         return new Node<>(hash, key, value, next);
@@ -1992,11 +2107,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     // Create a tree bin node
+    // 20201120 创建红黑树结点
     TreeNode<K,V> newTreeNode(int hash, K key, V value, Node<K,V> next) {
         return new TreeNode<>(hash, key, value, next);
     }
 
     // For treeifyBin
+    // 20201120 创建新红黑树结点-用于替换结点
     TreeNode<K,V> replacementTreeNode(Node<K,V> p, Node<K,V> next) {
         return new TreeNode<>(p.hash, p.key, p.value, next);
     }
@@ -2290,47 +2407,76 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * Tree version of putVal.
          */
-        final TreeNode<K,V> putTreeVal(HashMap<K,V> map, Node<K,V>[] tab,
-                                       int h, K k, V v) {
+        // 20201120 红黑树的结点添加方法
+        final TreeNode<K,V> putTreeVal(HashMap<K,V> map, Node<K,V>[] tab, int h, K k, V v) {
+            // 202011120 比较器Class类kc, 搜索结果searched, 根节点root
             Class<?> kc = null;
             boolean searched = false;
-            TreeNode<K,V> root = (parent != null) ? root() : this;
+            TreeNode<K,V> root = (parent != null) ? root() : this;// 20201120 遍历查找根结点
+
+            // 20201120 从根结点开始查找
             for (TreeNode<K,V> p = root;;) {
                 int dir, ph; K pk;
+
+                // 20201120 当前结点p, 当前节点的hash ph
                 if ((ph = p.hash) > h)
+                    // 20201120 如果ph大于目标hash, 则比较结果dir为-1
                     dir = -1;
+
+                // 20201120 如果小于hash, 则dir为1
                 else if (ph < h)
                     dir = 1;
+
+                // 20201120 如果等于hash, 且key值也相等
                 else if ((pk = p.key) == k || (k != null && k.equals(pk)))
+                    // 20201119 则返回当前结点, 不用添加, 因为hash相等, 说明value和key都相等
                     return p;
-                else if ((kc == null &&
-                          (kc = comparableClassFor(k)) == null) ||
-                         (dir = compareComparables(kc, k, pk)) == 0) {
+
+                // 20201120 如果hash相等且key值不等, 但用比较器比较key值相等时
+                else if ((kc == null && (kc = comparableClassFor(k)) == null) ||(dir = compareComparables(kc, k, pk)) == 0) {
+                    // 20201120 如果还没找到
                     if (!searched) {
+                        // 20201120 则递归查找左右子树, 直到找到指定hash和key匹配的结点q
                         TreeNode<K,V> q, ch;
                         searched = true;
-                        if (((ch = p.left) != null &&
-                             (q = ch.find(h, k, kc)) != null) ||
-                            ((ch = p.right) != null &&
-                             (q = ch.find(h, k, kc)) != null))
+                        if (((ch = p.left) != null && (q = ch.find(h, k, kc)) != null) || ((ch = p.right) != null && (q = ch.find(h, k, kc)) != null))
                             return q;
                     }
+
+                    // 20201120 比较传入的键值和当前结点的键值, 比较结果dir
                     dir = tieBreakOrder(k, pk);
                 }
 
+                // 20201120 找不到, 则根据dir进行插入新结点, 如果比较结果dir <=, 则从左子树开始找, 如果>0, 则从右子树开始找
                 TreeNode<K,V> xp = p;
                 if ((p = (dir <= 0) ? p.left : p.right) == null) {
+                    // 20201120 当前结点xp, 结点的后指针xpn, 新红黑树结点x
                     Node<K,V> xpn = xp.next;
                     TreeNode<K,V> x = map.newTreeNode(h, k, v, xpn);
+
+                    // 20201120 如果比较结果<=0
                     if (dir <= 0)
+                        // 20201120 则设置红黑树结点x为当前节点xp的左孩子
                         xp.left = x;
                     else
+                        // 20201120 否则设置红黑树结点x为当前结点xp的右孩子
                         xp.right = x;
+
+                    // 20201120 设置当前结点xp的后指针为x
                     xp.next = x;
+
+                    // 20201120 关联xp结点与x的关系
                     x.parent = x.prev = xp;
+
+                    // 20201120 如果以前的后指针xpn不为空
                     if (xpn != null)
+                        // 20201120 则设定红黑树结点x为xpn的前指针
                         ((TreeNode<K,V>)xpn).prev = x;
+
+                    // 20201120 插入x后平衡红黑树, 然后指定root结点到桶头
                     moveRootToFront(tab, balanceInsertion(root, x));
+
+                    // 20201120 插入新结点时返回null
                     return null;
                 }
             }

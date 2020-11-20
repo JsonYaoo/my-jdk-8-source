@@ -40,6 +40,7 @@ import java.util.Objects;
  * @see Function
  * @since 1.8
  */
+// 20201120 表示接受两个参数并生成结果的函数。这是{@link Function}的两个arity专门化。
 @FunctionalInterface
 public interface BiFunction<T, U, R> {
 
