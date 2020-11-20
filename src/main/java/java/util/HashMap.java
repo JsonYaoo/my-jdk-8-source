@@ -918,10 +918,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
                     // 20201119 如果e(即原来的桶)不存在下一个结点, 即原来的桶中的元素中只有一个元素
                     if (e.next == null)
-                        // 20201119 则计算新e的hash = 原来的hash & (新容量 - 1)
-                        // 20201119 => 新容量减1保证地位全是1, 这样原来的hash与上后, 能够在容量尽可能保证hash的不变性, 减少原结点的移动, 提高resize性能
-                        // 20201119     a. 在容量减少为原来的1/2时, 原来的hash只会丢失最高位
-                        // 20201119     b. 在容量增加为原来的1倍时, 原来的hash不会发生任何变化
+                        // 20201120 e.hash & (newCap - 1) 相当于 e.hash % newCap, 其中后者最后需要转换为前者进行计算, 所以前者效率更高
+                        // 20201120 扩容前选择桶的位置 oldIndex: e.hash & (oldCap - 1)
+                        // 20201120 扩容后选择桶的位置 newIndex: e.hash & (newCap - 1)
+                        // 20201120 经过例子计算, 由于oldCap、newCap都是2^n, 且newCap比oldCap高1位, 那么oldCap - 1 与 newCap - 1两者实际就是差了最高位的1
+                        // 20201120 这时与原来的hash相与只会有两种结果:
+                        // 20201120 1、原来的hash对应newCap-1的最高位为0, 那么扩容后桶的位置newIndex还是不变
+                        // 20201120 2、原来的hash对应newCap-1的最高位为1, 那么扩容后痛的位置newIndex比oldIndex值差了高位的1, 即newIndex = oldIndex + 2^n, 其中2^n正好是oldCap, 即newIndex = oldIndex + oldCap
+                        // 20201120 =>  这样能够在尽可能保证桶index的不变性, 减少结点的移动, 提高resize性能
                         newTab[e.hash & (newCap - 1)] = e;// 20201119 e赋值到新的散列表中
 
                     // 20201119 如果当前桶属于红黑树结点
@@ -930,8 +934,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
                         // 20201119 如果不属于红黑树结点
-                        Node<K,V> loHead = null, loTail = null;
-                        Node<K,V> hiHead = null, hiTail = null;
+                        Node<K,V> loHead = null, loTail = null;// 20201120 loHead链表存放newIndex = oldIndex的结点
+                        Node<K,V> hiHead = null, hiTail = null;// 20201120 hiHead链表存放newInedx = oldIndex + oldCap的结点
                         Node<K,V> next;
 
                         // 20201119 则遍历添加到当前链表合适位置

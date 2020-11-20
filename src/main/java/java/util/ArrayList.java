@@ -104,7 +104,7 @@ import java.util.function.UnaryOperator;
  * @see     Vector
  * @since   1.2
  */
-// 20201117 实现了AbstractList, List接口, 允许随机访问、Clone调用、可序列化
+// 20201117 继承AbstractList, 实现List接口, 允许随机访问、Clone调用、可序列化
 public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable
 {
     private static final long serialVersionUID = 8683452581122892189L;
@@ -118,15 +118,16 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
     /**
      * Shared empty array instance used for empty instances.
      */
-    // 20201117 初始空数组
+    // 20201117 用于空实例的共享空数组实例 => 用于有参构造 或者 元素数组容量为0时赋值
     private static final Object[] EMPTY_ELEMENTDATA = {};
 
     /**
+     * // 20201120 将此与EMPTY_ELEMENTDATA区别开来, 以了解添加第一个元素时要填入多少
      * Shared empty array instance used for default sized empty instances. We
      * distinguish this from EMPTY_ELEMENTDATA to know how much to inflate when
      * first element is added.
      */
-    // 20201117 初始空数组, 将此与EMPTY_ELEMENTDATA区别开来, 以了解添加第一个元素时要填入多少
+    // 20201117 用于默认大小的空实例的共享空数组实例 => 用于无参构造 & 判断当前元素数组是否为初始化状态
     private static final Object[] DEFAULTCAPACITY_EMPTY_ELEMENTDATA = {};
 
     /**
@@ -161,7 +162,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
             // 20201117 初始化指定容量大小数组, 元素为{}
             this.elementData = new Object[initialCapacity];
         } else if (initialCapacity == 0) {
-            // 20201117 初始化数组 = {}
+            // 20201117 构造空的元素数组
             this.elementData = EMPTY_ELEMENTDATA;
         } else {
             // 20201117 参数非法异常
@@ -175,7 +176,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      */
     // 20201117 构造一个初始容量为10的空列表
     public ArrayList() {
-        // 20201117 初始化容量默认为10的空数组 = {}
+        // 20201117 初始化元素数组
         this.elementData = DEFAULTCAPACITY_EMPTY_ELEMENTDATA;
     }
 
@@ -200,7 +201,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
                 elementData = Arrays.copyOf(elementData, size, Object[].class);
         } else {
             // replace with empty array.
-            // 20201117 如果元素个数为0, 则默认为{}
+            // 20201117 构造空的元素数组
             this.elementData = EMPTY_ELEMENTDATA;
         }
     }
@@ -217,7 +218,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
 
         // 20201117 如果list大小小于数组元素个数
         if (size < elementData.length) {
-            // 20201117 如果list为0, 则初始化数组元素为{}, 否则返回指定size大小的数组元素
+            // 20201117 如果list为0, 则构造空的元素数组, 否则返回指定size大小的数组元素
             elementData = (size == 0)
               ? EMPTY_ELEMENTDATA
               : Arrays.copyOf(elementData, size);
@@ -233,7 +234,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      */
     // 20201117 如有必要，增加此ArrayList实例的容量，以确保它至少可以容纳最小容量参数指定的元素数。
     public void ensureCapacity(int minCapacity) {
-        // 20201117 如果元素数组为空, 则为0; 否则应该为默认容量 => 最小扩展数
+        // 20201117 如果元素数组为初始化状态, 则为0; 否则应该为默认容量 => 最小扩展数
         int minExpand = (elementData != DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
             // any size if not default element table
             ? 0
@@ -250,7 +251,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
 
     // 20201117 确认内部容量
     private void ensureCapacityInternal(int minCapacity) {
-        // 20201117 如果元素数组为空数组{}
+        // 20201117 如果元素数组为初始化状态
         if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
             // 20201117 则设置最小容量, 默认为10, 否则为指定容量大小
             minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
@@ -318,9 +319,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
             throw new OutOfMemoryError();
 
         // 20201117 如果大于列表最大长度, 则为0x7fffffff, 否则为列表最大长度
-        return (minCapacity > MAX_ARRAY_SIZE) ?
-            Integer.MAX_VALUE :
-            MAX_ARRAY_SIZE;
+        return (minCapacity > MAX_ARRAY_SIZE) ? Integer.MAX_VALUE : MAX_ARRAY_SIZE;
     }
 
     /**
@@ -583,8 +582,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
         ensureCapacityInternal(size + 1);  // Increments modCount!!
 
         // 20201117 调用native方法对元素数组进行index位置的元素右移操作
-        System.arraycopy(elementData, index, elementData, index + 1,
-                         size - index);
+        System.arraycopy(elementData, index, elementData, index + 1, size - index);
 
         // 20201117 元素数组index位置赋值, 并且实际元素个数+1
         elementData[index] = element;
@@ -617,8 +615,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
         // 20201117 如果有>0个
         if (numMoved > 0)
             // 2020117 则对index+1处的元素进行左移
-            System.arraycopy(elementData, index+1, elementData, index,
-                             numMoved);
+            System.arraycopy(elementData, index+1, elementData, index, numMoved);
 
         // 20201117 置空最后一个元素, 并且实际元素个数-1
         elementData[--size] = null; // clear to let GC do its work // 通知GC回收
@@ -1017,7 +1014,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E>, RandomAcce
      */
     // 20201118 从流中重建ArrayList实例（即反序列化它） => 实现readObject(), 流写入时将执行该方法
     private void readObject(java.io.ObjectInputStream s) throws java.io.IOException, ClassNotFoundException {
-        // 20201118 将当前元素数组置空{}
+        // 20201118 构造空的元素数组
         elementData = EMPTY_ELEMENTDATA;
 
         // Read in size, and any hidden stuff
