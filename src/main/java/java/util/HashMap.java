@@ -557,7 +557,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         // 20201119 赋值加载因子
         this.loadFactor = loadFactor;
 
-        // 20201119 根据指定容量, 获取下一个目标容量, 赋值给阈值
+        // 20201119 根据指定容量, 获取下一个目标容量, 赋值给阈值, 作为下次是否需要扩容的标准
         this.threshold = tableSizeFor(initialCapacity);
     }
 
@@ -788,8 +788,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         p.next = newNode(hash, key, value, null);
 
                         // 20201120 如果桶链表长度达到了红黑树转换的阈值8时
-                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
-                            // 20201120 红黑树化指定hash桶
+                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st // 20201120 -1是因为当前比较的binCount是索引不是个数
+                            // 20201120 红黑树化当前桶
                             treeifyBin(tab, hash);
                         break;
                     }
@@ -906,9 +906,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
         // 20201119 如果旧的散列表不为空 => 开始转移数据
         if (oldTab != null) {
-            // 20201110 则遍历旧的散列表
+            // 20201119 则遍历旧的散列表
             for (int j = 0; j < oldCap; ++j) {
-                // 20201110 初始化空的Node对象
+                // 20201119 初始化空的Node对象
                 Node<K,V> e;
 
                 // 20201119 如果当前桶不为null, 同时备份桶内容到e对象中
@@ -936,27 +936,31 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         // 20201119 如果不属于红黑树结点
                         Node<K,V> loHead = null, loTail = null;// 20201120 loHead链表存放newIndex = oldIndex的结点
                         Node<K,V> hiHead = null, hiTail = null;// 20201120 hiHead链表存放newInedx = oldIndex + oldCap的结点
-                        Node<K,V> next;
+                        Node<K,V> next;// 20201120 只有next结点, 没有prev结点, prev红黑树结点才有
 
-                        // 20201119 则遍历添加到当前链表合适位置
                         do {
+                            // 20201119 遍历分割当前桶链表, 根据newIndex是否发生变化, 决定存放结点到lo链表还是hi链表
                             next = e.next;
 
-                            // 20201119 如当前结点的hash小于旧容量, 则存放到lo链表中
+                            // 20201120 (e.hash & oldCap) == 0, 说明hash在oldCap最高位为0, 即扩容后newIndex = oldIndex, 结点存放到lo链表中
                             if ((e.hash & oldCap) == 0) {
                                 if (loTail == null)
                                     loHead = e;// 20201119 初始化lo链表头指针
                                 else
                                     loTail.next = e;// 20201119 追加结点到lo链表
+
+                                // 20201120 lo链表移动到一个结点
                                 loTail = e;
                             }
 
-                            // 20201119 否则存放到hi链表中
+                            // 20201120 (e.hash & oldCap) != 0, 说明hash在oldCap最高位为1, 即扩容后newIndex = oldIndex + oldCap, 结点存放到hi链表中
                             else {
                                 if (hiTail == null)
                                     hiHead = e;// 20201119 初始化hi链表
                                 else
                                     hiTail.next = e;// 20201119 追加结点到hi链表
+
+                                // 20201120
                                 hiTail = e;
                             }
                         } while ((e = next) != null);
@@ -964,13 +968,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         // 20201119 如果lo链表不为空, 则设置lo链表头指针到当前桶中
                         if (loTail != null) {
                             loTail.next = null;
-                            newTab[j] = loHead;
+                            newTab[j] = loHead;// 20201120 因为newIndex = oldIndex
                         }
 
                         // 20201119 如果hi链表不为空, 则设置hi链表头指针到桶偏移+旧容量的新桶中
                         if (hiTail != null) {
                             hiTail.next = null;
-                            newTab[j + oldCap] = hiHead;
+                            newTab[j + oldCap] = hiHead;// 20201120 因为newIndex = oldIndex + oldCap
                         }
                     }
                 }
@@ -985,7 +989,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * Replaces all linked nodes in bin at index for given hash unless
      * table is too small, in which case resizes instead.
      */
-    // 20201120 替换给定哈希的索引处bin中的所有链接节点，除非表太小，在这种情况下会调整大小 => 红黑树化普通结点
+    // 20201120 替换给定哈希的索引处bin中的所有链接节点，除非表太小，在这种情况下会调整大小 => 红黑树化hash对应桶的普通结点
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
 
@@ -1010,12 +1014,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                     p.prev = tl;
                     tl.next = p;
                 }
+
+                // 20201120 tl结点移动到下一个
                 tl = p;
             } while ((e = e.next) != null);
 
             // 20201120 新链表hd设置为新桶的头结点, 如果不为空
             if ((tab[index] = hd) != null)
-                // 20201120 则将链表红黑树化
+                // 20201120 则将红黑树化散列表 -> 实例调用时遍历当前桶的链表
                 hd.treeify(tab);
         }
     }
@@ -2190,29 +2196,29 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * Ensures that the given root is the first node of its bin.
          */
-        // 20201119 确保给定的根是其桶的第一个节点 =>
+        // 20201119 确保给定的根是其桶的第一个节点 => 移动指定的root结点到散列表桶中
         static <K,V> void moveRootToFront(Node<K,V>[] tab, TreeNode<K,V> root) {
-            // 20201119 初始化n = 散列表的长度
             int n;
+
+            // 20201120 如果根结点不为空, 散列表不为空
             if (root != null && tab != null && (n = tab.length) > 0) {
-                // 20201119 计算该桶新的hash = 根节点(原桶)的hash & (n-1) => n-1可以降低hash的可变性
+                // 20201119 获取root结点的桶索引 = (容量 - 1) & hash = hash % (容量 - 1)
                 int index = (n - 1) & root.hash;
 
                 // 20201119 获取index处的桶first
                 TreeNode<K,V> first = (TreeNode<K,V>)tab[index];
 
-                // 20201119 如果index桶不为当前的旧桶
+                // 20201119 如果桶的头节点不为根结点, 则需要进行根结点移动
                 if (root != first) {
-                    // 20201119 则初始化新结点
                     Node<K,V> rn;
 
-                    // 20201119 旧的桶替换到first桶的位置
+                    // 20201119 设置根结点为桶的头结点
                     tab[index] = root;
 
-                    // 20201119 获取该桶的表前指针
+                    // 20201119 获取该桶的表前指针rp
                     TreeNode<K,V> rp = root.prev;
 
-                    // 20201119 如果该桶存在表后指针
+                    // 20201119 如果该桶存在表后指针rn
                     if ((rn = root.next) != null)
                         // 20201119 则链接前指针和后指针
                         ((TreeNode<K,V>)rn).prev = rp;
@@ -2222,19 +2228,19 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         // 20201119 则链接后指针和前指针
                         rp.next = rn;
 
-                    // 20201119 如果原来first桶的结点不为空
+                    // 20201119 如果原来桶头结点不为空
                     if (first != null)
-                        // 20201119 则设置原来first桶的前指针为该新桶的结点
+                        // 20201119 则设置根结点为原来桶头结点的前指针
                         first.prev = root;
 
-                    // 20201119 新桶的后指针为first桶的结点, 相当于first作为下一个桶
+                    // 20201119 设置原来桶头结点为根结点的后指针, 相当于first作为下一个桶
                     root.next = first;
 
-                    // 20201119 新桶的前指针置为空
+                    // 20201119 桶头结点的前指针置为空
                     root.prev = null;
                 }
 
-                // 20201119 递归进行红黑树结点检查
+                // 20201119 递归进行红黑树结点检查根结点
                 assert checkInvariants(root);
             }
         }
@@ -2315,7 +2321,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * Forms tree of the nodes linked from this node.
          * @return root of tree
          */
-        // 20201119 将this结点红黑树化进散列表
+        // 20201119 红黑树化散列表 -> 实例调用时遍历当前桶的链表
         final void treeify(Node<K,V>[] tab) {
             // 20201119 初始化红黑树根结点
             TreeNode<K,V> root = null;
@@ -2362,13 +2368,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                         // 20201119 备份根节点开始指针
                         TreeNode<K,V> xp = p;
 
-                        // 20201119 如果比较结果<=0, 则取左孩子结点, 否则取右孩子结点
+                        // 20201119 如果比较结果<=0, 则下次遍历取左孩子结点, 否则取右孩子结点
                         if ((p = (dir <= 0) ? p.left : p.right) == null) {
-                            x.parent = xp;// 如果结点为空则设置为当前结点的父节点
+                            x.parent = xp;// 20201120 设置当前结点x的父节点为当前比较结点xp
                             if (dir <= 0)// 20201119 如果比较结果<=0
-                                xp.left = x;// 20201119 则当前结点为根节点开始的左孩子
+                                xp.left = x;// 20201119 则设置当前比较结点的左孩子为当前结点x
                             else
-                                xp.right = x;// 20201119 则当前结点为根节点开始的右孩子
+                                xp.right = x;// 20201119 则设置当前比较结点的右孩子为当前结点x
 
                             // 20201119 插入后平衡红黑树
                             root = balanceInsertion(root, x);
@@ -3053,23 +3059,23 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
             TreeNode<K,V> tp = t.parent, tl = t.left, tr = t.right,
                 tb = t.prev, tn = (TreeNode<K,V>)t.next;
 
-            // 20201119 如果前指针不为空, 且前指针的下一个结点不是t, 则返回false
+            // 20201119 如果前一个桶不为空, 且它的后一个桶不为t桶, 则返回false
             if (tb != null && tb.next != t)
                 return false;
 
-            // 20201119 如果后指针不为空, 且后指针的上一个结点不是t, 则返回false
+            // 20201119 如果后一个桶不为空, 且它的前一个桶不为t桶, 则返回false
             if (tn != null && tn.prev != t)
                 return false;
 
-            // 20201119 如果父结点不为空, 且tp的左右孩子都不是t, 则返回false
+            // 20201119 如果父结点不为空, 且t又不是他的左右孩子, 则返回false
             if (tp != null && t != tp.left && t != tp.right)
                 return false;
 
-            // 20201119 如果左孩子结点不为空, 且左孩子的父亲不是t 或者 大于父亲的hash, 则返回false
+            // 20201119 如果左孩子结点不为空, 且左孩子的父亲不是t 或者 大于父亲的hash, 则返回false => 左孩子的hash必须小于根结点的hash
             if (tl != null && (tl.parent != t || tl.hash > t.hash))
                 return false;
 
-            // 20201119 如果右孩子结点不为空, 且右孩子的父亲不是t 或者 小于父亲的hash, 则返回false
+            // 20201119 如果右孩子结点不为空, 且右孩子的父亲不是t 或者 小于父亲的hash, 则返回false => 右孩子的hash必须大于根结点的hash
             if (tr != null && (tr.parent != t || tr.hash < t.hash))
                 return false;
 
