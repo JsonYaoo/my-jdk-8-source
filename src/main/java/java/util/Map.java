@@ -915,10 +915,29 @@ public interface Map<K,V> {
     }
 
     /**
+     * 20201130
+     * A. 如果指定的键尚未与值关联（或映射到{@code null}），则尝试使用给定的映射函数计算其值并将其输入到映射中，除非{@code null}。
+     * B. 如果函数返回{@code null}，则不会记录映射。如果函数本身抛出一个（未经检查的）异常，则该异常将被rethrown，并且不会记录映射。
+     *    最常见的用法是构造一个新对象作为初始映射值或记忆结果，如：
+     *          a. map.computeIfAbsent(key, k -> new Value(f(k)));
+     *    或者实现多值映射{@code map<K，Collection<V>>}，支持每个键的多个值：
+     *          a. map.computeIfAbsent(key, k -> new HashSet<V>()).add(v);
+     * C. 默认实现相当于此{@code map}的以下步骤，然后返回当前值或{@code null}（如果现在不存在）：
+     *          if (map.get(key) == null) {
+     *              V newValue = mappingFunction.apply(key);
+     *              if (newValue != null)
+     *                  map.put(key, newValue);
+     *          }
+     * D. 默认实现不保证此方法的同步性或原子性属性。任何提供原子性保证的实现都必须重写此方法并记录其并发属性。
+     *    尤其是子接口{@link java.util.concurrent.ConcurrentMap}的所有实现, 必须记录该函数是否仅在值不存在时以原子方式应用一次。
+     */
+    /**
+     * A.
      * If the specified key is not already associated with a value (or is mapped
      * to {@code null}), attempts to compute its value using the given mapping
      * function and enters it into this map unless {@code null}.
      *
+     * B.
      * <p>If the function returns {@code null} no mapping is recorded. If
      * the function itself throws an (unchecked) exception, the
      * exception is rethrown, and no mapping is recorded.  The most
@@ -937,6 +956,7 @@ public interface Map<K,V> {
      * }</pre>
      *
      *
+     * C.
      * @implSpec
      * The default implementation is equivalent to the following steps for this
      * {@code map}, then returning the current value or {@code null} if now
@@ -950,6 +970,7 @@ public interface Map<K,V> {
      * }
      * }</pre>
      *
+     * D.
      * <p>The default implementation makes no guarantees about synchronization
      * or atomicity properties of this method. Any implementation providing
      * atomicity guarantees must override this method and document its
@@ -975,10 +996,13 @@ public interface Map<K,V> {
      */
     default V computeIfAbsent(K key,
             Function<? super K, ? extends V> mappingFunction) {
+        // 20201130 方法不能为空
         Objects.requireNonNull(mappingFunction);
         V v;
+
         if ((v = get(key)) == null) {
             V newValue;
+            // 20201130 如果当前key对应的value为null, 则使用指定的方法计算value, 并设置到map中, 返回计算出来的值
             if ((newValue = mappingFunction.apply(key)) != null) {
                 put(key, newValue);
                 return newValue;
