@@ -579,9 +579,16 @@ public interface Map<K,V> {
     // Defaultable methods
 
     /**
+     * 20201130
+     * A. 返回指定键映射到的值，如果此映射不包含该键的映射，则返回{@code defaultValue}。
+     * B. 默认实现不保证此方法的同步性或原子性属性。任何提供原子性保证的实现都必须重写此方法并记录其并发属性。
+     */
+    /**
+     * A.
      * Returns the value to which the specified key is mapped, or
      * {@code defaultValue} if this map contains no mapping for the key.
      *
+     * B.
      * @implSpec
      * The default implementation makes no guarantees about synchronization
      * or atomicity properties of this method. Any implementation providing
@@ -600,6 +607,7 @@ public interface Map<K,V> {
      * (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      * @since 1.8
      */
+    // 20201130 根据key获取value, 如果获取不到则返回指定的默认值
     default V getOrDefault(Object key, V defaultValue) {
         V v;
         return (((v = get(key)) != null) || containsKey(key))
