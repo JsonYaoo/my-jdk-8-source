@@ -484,6 +484,15 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /**
+     * 20201201
+     * A. 确定此{@code class}对象表示的类或接口是否与指定的{@code class}参数所表示的类或接口相同，还是其超类或超接口。
+     *    如果是，则返回{@code true}；否则返回{@code false}。如果这个{@code Class}对象表示一个基元类型，如果指定的{@code Class}参数正是这个{@code Class}对象，
+     *    则此方法返回{@code true}；否则返回{@code false}。
+     * B. 具体地说，此方法测试指定的{@code Class}参数表示的类型是否可以通过标识转换或扩展引用转换转换转换为此{@code Class}对象表示的类型。
+     *    有关详细信息，请参见Java语言规范第5.1.1和5.1.4节。
+     */
+    /**
+     * A.
      * Determines if the class or interface represented by this
      * {@code Class} object is either the same as, or is a superclass or
      * superinterface of, the class or interface represented by the specified
@@ -494,6 +503,7 @@ public final class Class<T> implements java.io.Serializable,
      * exactly this {@code Class} object; otherwise it returns
      * {@code false}.
      *
+     * B.
      * <p> Specifically, this method tests whether the type represented by the
      * specified {@code Class} parameter can be converted to the type
      * represented by this {@code Class} object via an identity conversion
