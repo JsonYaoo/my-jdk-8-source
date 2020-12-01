@@ -486,7 +486,7 @@ public final class Class<T> implements java.io.Serializable,
     /**
      * 20201201
      * A. 确定此{@code class}对象表示的类或接口是否与指定的{@code class}参数所表示的类或接口相同，还是其超类或超接口。
-     *    如果是，则返回{@code true}；否则返回{@code false}。如果这个{@code Class}对象表示一个基元类型，如果指定的{@code Class}参数正是这个{@code Class}对象，
+     *    如果是，则返回{@code true}；否则返回{@code false}。如果这个{@code Class}对象表示一个object类型，如果指定的{@code Class}参数正是这个{@code Class}对象，
      *    则此方法返回{@code true}；否则返回{@code false}。
      * B. 具体地说，此方法测试指定的{@code Class}参数表示的类型是否可以通过标识转换或扩展引用转换转换转换为此{@code Class}对象表示的类型。
      *    有关详细信息，请参见Java语言规范第5.1.1和5.1.4节。
@@ -539,11 +539,19 @@ public final class Class<T> implements java.io.Serializable,
      */
     public native boolean isArray();
 
-
     /**
+     * 20201201
+     * A. 确定指定的{@code Class}对象是否表示object类型。
+     * B. 有九个预定义的{@code Class}对象来表示8个基本类型和void。它们是由Java虚拟机创建的，与它们所表示的原语类型具有相同的名称，即
+     *    {@code boolean}、{@code byte}、{@code char}、{@code short}、{@code int}、{@code long}、{@code float}和{@code double}。
+     * C. 这些对象只能通过以下公共静态final变量访问，并且是此方法返回{@code true}的唯一{@code Class}对象。
+     */
+    /**
+     * A.
      * Determines if the specified {@code Class} object represents a
      * primitive type.
      *
+     * B.
      * <p> There are nine predefined {@code Class} objects to represent
      * the eight primitive types and void.  These are created by the Java
      * Virtual Machine, and have the same names as the primitive types that
@@ -551,6 +559,7 @@ public final class Class<T> implements java.io.Serializable,
      * {@code char}, {@code short}, {@code int},
      * {@code long}, {@code float}, and {@code double}.
      *
+     * C.
      * <p> These objects may only be accessed via the following public static
      * final variables, and are the only {@code Class} objects for which
      * this method returns {@code true}.
