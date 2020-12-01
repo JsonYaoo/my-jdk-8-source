@@ -353,9 +353,32 @@ public final class System {
     public static native long currentTimeMillis();
 
     /**
+     * 20201201
+     * A. 返回正在运行的Java虚拟机的高分辨率时间源的当前值（以纳秒为单位）。
+     * B. 这种方法只能用来测量经过的时间，与系统或挂钟时间的任何其他概念无关。返回的值表示纳秒，因为某些固定但任意的原点时间（可能在将来，因此值可能为负值）。
+     *    Java虚拟机实例中此方法的所有调用都使用相同的源；其他虚拟机实例可能使用不同的源。
+     * C. 此方法提供纳秒精度，但不一定是纳秒分辨率（即值更改的频率）-除了分辨率至少与{@link #currentTimeMillis（）}一样好之外，我们不做任何保证。
+     * D. 由于数值溢出，跨越大约292年（2<sup>63</sup>纳秒）的连续调用之间的差异将无法正确计算运行时间。
+     * E. 此方法返回的值只有在计算在Java虚拟机的同一实例中获得的两个值之间的差时才有意义。
+     * F. 例如，要测量某些代码执行所需的时间：
+     *      a. {@code
+     *             long startTime = System.nanoTime();
+     *             // ... the code being measured ...
+     *             long estimatedTime = System.nanoTime() - startTime;
+     *          }
+     *      b. 比较两个纳米时间值, 应该使用{@code t1-t0<0}，而不是{@code t1<t0}，因为有可能出现数值溢出。
+     *      {@code
+     *              long t0 = System.nanoTime();
+     *              ...
+     *              long t1 = System.nanoTime();
+     *       }
+     */
+    /**
+     * A.
      * Returns the current value of the running Java Virtual Machine's
      * high-resolution time source, in nanoseconds.
      *
+     * B.
      * <p>This method can only be used to measure elapsed time and is
      * not related to any other notion of system or wall-clock time.
      * The value returned represents nanoseconds since some fixed but
@@ -364,19 +387,23 @@ public final class System {
      * this method in an instance of a Java virtual machine; other
      * virtual machine instances are likely to use a different origin.
      *
+     * C.
      * <p>This method provides nanosecond precision, but not necessarily
      * nanosecond resolution (that is, how frequently the value changes)
      * - no guarantees are made except that the resolution is at least as
      * good as that of {@link #currentTimeMillis()}.
      *
+     * D.
      * <p>Differences in successive calls that span greater than
      * approximately 292 years (2<sup>63</sup> nanoseconds) will not
      * correctly compute elapsed time due to numerical overflow.
      *
+     * E.
      * <p>The values returned by this method become meaningful only when
      * the difference between two such values, obtained within the same
      * instance of a Java virtual machine, is computed.
      *
+     * F.
      * <p> For example, to measure how long some code takes to execute:
      *  <pre> {@code
      * long startTime = System.nanoTime();
