@@ -49,5 +49,7 @@ public interface GenericArrayType extends Type {
      *     underlying array type's component type refers to a
      *     parameterized type that cannot be instantiated for any reason
      */
+    // 20201202 返回表示此数组的组件类型的{@code Type}对象。此方法创建数组的组件类型。{见链接声明java.lang.reflect.ParameterizedType ParameterizedType}
+    // 20201202 有关参数化类型的创建过程的语义，请参见{@link java.lang.reflect.TypeVariable TypeVariable}用于类型变量的创建过程。
     Type getGenericComponentType();
 }
