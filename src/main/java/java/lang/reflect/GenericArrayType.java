@@ -30,6 +30,7 @@ package java.lang.reflect;
  * type is either a parameterized type or a type variable.
  * @since 1.5
  */
+// 20201202 {@code GenericArrayType}表示一个数组类型，其组件类型是参数化类型或类型变量。
 public interface GenericArrayType extends Type {
     /**
      * Returns a {@code Type} object representing the component type
