@@ -34,6 +34,15 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 /**
+ * 20201202
+ * A. CharSequence是char值的可读序列。此接口提供对多种不同字符序列的统一只读访问。char值表示基本多语言平面（BMP）中的字符或代理项。
+ *    请参阅<a href=“字符.html#unicode“>Unicode字符表示法</a>以了解详细信息。
+ * B. 此接口不优化{@link java.lang.Object#equals(java.lang.Object) equals}和{@link java.lang.Object #hashCode（）hashCode}方法。
+ *    因此，比较实现CharSequence的两个对象的结果通常是未定义的。每个对象可以由不同的类实现，并且不能保证每个类都能够测试其实例是否与其他类的实例相等。
+ *    因此，将任意CharSequence实例用作集合中的元素或映射中的键是不合适的。
+ */
+/**
+ * A.
  * A <tt>CharSequence</tt> is a readable sequence of <code>char</code> values. This
  * interface provides uniform, read-only access to many different kinds of
  * <code>char</code> sequences.
@@ -41,6 +50,7 @@ import java.util.stream.StreamSupport;
  * Multilingual Plane (BMP)</i> or a surrogate. Refer to <a
  * href="Character.html#unicode">Unicode Character Representation</a> for details.
  *
+ * B.
  * <p> This interface does not refine the general contracts of the {@link
  * java.lang.Object#equals(java.lang.Object) equals} and {@link
  * java.lang.Object#hashCode() hashCode} methods.  The result of comparing two
@@ -55,7 +65,7 @@ import java.util.stream.StreamSupport;
  * @since 1.4
  * @spec JSR-51
  */
-
+// 20201202 CharSequence是char值的可读序列。
 public interface CharSequence {
 
     /**
