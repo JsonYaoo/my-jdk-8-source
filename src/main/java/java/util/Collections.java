@@ -1268,6 +1268,12 @@ public class Collections {
     }
 
     /**
+     * 20201202
+     * A. 返回指定列表的不可修改视图。此方法允许模块向用户提供对内部列表的“只读”访问。不管是在列表中返回的操作，都是通过“不支持”或“直接读取”列表返回的结果。
+     * B. 如果指定的列表是可序列化的，则返回的列表将是可序列化的。类似地，如果指定的列表实现了，则返回的列表将实现{@link RandomAccess}。
+     */
+    /**
+     * A.
      * Returns an unmodifiable view of the specified list.  This method allows
      * modules to provide users with "read-only" access to internal
      * lists.  Query operations on the returned list "read through" to the
@@ -1275,6 +1281,7 @@ public class Collections {
      * direct or via its iterator, result in an
      * <tt>UnsupportedOperationException</tt>.<p>
      *
+     * B.
      * The returned list will be serializable if the specified list
      * is serializable. Similarly, the returned list will implement
      * {@link RandomAccess} if the specified list does.
