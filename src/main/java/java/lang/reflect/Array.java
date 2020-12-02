@@ -156,6 +156,7 @@ public final class Array {
      * argument is negative, or if it is greater than or equal to the
      * length of the specified array
      */
+    // 20201202 返回指定数组对象中索引组件的值。如果对象具有基元类型，则该值将自动包装在该对象中。
     public static native Object get(Object array, int index)
         throws IllegalArgumentException, ArrayIndexOutOfBoundsException;
 
