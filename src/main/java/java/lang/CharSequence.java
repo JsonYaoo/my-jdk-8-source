@@ -114,6 +114,7 @@ public interface CharSequence {
      *          if <tt>end</tt> is greater than <tt>length()</tt>,
      *          or if <tt>start</tt> is greater than <tt>end</tt>
      */
+    // 20201202 返回一个子序列。子序列从指定索引处的char值开始，以索引end-1处的char值结束。返回序列的长度（以字符为单位）是end-start，因此如果start==end，则返回一个空序列。
     CharSequence subSequence(int start, int end);
 
     /**
