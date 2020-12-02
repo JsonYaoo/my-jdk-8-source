@@ -32,6 +32,7 @@ package java.lang.reflect;
  *
  * @since 1.5
  */
+// 20201202 Type是Java编程语言中所有类型的通用超接口。这些类型包括原始类型、参数化类型、数组类型、类型变量和基元类型。
 public interface Type {
     /**
      * Returns a string describing this type, including information
@@ -42,6 +43,7 @@ public interface Type {
      * @return a string describing this type
      * @since 1.8
      */
+    // 20201202 返回描述此类型的字符串，包括有关任何类型参数的信息。
     default String getTypeName() {
         return toString();
     }
