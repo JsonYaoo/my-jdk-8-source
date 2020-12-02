@@ -26,17 +26,23 @@
 package java.lang.reflect;
 
 /**
+ * 20201202
+ * A. {@code Array}类提供了动态创建和访问Java数组的静态方法。
+ * B. {@code Array}允许在get或set操作期间进行扩展转换，但如果发生收缩转换，则抛出{@code IllegalArgumentException}。
+ */
+/**
+ * A.
  * The {@code Array} class provides static methods to dynamically create and
  * access Java arrays.
  *
+ * B.
  * <p>{@code Array} permits widening conversions to occur during a get or set
  * operation, but throws an {@code IllegalArgumentException} if a narrowing
  * conversion would occur.
  *
  * @author Nakul Saraiya
  */
-public final
-class Array {
+public final class Array {
 
     /**
      * Constructor.  Class Array is not instantiable.
@@ -44,8 +50,19 @@ class Array {
     private Array() {}
 
     /**
+     * 20201202
+     * A. 创建具有指定组件类型和长度的新数组。
+     * B. 调用此方法相当于创建一个数组，如下所示：
+     *      int[] x = {length};
+     *      Array.newInstance(componentType, x);
+     * C. 新数组的维数不能超过255。
+     */
+    /**
+     * A.
      * Creates a new array with the specified component type and
      * length.
+     *
+     * B.
      * Invoking this method is equivalent to creating an array
      * as follows:
      * <blockquote>
@@ -55,6 +72,7 @@ class Array {
      * </pre>
      * </blockquote>
      *
+     * C.
      * <p>The number of dimensions of the new array must not
      * exceed 255.
      *
