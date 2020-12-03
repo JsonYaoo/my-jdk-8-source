@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -32,13 +12,50 @@ import java.util.function.Function;
 import java.util.function.BiFunction;
 
 /**
+ * 20201203
+ * A. 这个类实现了一个哈希表，它将键映射到值。任何非空对象都可以用作键或值。
+ * B. 要成功地从哈希表中存储和检索对象，用作键的对象必须实现hashCode方法和equals方法。
+ * C. Hashtable的实例有两个影响其pe的参数性能：初始容量以及荷载系数。capacity是哈希表中的bucket数，初始容量就是创建哈希表时的容量。注意哈希表是打开的：
+ *    在“哈希冲突”的情况下，一个bucket存储多个条目，必须按顺序搜索。加载因子是一个度量哈希表在容量自动增加之前可以达到的完整程度。初始容量和负载系数参数只是对实现的提示。
+ *    关于何时以及是否调用rehash方法的确切细节取决于实现。
+ * D. 通常，默认的负载系数（0.75）在时间和空间成本之间提供了很好的折衷。较高的值会减少空间开销，但会增加查找条目的时间开销（这反映在大多数哈希表操作中，包括get和put）。
+ * E. 初始容量控制着浪费的空间和需要重新处理的操作之间的权衡，这是非常耗时的。如果初始容量大于哈希表将包含的最大条目数除以其负载因子，则不会发生任何重新哈希操作。
+ *    但是，将初始容量设置得过高会浪费空间。
+ * F. 如果要在哈希表中创建多个条目，那么以足够大的容量创建哈希表可能会比让哈希表根据需要执行自动重新哈希来增加表更有效地插入这些条目。
+ * G. 这个例子创建了一个数字哈希表。它使用数字的名称作为键：
+ *      a. {@code
+ *              Hashtable<String, Integer> numbers = new Hashtable<String, Integer>();
+ *              numbers.put("one", 1);
+ *              numbers.put("two", 2);
+ *              numbers.put("three", 3);
+ *         }
+ *      b. 要检索数字，请使用以下代码：
+ *          {@code
+ *              Integer n = numbers.get("two");
+ *              if (n != null) {
+ *                  System.out.println("two = " + n);
+ *              }
+ *          }
+ * H. 这个类的所有“集合视图方法”返回的集合的迭代器方法返回的迭代器是快速失败的：如果在迭代器创建之后的任何时候，以任何方式（除了通过迭代器自己的remove方法）修改哈希表，
+ *    迭代器将抛出{@link ConcurrentModificationException}。因此，在并发修改的情况下，迭代器会迅速而彻底地失败，而不是在将来某个不确定的时间冒着任意的、不确定的行为
+ *    的风险。Hashtable的keys和elements方法返回的枚举不是fail fast。
+ * I. 注意，迭代器的fail-fast行为不能得到保证，因为一般来说，在存在不同步的并发修改时，不可能做出任何硬保证。Fail fast迭代器尽最大努力抛出ConcurrentModificationException。
+ *    因此，编写一个依赖于这个异常来保证其正确性的程序是错误的：迭代器的fail-fast行为应该只用于检测bug。
+ * J. 在Java2平台v1.2中，这个类被改造为实现{@link Map}接口，使其成为<a href=“{@docRoot}/./technonotes/guides/collections”的成员/索引.html“>Java集合框架</a>。
+ *    与新的集合实现不同，{@code Hashtable}是同步的。如果不需要线程安全实现，建议使用{@link hashmap}代替{@code Hashtable}。如果需要线程安全的高并发实现，
+ *    那么建议使用{@link java.util.concurrent.ConcurrentHashMap}代替{@code Hashtable}。
+ */
+/**
+ * A.
  * This class implements a hash table, which maps keys to values. Any
  * non-<code>null</code> object can be used as a key or as a value. <p>
  *
+ * B.
  * To successfully store and retrieve objects from a hashtable, the
  * objects used as keys must implement the <code>hashCode</code>
  * method and the <code>equals</code> method. <p>
  *
+ * C.
  * An instance of <code>Hashtable</code> has two parameters that affect its
  * performance: <i>initial capacity</i> and <i>load factor</i>.  The
  * <i>capacity</i> is the number of <i>buckets</i> in the hash table, and the
@@ -51,11 +68,13 @@ import java.util.function.BiFunction;
  * the implementation.  The exact details as to when and whether the rehash
  * method is invoked are implementation-dependent.<p>
  *
+ * D.
  * Generally, the default load factor (.75) offers a good tradeoff between
  * time and space costs.  Higher values decrease the space overhead but
  * increase the time cost to look up an entry (which is reflected in most
  * <tt>Hashtable</tt> operations, including <tt>get</tt> and <tt>put</tt>).<p>
  *
+ * E.
  * The initial capacity controls a tradeoff between wasted space and the
  * need for <code>rehash</code> operations, which are time-consuming.
  * No <code>rehash</code> operations will <i>ever</i> occur if the initial
@@ -63,11 +82,13 @@ import java.util.function.BiFunction;
  * <tt>Hashtable</tt> will contain divided by its load factor.  However,
  * setting the initial capacity too high can waste space.<p>
  *
+ * F.
  * If many entries are to be made into a <code>Hashtable</code>,
  * creating it with a sufficiently large capacity may allow the
  * entries to be inserted more efficiently than letting it perform
  * automatic rehashing as needed to grow the table. <p>
  *
+ * G.
  * This example creates a hashtable of numbers. It uses the names of
  * the numbers as keys:
  * <pre>   {@code
@@ -84,6 +105,7 @@ import java.util.function.BiFunction;
  *     System.out.println("two = " + n);
  *   }}</pre>
  *
+ * H.
  * <p>The iterators returned by the <tt>iterator</tt> method of the collections
  * returned by all of this class's "collection view methods" are
  * <em>fail-fast</em>: if the Hashtable is structurally modified at any time
@@ -95,6 +117,7 @@ import java.util.function.BiFunction;
  * The Enumerations returned by Hashtable's keys and elements methods are
  * <em>not</em> fail-fast.
  *
+ * I.
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -103,10 +126,10 @@ import java.util.function.BiFunction;
  * exception for its correctness: <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
  *
+ * J.
  * <p>As of the Java 2 platform v1.2, this class was retrofitted to
  * implement the {@link Map} interface, making it a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
- *
  * Java Collections Framework</a>.  Unlike the new collection
  * implementations, {@code Hashtable} is synchronized.  If a
  * thread-safe implementation is not needed, it is recommended to use
@@ -127,9 +150,10 @@ import java.util.function.BiFunction;
  * @see     TreeMap
  * @since JDK1.0
  */
-public class Hashtable<K,V>
-    extends Dictionary<K,V>
-    implements Map<K,V>, Cloneable, java.io.Serializable {
+// 20201203 这个类实现了一个哈希表，它将键映射到值。任何非空对象都可以用作键或值。
+// 20201203 如果不需要线程安全实现，建议使用{@link hashmap}代替{@code Hashtable}。
+// 20201203 如果需要线程安全的高并发实现，那么建议使用{@link java.util.concurrent.ConcurrentHashMap}代替{@code Hashtable}。
+public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneable, java.io.Serializable {
 
     /**
      * The hash table data.

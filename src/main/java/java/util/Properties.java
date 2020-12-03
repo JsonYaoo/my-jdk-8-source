@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1995, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -40,15 +20,46 @@ import java.security.PrivilegedAction;
 import sun.util.spi.XmlPropertiesProvider;
 
 /**
+ * 20201203
+ * A. {@code Properties}类表示一组持久属性。{@code Properties}可以保存到流或从流加载。属性列表中的每个键及其对应值都是一个字符串。
+ * B. 属性列表可以包含另一个属性列表作为其“默认值”；如果在原始属性列表中找不到属性键，则会搜索第二个属性列表。
+ * C. 因为{@code Properties}继承自{@code Hashtable}，所以{@code put}和{@code putAll}方法可以应用于{@code Properties}对象。强烈建议不要使用它们，
+ *    因为它们允许调用者插入键或值不是{@code Strings}的条目。应该改用{@code setProperty}方法。如果{@code store}或{@code save}方法在包含非{@code String}键或值的
+ *    “受损”{@code Properties}对象上调用，则调用将失败。类似地，对{@code propertyNames}或{@code list}方法的调用如果在包含非{@code String}键的
+ *    “受损”{@code Properties}对象上调用，则会失败。
+ * D. {@link #load(java.io.Reader) load(Reader)} / {@link #store(java.io.Writer, java.lang.String) store(Writer, String)}方法, 以下面指定的简单面向行的格式
+ *    加载和存储基于字符的流的属性。
+ * E. {@link #load(java.io.InputStream) load(InputStream)} / {@link #store(java.io.OutputStream, java.lang.String) store(OutputStream, String)}方法
+ *    与load（Reader）/store（Writer，String）对的工作方式相同，只是输入/输出流是用iso8859-1字符编码的。不能用这种编码直接表示的字符可以使用Unicode转义符写入，
+ *    如Java&trade；语言规范第3.3节中所定义；转义序列中只允许有一个“u”字符。native2ascii工具可用于在其他字符编码之间转换属性文件。
+ * F. {@link #loadFromXML（InputStream）}和{@link #storeToXML（OutputStream，String，String）}方法以简单的XML格式加载和存储属性。默认情况下使用UTF-8字符编码，
+ *    但是如果需要，可以指定特定的编码。实现需要支持UTF-8和UTF-16，并且可能支持其他编码。XML属性文档具有以下DOCTYPE声明：
+ *      a. <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+ *      b. 注意，系统URI(http://java.sun.com/dtd/properties.dtd)在导出或导入属性时不访问；它只是作为一个字符串来唯一标识DTD，即：
+ *          b.1. <?xml version="1.0" encoding="UTF-8"?>
+ *          b.2. <!-- DTD for properties -->
+ *          b.3. <!ELEMENT properties ( comment?, entry* ) >
+ *          b.4. <!ATTLIST properties version CDATA #FIXED "1.0">
+ *          b.5. <!ELEMENT comment (#PCDATA) >
+ *          b.6. <!ELEMENT entry (#PCDATA) >
+ *          b.7. <!ATTLIST entry key CDATA #REQUIRED>
+ * G. 这个类是线程安全的：多个线程可以共享一个Properties对象，而不需要外部同步。
+ */
+/**
+ * A.
  * The {@code Properties} class represents a persistent set of
  * properties. The {@code Properties} can be saved to a stream
  * or loaded from a stream. Each key and its corresponding value in
  * the property list is a string.
+ *
+ * B.
  * <p>
  * A property list can contain another property list as its
  * "defaults"; this second property list is searched if
  * the property key is not found in the original property list.
  * <p>
+ *
+ * C.
  * Because {@code Properties} inherits from {@code Hashtable}, the
  * {@code put} and {@code putAll} methods can be applied to a
  * {@code Properties} object.  Their use is strongly discouraged as they
@@ -61,12 +72,14 @@ import sun.util.spi.XmlPropertiesProvider;
  * will fail if it is called on a "compromised" {@code Properties}
  * object that contains a non-{@code String} key.
  *
+ * D.
  * <p>
  * The {@link #load(java.io.Reader) load(Reader)} <tt>/</tt>
  * {@link #store(java.io.Writer, java.lang.String) store(Writer, String)}
  * methods load and store properties from and to a character based stream
  * in a simple line-oriented format specified below.
  *
+ * E.
  * The {@link #load(java.io.InputStream) load(InputStream)} <tt>/</tt>
  * {@link #store(java.io.OutputStream, java.lang.String) store(OutputStream, String)}
  * methods work the same way as the load(Reader)/store(Writer, String) pair, except
@@ -78,6 +91,7 @@ import sun.util.spi.XmlPropertiesProvider;
  * sequence. The native2ascii tool can be used to convert property files to and
  * from other character encodings.
  *
+ * F.
  * <p> The {@link #loadFromXML(InputStream)} and {@link
  * #storeToXML(OutputStream, String, String)} methods load and store properties
  * in a simple XML format.  By default the UTF-8 character encoding is used,
@@ -107,6 +121,7 @@ import sun.util.spi.XmlPropertiesProvider;
  *    &lt;!ATTLIST entry key CDATA #REQUIRED&gt;
  * </pre>
  *
+ * G.
  * <p>This class is thread-safe: multiple threads can share a single
  * <tt>Properties</tt> object without the need for external synchronization.
  *
@@ -118,8 +133,8 @@ import sun.util.spi.XmlPropertiesProvider;
  * @author  Xueming Shen
  * @since   JDK1.0
  */
-public
-class Properties extends Hashtable<Object,Object> {
+// 20201203 {@code Properties}类表示一组持久属性。{@code Properties}可以保存到流或从流加载。属性列表中的每个键及其对应值都是一个字符串。 => 这个类是线程安全的：多个线程可以共享一个Properties对象，而不需要外部同步。
+public class Properties extends Hashtable<Object,Object> {
     /**
      * use serialVersionUID from JDK 1.1.X for interoperability
      */
@@ -131,6 +146,7 @@ class Properties extends Hashtable<Object,Object> {
      *
      * @serial
      */
+    // 20201203 包含此属性列表中未找到的任何键的默认值的属性列表。
     protected Properties defaults;
 
     /**
@@ -965,9 +981,15 @@ class Properties extends Hashtable<Object,Object> {
      * @see     #setProperty
      * @see     #defaults
      */
+    // 20201203 在此属性列表中搜索具有指定键的属性。如果在该属性列表中找不到该键，则会递归地检查默认属性列表及其默认值。如果找不到属性，则该方法返回{@code null}。
     public String getProperty(String key) {
+        // 20201203 根据key获取value
         Object oval = super.get(key);
+
+        // 20201203 如果value为String类型则返回, 否者设置sval为空
         String sval = (oval instanceof String) ? (String)oval : null;
+
+        // 20201203 如果sval为空, 则从包含此属性列表中未找到的任何键的默认值的属性列表中找
         return ((sval == null) && (defaults != null)) ? defaults.getProperty(key) : sval;
     }
 

@@ -1,31 +1,19 @@
 /*
  * Copyright (c) 1995, 2004, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
 
 /**
+ * 20201203
+ * A. Dictionary类是任何类的抽象父类，例如Hashtable，它将键映射到值。每个键和值都是一个对象。在任何一个Dictionary对象中，每个键最多与一个值相关联。
+ *    给定一个字典和一个键，可以查找相关联的元素。任何非空对象都可以用作键和值。
+ * B. 通常，此类的实现应该使用equals方法来确定两个键是否相同。
+ * C. 注意：这个类已过时。新的实现应该实现Map接口，而不是扩展这个类。
+ */
+/**
+ * A.
  * The <code>Dictionary</code> class is the abstract parent of any
  * class, such as <code>Hashtable</code>, which maps keys to values.
  * Every key and every value is an object. In any one <tt>Dictionary</tt>
@@ -33,8 +21,12 @@ package java.util;
  * <tt>Dictionary</tt> and a key, the associated element can be looked up.
  * Any non-<code>null</code> object can be used as a key and as a value.
  * <p>
+ *
+ * B.
  * As a rule, the <code>equals</code> method should be used by
  * implementations of this class to decide if two keys are the same.
+ *
+ * C.
  * <p>
  * <strong>NOTE: This class is obsolete.  New implementations should
  * implement the Map interface, rather than extending this class.</strong>
@@ -46,8 +38,8 @@ package java.util;
  * @see     java.util.Hashtable
  * @since   JDK1.0
  */
-public abstract
-class Dictionary<K,V> {
+// 20201203 Dictionary类是任何类的抽象父类，例如Hashtable，它将键映射到值。 => 这个类已过时。新的实现应该实现Map接口，而不是扩展这个类。
+public abstract class Dictionary<K,V> {
     /**
      * Sole constructor.  (For invocation by subclass constructors, typically
      * implicit.)

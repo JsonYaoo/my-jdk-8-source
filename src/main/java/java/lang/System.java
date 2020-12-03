@@ -125,6 +125,7 @@ public final class System {
 
     /* The security manager for the system.
      */
+    // 20201203 系统的安全管理器。
     private static volatile SecurityManager security = null;
 
     /**
@@ -325,11 +326,13 @@ public final class System {
     /**
      * Gets the system security interface.
      *
+     * // 20201203 如果已经为当前应用程序建立了安全管理器，则返回该安全管理器；否则，返回null。
      * @return  if a security manager has already been established for the
      *          current application, then that security manager is returned;
      *          otherwise, <code>null</code> is returned.
      * @see     #setSecurityManager
      */
+    // 20201203 获取系统安全接口。
     public static SecurityManager getSecurityManager() {
         return security;
     }
@@ -718,12 +721,23 @@ public final class System {
     }
 
     /**
+     * 20201203
+     * A. 获取由指定键指示的系统属性。
+     * B. 首先，如果有一个安全管理器，它的checkPropertyAccess方法将被调用，并将key作为参数。这可能导致SecurityException。
+     * C. 如果当前没有系统属性集，则首先以与getProperties方法相同的方式创建和初始化一组系统属性。
+     */
+    /**
+     * A.
      * Gets the system property indicated by the specified key.
+     *
+     * B.
      * <p>
      * First, if there is a security manager, its
      * <code>checkPropertyAccess</code> method is called with the key as
      * its argument. This may result in a SecurityException.
      * <p>
+     *
+     * C.
      * If there is no current set of system properties, a set of system
      * properties is first created and initialized in the same manner as
      * for the <code>getProperties</code> method.
@@ -743,13 +757,21 @@ public final class System {
      * @see        java.lang.SecurityManager#checkPropertyAccess(java.lang.String)
      * @see        java.lang.System#getProperties()
      */
+    // 20201203 获取由指定键指示的系统属性。
     public static String getProperty(String key) {
+        // 20201203 校验key是否合法: 不能为null & 不能为""
         checkKey(key);
+
+        // 20201203 获取系统安全接口
         SecurityManager sm = getSecurityManager();
+
+        // 20201203 如果存在系统安全接口
         if (sm != null) {
+            // 20201203 则校验key的访问属性
             sm.checkPropertyAccess(key);
         }
 
+        // 20201203 根据key获取属性值
         return props.getProperty(key);
     }
 
@@ -866,6 +888,7 @@ public final class System {
         return (String) props.remove(key);
     }
 
+    // 20201203 校验key是否合法: 不能为null & 不能为""
     private static void checkKey(String key) {
         if (key == null) {
             throw new NullPointerException("key can't be null");
