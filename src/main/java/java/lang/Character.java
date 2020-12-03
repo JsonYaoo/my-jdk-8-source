@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -31,14 +11,41 @@ import java.util.HashMap;
 import java.util.Locale;
 
 /**
+ * 20201203
+ * A. {@code Character}类在对象中包装一个基元类型{@code char}的值。{@code Character}类型的对象包含一个类型为{@code char}的单个字段。
+ * B. 此外，此类还提供了几种方法来确定字符的类别（小写字母、数字等），以及将字符从大写转换为小写，反之亦然。
+ * C. 字符信息基于Unicode标准6.2.0版: {@code Character}类的方法和数据由Unicode联合体维护的Unicode字符数据库的UnicodeData文件中的信息定义。
+ *    此文件为每个已定义的Unicode代码点或字符范围指定各种属性，包括名称和常规类别。
+ * D. 文件及其说明可从Unicode Consortium获得，网址为：<a href="http://www.unicode.org">http://www.unicode.org</a>
+ * E. Unicode字符表示法: {@code char}数据类型（以及{@code char}对象封装的值）基于最初的Unicode规范，该规范将字符定义为固定宽度的16位实体。
+ *    Unicode标准已经被修改，允许使用表示需要超过16位的字符。合法代码点的范围现在是U+0000到U+10FFFF，称为Unicode标量值。
+ *    （请参阅<a href=“http://www.unicode.org/reports/tr27/#）符号Unicode标准中U+<i>n</i>符号的定义
+ * F. 从U+0000到U+FFFF</a>的字符集有时被称为基本多语言平面（BMP）。<a name=“supplementary”>代码点大于U+FFFF的字符称为补充字符。{{UTF}和@String}代码在
+ *    Java{UTF}和@String}代码中使用。在此表示法中，补充字符表示为一对{@code char}值，第一个值来自高代理项范围（&#92；uD800-&#92；uDBFF），
+ *    第二个来自低代理项范围（&#92；uDC00-&#92；uDFFF）。
+ * G. 因此，{@code char}值表示基本的多语言平面（BMP）代码点，包括代理代码点或UTF-16编码的代码单元。{@code int}值表示所有Unicode代码点，包括补充代码点。
+ *    {@code int}的低（最低有效）21位用于表示Unicode码位，而高位（最高有效）11位必须为零。除非另有规定，否则有关补充字符和替代项{@code char}值的行为如下：
+ *          a. 只接受{@code char}值的方法不能支持补充字符。它们将代理项范围中的{@code char}值视为未定义字符。例如，{@code Character.isLetter('\u005CuD840')}
+ *             返回{@code false}，即使此特定值后跟字符串中的任何低代理项值将表示字母。
+ *          b. 接受{@code int}值的方法支持所有Unicode字符，包括补充字符。例如，{@code Character.isLetter(0x2F81A)}返回{@code true}，
+ *             因为代码点值表示一个字母（中日韩象形文字）。
+ * H. 在javaseapi文档中，Unicode code-point用于U+0000和U+10FFFF之间的字符值，Unicode code code unit用于16位{@code char}值，这些值是UTF-16编码的代码单元。
+ *    有关Unicode术语的详细信息，请参阅<a href=“http://www.unicode.org/glossary/“>Unicode词汇表</a>。
+ */
+/**
+ * A.
  * The {@code Character} class wraps a value of the primitive
  * type {@code char} in an object. An object of type
  * {@code Character} contains a single field whose type is
  * {@code char}.
+ *
+ * B.
  * <p>
  * In addition, this class provides several methods for determining
  * a character's category (lowercase letter, digit, etc.) and for converting
  * characters from uppercase to lowercase and vice versa.
+ *
+ * C.
  * <p>
  * Character information is based on the Unicode Standard, version 6.2.0.
  * <p>
@@ -48,12 +55,15 @@ import java.util.Locale;
  * Consortium. This file specifies various properties including name
  * and general category for every defined Unicode code point or
  * character range.
+ *
+ * D.
  * <p>
  * The file and its description are available from the Unicode Consortium at:
  * <ul>
  * <li><a href="http://www.unicode.org">http://www.unicode.org</a>
  * </ul>
  *
+ * E.
  * <h3><a name="unicode">Unicode Character Representations</a></h3>
  *
  * <p>The {@code char} data type (and therefore the value that a
@@ -68,6 +78,7 @@ import java.util.Locale;
  * definition</i></a> of the U+<i>n</i> notation in the Unicode
  * Standard.)
  *
+ * F.
  * <p><a name="BMP">The set of characters from U+0000 to U+FFFF</a> is
  * sometimes referred to as the <em>Basic Multilingual Plane (BMP)</em>.
  * <a name="supplementary">Characters</a> whose code points are greater
@@ -79,6 +90,7 @@ import java.util.Locale;
  * range, (&#92;uD800-&#92;uDBFF), the second from the
  * <em>low-surrogates</em> range (&#92;uDC00-&#92;uDFFF).
  *
+ * G.
  * <p>A {@code char} value, therefore, represents Basic
  * Multilingual Plane (BMP) code points, including the surrogate
  * code points, or code units of the UTF-16 encoding. An
@@ -105,6 +117,7 @@ import java.util.Locale;
  * (a CJK ideograph).
  * </ul>
  *
+ * H.
  * <p>In the Java SE API documentation, <em>Unicode code point</em> is
  * used for character values in the range between U+0000 and U+10FFFF,
  * and <em>Unicode code unit</em> is used for 16-bit
@@ -119,8 +132,8 @@ import java.util.Locale;
  * @author  Ulf Zibis
  * @since   1.0
  */
-public final
-class Character implements java.io.Serializable, Comparable<Character> {
+// 20201203 {@code Character}类在对象中包装一个基元类型{@code char}的值。{@code Character}类型的对象包含一个类型为{@code char}的单个字段。
+public final class Character implements java.io.Serializable, Comparable<Character> {
     /**
      * The minimum radix available for conversion to and from strings.
      * The constant value of this field is the smallest value permitted
@@ -6723,6 +6736,24 @@ class Character implements java.io.Serializable, Comparable<Character> {
     }
 
     /**
+     * 20201203
+     * A.
+     * 根据Java，确定指定字符是否为空白。当且仅当满足以下条件之一时，字符才是Java空白字符：
+     *      a. 它是Unicode空格字符（{@code space_SEPARATOR}、{@code LINE{u SEPARATOR}）或{@code PARAGRAPH{u SEPARATOR}），
+     *         但也不是非中断空格（{@code '\u005Cu00A0'}，{@code '\u005cu220f'}）。
+     *      b. It is {@code '\u005Ct'}, U+0009 HORIZONTAL TABULATION.
+     *      c. It is {@code '\u005Cn'}, U+000A LINE FEED.
+     *      d. It is {@code '\u005Cu000B'}, U+000B VERTICAL TABULATION.
+     *      e. It is {@code '\u005Cf'}, U+000C FORM FEED.
+     *      f. It is {@code '\u005Cr'}, U+000D CARRIAGE RETURN.
+     *      g. It is {@code '\u005Cu001C'}, U+001C FILE SEPARATOR.
+     *      h. It is {@code '\u005Cu001D'}, U+001D GROUP SEPARATOR.
+     *      i. It is {@code '\u005Cu001E'}, U+001E RECORD SEPARATOR.
+     *      j. It is {@code '\u005Cu001F'}, U+001F UNIT SEPARATOR.
+     * B. 注意：此方法无法处理<a href=“\#supplementary”>补充字符</a>。要支持所有Unicode字符，包括补充字符，请使用{@link #isWhitespace（int）}方法。
+     */
+    /**
+     * A.
      * Determines if the specified character is white space according to Java.
      * A character is a Java whitespace character if and only if it satisfies
      * one of the following criteria:
@@ -6742,6 +6773,7 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * <li> It is {@code '\u005Cu001F'}, U+001F UNIT SEPARATOR.
      * </ul>
      *
+     * B.
      * <p><b>Note:</b> This method cannot handle <a
      * href="#supplementary"> supplementary characters</a>. To support
      * all Unicode characters, including supplementary characters, use
@@ -6753,6 +6785,7 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * @see     Character#isSpaceChar(char)
      * @since   1.1
      */
+    // 20201203 确定指定字符是否为空白
     public static boolean isWhitespace(char ch) {
         return isWhitespace((int)ch);
     }
@@ -6785,6 +6818,7 @@ class Character implements java.io.Serializable, Comparable<Character> {
      * @see     Character#isSpaceChar(int)
      * @since   1.5
      */
+    // 20201203 确定指定字符是否为空白
     public static boolean isWhitespace(int codePoint) {
         return CharacterData.of(codePoint).isWhitespace(codePoint);
     }
