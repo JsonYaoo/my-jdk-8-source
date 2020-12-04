@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -55,6 +35,17 @@ import sun.reflect.Reflection;
 import java.lang.annotation.Annotation;
 
 /**
+ * 20201204
+ * A. {@code package}对象包含有关Java包的实现和规范的版本信息。这个版本控制信息由加载类的{@link ClassLoader}实例检索并提供。通常，它存储在与类一起分发的清单中。
+ * B. 组成包的一组类可以实现一个特定的规范，如果是这样的话，规范标题、版本号和vendor字符串将标识该规范。应用程序可以询问包是否与特定版本兼容，有关详细信息，
+ *    请参阅{@link# iscompatibletwith iscompatibletwith}方法。
+ * C. 规范版本号使用由句点“.”分隔的非负十进制整数组成的语法，例如“2.0”或“1.2.3.4.5.6.7”。这允许使用一个可扩展的数字来表示主要、次要、微型等版本。版本规范由以下形式语法描述如下.
+ * D. 实现标题、版本和vendor字符串标识一个实现，并在出现问题时方便地提供，以便能够准确地报告所涉及的包。所有三个实现字符串的内容都是特定于vendor的。
+ *    实现版本字符串没有指定的语法，只应与所需的版本标识符进行比较以确定是否相等。
+ * E. 在每个{@code classloader}实例中，来自同一java包的所有类都具有相同的package对象。静态方法允许通过名称或当前类装入器已知的所有包的集合来查找包。
+ */
+/**
+ * A.
  * {@code Package} objects contain version information
  * about the implementation and specification of a Java package.
  * This versioning information is retrieved and made available
@@ -62,6 +53,7 @@ import java.lang.annotation.Annotation;
  * loaded the class(es).  Typically, it is stored in the manifest that is
  * distributed with the classes.
  *
+ * B.
  * <p>The set of classes that make up the package may implement a
  * particular specification and if so the specification title, version number,
  * and vendor strings identify that specification.
@@ -70,6 +62,7 @@ import java.lang.annotation.Annotation;
  * #isCompatibleWith isCompatibleWith}
  * method for details.
  *
+ * C.
  * <p>Specification version numbers use a syntax that consists of nonnegative
  * decimal integers separated by periods ".", for example "2.0" or
  * "1.2.3.4.5.6.7".  This allows an extensible number to be used to represent
@@ -94,6 +87,7 @@ import java.lang.annotation.Annotation;
  * </dl>
  * </blockquote>
  *
+ * D.
  * <p>The implementation title, version, and vendor strings identify an
  * implementation and are made available conveniently to enable accurate
  * reporting of the packages involved when a problem occurs. The contents
@@ -101,6 +95,7 @@ import java.lang.annotation.Annotation;
  * implementation version strings have no specified syntax and should
  * only be compared for equality with desired version identifiers.
  *
+ * E.
  * <p>Within each {@code ClassLoader} instance all classes from the same
  * java package have the same Package object.  The static methods allow a package
  * to be found by name or the set of all packages known to the current class
@@ -108,6 +103,7 @@ import java.lang.annotation.Annotation;
  *
  * @see ClassLoader#definePackage
  */
+// 20201204 {@code package}对象包含有关Java包的实现和规范的版本信息。这个版本控制信息由加载类的{@link ClassLoader}实例检索并提供。
 public class Package implements java.lang.reflect.AnnotatedElement {
     /**
      * Return the name of this package.
@@ -167,8 +163,9 @@ public class Package implements java.lang.reflect.AnnotatedElement {
      * runtime. It may be compared for equality with other
      * package version strings used for this implementation
      * by this vendor for this package.
-     * @return the version of the implementation, null is returned if it is not known.
+     * @return the version of the implementation, null is returned if it is not known. // 20201204 实现的版本，如果未知，则返回null。
      */
+    // 20201204 返回此实现的版本。它由这个实现的vendor分配的任何字符串组成，并且没有Java运行时指定或期望的任何特定语法。可以将其与此软件包的此vendor用于此实现的其他软件包版本字符串进行比较。
     public String getImplementationVersion() {
         return implVersion;
     }
