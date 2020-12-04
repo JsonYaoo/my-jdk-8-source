@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
@@ -38,12 +18,56 @@ import sun.reflect.annotation.AnnotationSupport;
 import sun.reflect.annotation.AnnotationType;
 
 /**
+ * 20201203
+ * A. 表示当前在此VM中运行的程序的带注解元素。此接口允许以反射方式读取注解。此接口中的方法返回的所有注解都是不可变的和可序列化的。调用方可以修改此接口方法返回的数组，而不影响返回给其他调用方的数组。
+ * B. {@link #getAnnotationsByType（Class）}和{@link #getDeclaredAnnotationsByType（Class）}方法支持元素上相同类型的多个注解。如果任一方法的参数是可重复的注解类型（JLS9.6），
+ *    则该方法将“浏览”容器注解（JLS9.7）（如果存在），并返回容器内的任何注解。可以在编译时生成容器注解来包装参数类型的多个注解。
+ * C. 在整个接口中，术语“directly present”、“indirectly present”、“present”和“associated”用于精确描述由以下方法返回的注解:
+ *      a. 如果E具有{@code RuntimeVisibleAnnotations}或{@code RuntimeVisibleParameterAnnotations}或{@code RuntimeVisibleTypeAnnotations}属性，并且该属性包含A，
+ *          则注解A将直接出现在元素E上。
+ *      b. 如果元素E具有{@code RuntimeVisibleAnnotations}或{@code RuntimeVisibleParameterAnnotations}或{@code RuntimeVisibleTypeAnnotations}属性，
+ *         并且A的类型是可重复的，则注解A间接存在于元素E上，并且该属性正好包含一个注解，其value元素包含A，其类型是A类型的包含注解类型。
+ *      c. 元素E上存在注解A，如果：
+ *          c.1. A直接存在于E上
+ *          c.2. 或者在E上没有直接存在的A类型的注解，E是一个类，A的类型是可继承的，A在E的超类中存在
+ *      d. 注解A与元素E关联，如果：
+ *          d.1. A直接或间接地存在于E上
+ *          d.2. A类型的注解没有直接或间接地出现在E上，E是一个类，A的类型是可继承的，A与E的超类相关联
+ * D. 下表总结了此接口中不同方法检查的注解类型, 见下表。
+ * E. 对于{@code get[Declared]AnnotationsByType（Class<T>）}的调用，计算直接或间接出现在元素E上的注解的顺序，就好像在E上间接出现的注解直接出现在E上而不是它们的容器注解，
+ *    按照它们在容器的value元素中出现的顺序注解。
+ * F. 如果注解类型T最初是不可重复的，后来被修改为可重复的，那么需要记住几个兼容性问题:
+ *      a. T的包含注解类型是TC:
+ *          a.1. 将T修改为可重复的是源代码和二进制代码与T的现有用法和TC的现有用法兼容:
+ *              a.1.1. 也就是说，为了源代码的兼容性，带有T或TC类型注解的源代码仍然可以编译。为了实现二进制兼容性，带有类型T或类型TC的注解（或具有类型T或类型TC的其他类型的
+ *                     使用）的类文件将链接到T的修改版本（如果它们链接到早期版本）。
+ *              a.1.2. （注解类型TC可以非正式地充当包含注解类型的动作，在T被修改为可正式重复之前。或者，当T可重复时，TC可以作为一种新类型引入。）
+ *      b. 如果元素上存在注解类型TC，并且T被修改为可重复，并将TC作为其包含注解类型，则：
+ *          b.1. 对T的更改在行为上与{@code get[Declared]注解（Class<T>）}（用T或TC参数调用）和{@code get[Declared]Annotations（）}方法兼容，因为TC成为T的包含注解类型，
+ *               因此方法的结果不会更改
+ *          b.2. 对T的更改会更改用T参数调用的{@code get[Declared]AnnotationsByType（Class<T>）}方法的结果，因为这些方法现在将把TC类型的注解识别为T的容器注解，并将“查看”它
+ *               以公开T类型的注解
+ *      c. 如果元素上存在类型为T的注解，并且使T可重复，并且向元素添加更多类型为T的注解：
+ *          c.1. T类型注解的添加既与源代码兼容，又与二进制兼容。
+ *          c.2. 添加T类型的注解会更改{@code get[Declared]Annotation（Class<T>）}方法和{@code get[Declared]annotations（）}方法的结果，因为这些方法现在只会看到元素上的
+ *               容器注解，而看不到类型为<i>T的注解
+ *          c.4. 添加类型T的注解会更改{@code get[declarated]AnnotationsByType（Class<T>）}方法的结果，因为它们的结果将公开类型T的附加注解，而以前它们只公开类型T的单个注解
+ * G. 如果此接口中的方法返回的注解包含（直接或间接）引用在此VM中不可访问的类的{@link Class}值成员，则尝试通过对返回的注解调用相关的类返回方法来读取该类将导致
+ *    {@link TypeNotPresentException}。
+ * H. 类似地，如果注解中的枚举常量不再存在于枚举类型中，则尝试读取枚举值成员将导致{@link EnumConstantNotPresentException}。
+ * I. 如果注解类型T是用{@code @Repeatable}注解（其value元素表示类型TC），但TC没有声明返回类型为T{@code []}的{@code value（）}方法，则
+ *    {@link java.lang.annotation.AnnotationFormatError}类型的异常被抛出。
+ * J. 最后，尝试读取其定义演变不兼容的成员将导致{@link java.lang.annotation.AnnotationTypeMitchException}或{@link java.lang.annotation.IncompleteAnnotationException}。
+ */
+/**
+ * A.
  * Represents an annotated element of the program currently running in this
  * VM.  This interface allows annotations to be read reflectively.  All
  * annotations returned by methods in this interface are immutable and
  * serializable. The arrays returned by methods of this interface may be modified
  * by callers without affecting the arrays returned to other callers.
  *
+ * B.
  * <p>The {@link #getAnnotationsByType(Class)} and {@link
  * #getDeclaredAnnotationsByType(Class)} methods support multiple
  * annotations of the same type on an element. If the argument to
@@ -53,6 +77,7 @@ import sun.reflect.annotation.AnnotationType;
  * annotations may be generated at compile-time to wrap multiple
  * annotations of the argument type.
  *
+ * C.
  * <p>The terms <em>directly present</em>, <em>indirectly present</em>,
  * <em>present</em>, and <em>associated</em> are used throughout this
  * interface to describe precisely which annotations are returned by
@@ -102,6 +127,7 @@ import sun.reflect.annotation.AnnotationType;
  *
  * </ul>
  *
+ * D.
  * <p>The table below summarizes which kind of annotation presence
  * different methods in this interface examine.
  *
@@ -129,6 +155,7 @@ import sun.reflect.annotation.AnnotationType;
  * </tr>
  * </table>
  *
+ * E.
  * <p>For an invocation of {@code get[Declared]AnnotationsByType( Class <
  * T >)}, the order of annotations which are directly or indirectly
  * present on an element <i>E</i> is computed as if indirectly present
@@ -136,6 +163,7 @@ import sun.reflect.annotation.AnnotationType;
  * of their container annotation, in the order in which they appear in
  * the value element of the container annotation.
  *
+ * F.
  * <p>There are several compatibility concerns to keep in mind if an
  * annotation type <i>T</i> is originally <em>not</em> repeatable and
  * later modified to be repeatable.
@@ -206,22 +234,26 @@ import sun.reflect.annotation.AnnotationType;
  *
  * </ul>
  *
+ * G.
  * <p>If an annotation returned by a method in this interface contains
  * (directly or indirectly) a {@link Class}-valued member referring to
  * a class that is not accessible in this VM, attempting to read the class
  * by calling the relevant Class-returning method on the returned annotation
  * will result in a {@link TypeNotPresentException}.
  *
+ * H.
  * <p>Similarly, attempting to read an enum-valued member will result in
  * a {@link EnumConstantNotPresentException} if the enum constant in the
  * annotation is no longer present in the enum type.
  *
+ * I.
  * <p>If an annotation type <i>T</i> is (meta-)annotated with an
  * {@code @Repeatable} annotation whose value element indicates a type
  * <i>TC</i>, but <i>TC</i> does not declare a {@code value()} method
  * with a return type of <i>T</i>{@code []}, then an exception of type
  * {@link java.lang.annotation.AnnotationFormatError} is thrown.
  *
+ * J.
  * <p>Finally, attempting to read a member whose definition has evolved
  * incompatibly will result in a {@link
  * java.lang.annotation.AnnotationTypeMismatchException} or an
@@ -235,6 +267,7 @@ import sun.reflect.annotation.AnnotationType;
  * @since 1.5
  * @author Josh Bloch
  */
+// 20201204 表示当前在此VM中运行的程序的带注解元素。此接口允许以反射方式读取注解。此接口中的方法返回的所有注解都是不可变的和可序列化的。
 public interface AnnotatedElement {
     /**
      * Returns true if an annotation for the specified type
