@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.security;
@@ -44,7 +24,7 @@ import java.security.cert.*;
  * @author Li Gong
  * @author Roland Schemers
  */
-
+// 20201204 此类扩展了代码库的概念，不仅封装了位置（URL），还封装了用于验证源自该位置的签名代码的证书链。
 public class CodeSource implements java.io.Serializable {
 
     private static final long serialVersionUID = 4977541819976013951L;
@@ -54,6 +34,7 @@ public class CodeSource implements java.io.Serializable {
      *
      * @serial
      */
+    // 20201204 代码位置。
     private URL location;
 
     /*
@@ -162,9 +143,11 @@ public class CodeSource implements java.io.Serializable {
      *
      * @return the location (URL).
      */
+    // 20201204 返回与此代码源关联的位置。
     public final URL getLocation() {
         /* since URL is practically immutable, returning itself is not
            a security problem */
+        // 20201204 由于URL实际上是不可变的，返回本身并不是一个安全问题
         return this.location;
     }
 

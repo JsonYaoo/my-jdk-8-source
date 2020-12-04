@@ -72,6 +72,21 @@ import sun.reflect.annotation.*;
 import sun.reflect.misc.ReflectUtil;
 
 /**
+ * 20201204
+ * A. 类{@code class}的实例表示正在运行的Java应用程序中的类和接口。枚举是一种类，注释是一种接口。每个数组也属于一个类，
+ *    该类反映为一个{@code class}对象，该对象由具有相同元素类型和维数的所有数组共享。{{{{double{key}，@double}代码和@double}代码。
+ * B. {@code Class}没有公共构造函数。相反，{@code Class}对象是由Java虚拟机在类加载时自动构造的，并通过调用类加载器中的{@code defineClass}方法来构造的。
+ * C. 以下示例使用{@code Class}对象打印对象的类名：
+ *     void printClassName(Object obj) {
+ *         System.out.println("The class of " + obj +
+ *                            " is " + obj.getClass().getName());
+ *     }
+ * D. 还可以使用类文本获取命名类型（或void）的{@code Class}对象。请参阅Java&trade；语言规范第15.8.2节。例如：
+ *     {@code System.out.println("The name of class Foo is: "+Foo.class.getName());}
+ * E. @param<T>由这个{@code class}对象建模的类的类型。例如，{@code String.class}的类型是{@code Class<String>}。使用{@code Class<？>}如果建模的类未知。
+ */
+/**
+ * A.
  * Instances of the class {@code Class} represent classes and
  * interfaces in a running Java application.  An enum is a kind of
  * class and an annotation is a kind of interface.  Every array also
@@ -83,11 +98,13 @@ import sun.reflect.misc.ReflectUtil;
  * {@code double}), and the keyword {@code void} are also
  * represented as {@code Class} objects.
  *
+ * B.
  * <p> {@code Class} has no public constructor. Instead {@code Class}
  * objects are constructed automatically by the Java Virtual Machine as classes
  * are loaded and by calls to the {@code defineClass} method in the class
  * loader.
  *
+ * C.
  * <p> The following example uses a {@code Class} object to print the
  * class name of an object:
  *
@@ -98,6 +115,7 @@ import sun.reflect.misc.ReflectUtil;
  *     }
  * </pre></blockquote>
  *
+ * D.
  * <p> It is also possible to get the {@code Class} object for a named
  * type (or for void) using a class literal.  See Section 15.8.2 of
  * <cite>The Java&trade; Language Specification</cite>.
@@ -107,6 +125,7 @@ import sun.reflect.misc.ReflectUtil;
  *     {@code System.out.println("The name of class Foo is: "+Foo.class.getName());}
  * </blockquote>
  *
+ * E.
  * @param <T> the type of the class modeled by this {@code Class}
  * object.  For example, the type of {@code String.class} is {@code
  * Class<String>}.  Use {@code Class<?>} if the class being modeled is
@@ -116,10 +135,8 @@ import sun.reflect.misc.ReflectUtil;
  * @see     java.lang.ClassLoader#defineClass(byte[], int, int)
  * @since   JDK1.0
  */
-public final class Class<T> implements java.io.Serializable,
-                              GenericDeclaration,
-                              Type,
-                              AnnotatedElement {
+// 20201204 类{@code class}的实例表示正在运行的Java应用程序中的类和接口。-> 该类反映为一个{@code class}对象，该对象由具有相同元素类型和维数的所有数组共享。
+public final class Class<T> implements java.io.Serializable, GenericDeclaration, Type, AnnotatedElement {
     private static final int ANNOTATION= 0x00002000;
     private static final int ENUM      = 0x00004000;
     private static final int SYNTHETIC = 0x00001000;
@@ -2289,6 +2306,7 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /** protection domain returned when the internal domain is null */
+    // 20201204 内部域为空时返回保护域
     private static java.security.ProtectionDomain allPermDomain;
 
 
@@ -2300,7 +2318,7 @@ public final class Class<T> implements java.io.Serializable,
      * ensure it's ok to get the
      * {@code ProtectionDomain}.
      *
-     * @return the ProtectionDomain of this class
+     * @return the ProtectionDomain of this class // 20201204 此类的ProtectionDomain -> 类权限组
      *
      * @throws SecurityException
      *        if a security manager exists and its
@@ -2312,20 +2330,31 @@ public final class Class<T> implements java.io.Serializable,
      * @see java.lang.RuntimePermission
      * @since 1.2
      */
+    // 20201204 返回此类的{@code ProtectionDomain}。如果安装了安全管理器，此方法首先使用{@code RuntimePermission（“getProtectionDomain”）}权限调用
+    // 20201204 安全管理器的{@code checkPermission}方法，以确保可以获得{@code ProtectionDomain}。
     public java.security.ProtectionDomain getProtectionDomain() {
+        // 20201204 获取系统安全管理器
         SecurityManager sm = System.getSecurityManager();
+
+        // 20201204 如果安全管理器不为空, 则检查“getProtectionDomain”类安全组
         if (sm != null) {
             sm.checkPermission(SecurityConstants.GET_PD_PERMISSION);
         }
+
+        // 20201204 获取本类的安全组
         java.security.ProtectionDomain pd = getProtectionDomain0();
+
+        // 20201204 如果本类的安全组为空
         if (pd == null) {
+            // 20201204 如果内部域为空时返回保护域为空
             if (allPermDomain == null) {
-                java.security.Permissions perms =
-                    new java.security.Permissions();
+                // 20201204 则构建系统所有权限组为该保护域
+                java.security.Permissions perms = new java.security.Permissions();
                 perms.add(SecurityConstants.ALL_PERMISSION);
-                allPermDomain =
-                    new java.security.ProtectionDomain(null, perms);
+                allPermDomain = new java.security.ProtectionDomain(null, perms);
             }
+
+            // 20201204 返回保护域
             pd = allPermDomain;
         }
         return pd;
@@ -2335,6 +2364,7 @@ public final class Class<T> implements java.io.Serializable,
     /**
      * Returns the ProtectionDomain of this class.
      */
+    // 20201204 返回此类的ProtectionDomain
     private native java.security.ProtectionDomain getProtectionDomain0();
 
     /*

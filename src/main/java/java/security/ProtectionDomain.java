@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.security;
@@ -39,12 +19,21 @@ import sun.misc.JavaSecurityAccess;
 import sun.misc.SharedSecrets;
 
 /**
+ * 20201204
+ * A. 这个ProtectionDomain类封装了一个域的特征，它包含了一组类，这些类的实例在代表给定的一组主体执行时被授予一组权限。
+ * B. 在ProtectionDomain被构造时，可以将一组静态权限绑定到该域；无论有效的策略是什么，都会将这些权限授予该域。但是，为了支持动态安全策略，还可以构造ProtectionDomain，
+ *    以便在检查权限时由当前策略动态映射到一组权限。
+ */
+/**
  *
+ *A.
  *<p>
  * This ProtectionDomain class encapsulates the characteristics of a domain,
  * which encloses a set of classes whose instances are granted a set
  * of permissions when being executed on behalf of a given set of Principals.
  * <p>
+ *
+ * B.
  * A static set of permissions can be bound to a ProtectionDomain when it is
  * constructed; such permissions are granted to the domain regardless of the
  * Policy in force. However, to support dynamic security policies, a
@@ -57,7 +46,7 @@ import sun.misc.SharedSecrets;
  * @author Roland Schemers
  * @author Gary Ellison
  */
-
+// 20201204 这个ProtectionDomain类封装了一个域的特征，它包含了一组类，这些类的实例在代表给定的一组主体执行时被授予一组权限。
 public class ProtectionDomain {
     private static class JavaSecurityAccessImpl implements JavaSecurityAccess {
 
