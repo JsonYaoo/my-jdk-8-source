@@ -152,6 +152,7 @@ public class Properties extends Hashtable<Object,Object> {
     /**
      * Creates an empty property list with no default values.
      */
+    // 20201205 创建一个没有默认值的空属性列表。
     public Properties() {
         this(null);
     }
@@ -334,6 +335,13 @@ public class Properties extends Hashtable<Object,Object> {
     }
 
     /**
+     * 20201205
+     * A. 从输入字节流中读取属性列表（键和元素对）。 输入流采用{@link #load（java.io.Reader）load（Reader）}中指定的面向行的简单格式，并假定使用ISO 8859-1字符编码；
+     *    即每个字节是一个Latin1字符。 按《Java＆Trade和语言规范》第3.3节中的定义，使用Unicode转义在键和元素中表示不在Latin1中的字符以及某些特殊字符。
+     * B. 此方法返回后，指定的流保持打开状态。
+     */
+    /**
+     * A.
      * Reads a property list (key and element pairs) from the input
      * byte stream. The input stream is in a simple line-oriented
      * format as specified in
@@ -343,6 +351,8 @@ public class Properties extends Hashtable<Object,Object> {
      * are represented in keys and elements using Unicode escapes as defined in
      * section 3.3 of
      * <cite>The Java&trade; Language Specification</cite>.
+     *
+     * B.
      * <p>
      * The specified stream remains open after this method returns.
      *
@@ -353,7 +363,9 @@ public class Properties extends Hashtable<Object,Object> {
      *             malformed Unicode escape sequence.
      * @since 1.2
      */
+    // 20201205 从输入字节流中读取属性列表（键和元素对）。
     public synchronized void load(InputStream inStream) throws IOException {
+        // 20201205 从InputStream / Reader中读取“逻辑行”，跳过所有注释和空白行，并从“自然行”的开头过滤掉那些前导空格字符
         load0(new LineReader(inStream));
     }
 
@@ -415,6 +427,8 @@ public class Properties extends Hashtable<Object,Object> {
      * Method returns the char length of the "logical line" and stores
      * the line in "lineBuf".
      */
+    // 20201205 从InputStream / Reader中读取“逻辑行”，跳过所有注释和空白行，并从“自然行”的开头过滤掉那些前导空格字符（\ u0020，\ u0009和\ u000c）。
+    // 20201205 方法返回“逻辑行”的字符长度，并将该行存储在“ lineBuf”中。
     class LineReader {
         public LineReader(InputStream inStream) {
             this.inStream = inStream;
@@ -861,9 +875,19 @@ public class Properties extends Hashtable<Object,Object> {
     }
 
     /**
+     * 20201205
+     * A. 将指定输入流上XML文档表示的所有属性加载到此属性表中。
+     * B. XML文档必须具有以下DOCTYPE声明：
+     *      <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+     * C. 需要使用实现来读取使用“ {@code UTF-8}”或“ {@code UTF-16}”编码的XML文档。 一个实现可以支持其他编码。
+     * D. 此方法返回后，将关闭指定的流。
+     */
+    /**
+     * A.
      * Loads all of the properties represented by the XML document on the
      * specified input stream into this properties table.
      *
+     * B.
      * <p>The XML document must have the following DOCTYPE declaration:
      * <pre>
      * &lt;!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd"&gt;
@@ -871,10 +895,12 @@ public class Properties extends Hashtable<Object,Object> {
      * Furthermore, the document must satisfy the properties DTD described
      * above.
      *
+     * C.
      * <p> An implementation is required to read XML documents that use the
      * "{@code UTF-8}" or "{@code UTF-16}" encoding. An implementation may
      * support additional encodings.
      *
+     * D.
      * <p>The specified stream is closed after this method returns.
      *
      * @param in the input stream from which to read the XML document.
@@ -891,8 +917,8 @@ public class Properties extends Hashtable<Object,Object> {
      *         Encoding in Entities</a>
      * @since 1.5
      */
-    public synchronized void loadFromXML(InputStream in)
-        throws IOException, InvalidPropertiesFormatException
+    // 20201205 将指定输入流上XML文档表示的所有属性加载到此属性表中。
+    public synchronized void loadFromXML(InputStream in) throws IOException, InvalidPropertiesFormatException
     {
         XmlSupport.load(this, Objects.requireNonNull(in));
         in.close();
@@ -1153,8 +1179,21 @@ public class Properties extends Hashtable<Object,Object> {
     };
 
     /**
+     * 20201205
+     * A. XML格式的加载/存储属性的支持类。
+     * B. 此处定义的{@code load}和{@code store}方法委托给系统范围内的{@code XmlPropertiesProvider}。 第一次调用这两种方法时，系统范围内的提供程序位于以下位置：
+     *      a. 如果定义了系统属性{@code sun.util.spi.XmlPropertiesProvider}，则将其视为具体提供程序类的标准名称。 该类由系统类加载器作为初始加载器加载。
+     *         如果无法使用零参数构造函数加载或实例化它，则会引发未指定的错误。
+     *      b. 如果未定义系统属性，则使用{@link ServiceLoader}类定义的服务提供者加载工具，以系统类加载器作为初始加载器以及
+     *         {@code sun.util.spi.XmlPropertiesProvider}来定位提供程序。 作为服务类型。 如果此过程失败，则会引发未指定的错误。 如果安装了多个服务提供商，
+     *         则未指定将使用哪个提供商。
+     *      c. 如果通过上述方法未找到提供者，则将实例化并使用系统默认提供者。
+     */
+    /**
+     * A.
      * Supporting class for loading/storing properties in XML format.
      *
+     * B.
      * <p> The {@code load} and {@code store} methods defined here delegate to a
      * system-wide {@code XmlPropertiesProvider}. On first invocation of either
      * method then the system-wide provider is located as follows: </p>
@@ -1200,6 +1239,7 @@ public class Properties extends Hashtable<Object,Object> {
             return iterator.hasNext() ? iterator.next() : null;
         }
 
+        // 20201205 加载 用于以XML格式加载和存储{@link Properties}的服务提供者。
         private static XmlPropertiesProvider loadProvider() {
             return AccessController.doPrivileged(
                 new PrivilegedAction<XmlPropertiesProvider>() {
@@ -1215,11 +1255,13 @@ public class Properties extends Hashtable<Object,Object> {
                 }});
         }
 
+        // 20201205 用于以XML格式加载和存储{@link Properties}的服务提供者类。
         private static final XmlPropertiesProvider PROVIDER = loadProvider();
 
-        static void load(Properties props, InputStream in)
-            throws IOException, InvalidPropertiesFormatException
+        // 20201205 加载输入流中的XML属性
+        static void load(Properties props, InputStream in) throws IOException, InvalidPropertiesFormatException
         {
+            // 20201205 将指定输入流上XML文档表示的所有属性加载到属性表中
             PROVIDER.load(props, in);
         }
 

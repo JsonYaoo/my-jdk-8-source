@@ -38,7 +38,7 @@ import java.io.IOException;
  * @see Properties#loadFromXML
  * @see Properties#storeToXML
  */
-
+// 20201205 用于以XML格式加载和存储{@link Properties}的服务提供者类。
 public abstract class XmlPropertiesProvider {
 
     /**
@@ -63,6 +63,7 @@ public abstract class XmlPropertiesProvider {
      *
      * @see Properties#loadFromXML
      */
+    // 20201205 将指定输入流上XML文档表示的所有属性加载到属性表中。
     public abstract void load(Properties props, InputStream in)
         throws IOException, InvalidPropertiesFormatException;
 

@@ -269,14 +269,24 @@ import sun.reflect.annotation.AnnotationType;
  */
 // 20201204 表示当前在此VM中运行的程序的带注解元素。此接口允许以反射方式读取注解。此接口中的方法返回的所有注解都是不可变的和可序列化的。
 public interface AnnotatedElement {
+
     /**
+     * 20201205
+     * A. 如果此元素上存在指定类型的注解，则返回true，否则返回false。 设计此方法主要是为了方便访问标记注解。
+     * B. 此方法返回的真值等效于：{@code getAnnotation（annotationClass）！= null}
+     * C. 默认方法的主体指定为上面的代码。
+     */
+    /**
+     * A.
      * Returns true if an annotation for the specified type
      * is <em>present</em> on this element, else false.  This method
      * is designed primarily for convenient access to marker annotations.
      *
+     * B.
      * <p>The truth value returned by this method is equivalent to:
      * {@code getAnnotation(annotationClass) != null}
      *
+     * C.
      * <p>The body of the default method is specified to be the code
      * above.
      *
@@ -287,6 +297,7 @@ public interface AnnotatedElement {
      * @throws NullPointerException if the given annotation class is null
      * @since 1.5
      */
+    // 20201205 判断此元素上是否存在指定类型的注解
     default boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
         return getAnnotation(annotationClass) != null;
     }
@@ -303,6 +314,7 @@ public interface AnnotatedElement {
      * @throws NullPointerException if the given annotation class is null
      * @since 1.5
      */
+    // 20201205 如果存在这样的注解，则返回指定类型的该元素的注解，否则为null。
     <T extends Annotation> T getAnnotation(Class<T> annotationClass);
 
     /**

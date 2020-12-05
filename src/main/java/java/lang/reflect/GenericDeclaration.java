@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
@@ -30,6 +10,7 @@ package java.lang.reflect;
  *
  * @since 1.5
  */
+// 20201205 所有声明类型变量的实体的公共接口。
 public interface GenericDeclaration extends AnnotatedElement {
     /**
      * Returns an array of {@code TypeVariable} objects that
