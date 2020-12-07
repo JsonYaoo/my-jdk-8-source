@@ -1,31 +1,20 @@
 /*
  * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
 
 /**
+ * 20201207
+ * A. TypeVariable是种类类型变量的通用超级接口。 如该包中所指定的，在反射方法首次使用类型变量时会创建该类型变量。 如果类型变量t由类型T（即类，接口或批注类型）引用，
+ *    并且T由T的第n个封闭类声明（请参见JLS 8.1.2），则创建t需要解析（ 请参见T的第i个封闭类的JVMS 5），其中i = 0到n（含）。 创建类型变量一定不能导致其边界的创建。
+ *    重复创建类型变量无效。
+ * B. 可以在运行时实例化多个对象以表示给定的类型变量。 即使类型变量仅创建一次，也并不意味着需要缓存代表该类型变量的实例。 但是，表示类型变量的所有实例必须彼此相等。
+ *    因此，类型变量的用户不得依赖于实现此接口的类的实例的标识。
+ */
+/**
+ * A.
  * TypeVariable is the common superinterface for type variables of kinds.
  * A type variable is created the first time it is needed by a reflective
  * method, as specified in this package.  If a type variable t is referenced
@@ -35,6 +24,7 @@ package java.lang.reflect;
  * for i = 0 to n, inclusive. Creating a type variable must not cause the
  * creation of its bounds. Repeated creation of a type variable has no effect.
  *
+ * B.
  * <p>Multiple objects may be instantiated at run-time to
  * represent a given type variable. Even though a type variable is
  * created only once, this does not imply any requirement to cache
@@ -48,6 +38,7 @@ package java.lang.reflect;
  *
  * @since 1.5
  */
+// 20201207 TypeVariable是种类类型变量的通用超级接口
 public interface TypeVariable<D extends GenericDeclaration> extends Type, AnnotatedElement {
     /**
      * Returns an array of {@code Type} objects representing the
