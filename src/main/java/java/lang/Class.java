@@ -744,6 +744,8 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      *     <cite>The Java&trade; Virtual Machine Specification</cite>
      * @since 1.5
      */
+    // 20201207 以声明顺序返回{@code TypeVariable}对象的数组，这些数组代表此{@code GenericDeclaration}对象表示的通用声明所声明的类型变量。
+    // 20201207 如果基础泛型声明未声明任何类型变量，则返回长度为0的数组。
     @SuppressWarnings("unchecked")
     public TypeVariable<Class<T>>[] getTypeParameters() {
         ClassRepository info = getGenericInfo();
