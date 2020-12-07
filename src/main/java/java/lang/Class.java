@@ -896,10 +896,23 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
     private native Class<?>[] getInterfaces0();
 
     /**
+     * 20201207
+     * A. 返回表示由该对象表示的类或接口直接实现的接口的{@code Type}。
+     * B. 如果超级接口是参数化类型，则为其返回的{@code Type}对象必须准确反映源代码中使用的实际类型参数。 如果尚未创建代表每个超级接口的参数化类型，则会创建该参数化类型。
+     *    有关参数化类型的创建过程的语义，请参见{@link java.lang.reflect.ParameterizedType ParameterizedType}的声明。
+     * C. 如果此对象表示一个类，则返回值是一个包含对象的数组，这些对象表示该类实现的所有接口。 数组中接口对象的顺序与该对象表示的类的声明的{@code Implements}子句中接口名称的
+     *    顺序相对应。 对于数组类，将按该顺序返回接口{@code Cloneable}和{@code Serializable}。
+     * D. 如果此对象表示一个接口，则该数组包含的对象表示所有由该接口直接扩展的接口。 数组中接口对象的顺序与该对象表示的接口的声明的{@code extended}子句中接口名称的顺序相对应。
+     * E. 如果此对象表示未实现任何接口的类或接口，则该方法返回长度为0的数组。
+     * F. 如果此对象表示原始类型或void，则该方法返回长度为0的数组。
+     */
+    /**
+     * A.
      * Returns the {@code Type}s representing the interfaces
      * directly implemented by the class or interface represented by
      * this object.
      *
+     * B.
      * <p>If a superinterface is a parameterized type, the
      * {@code Type} object returned for it must accurately reflect
      * the actual type parameters used in the source code. The
@@ -909,6 +922,7 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      * for the semantics of the creation process for parameterized
      * types.
      *
+     * C.
      * <p> If this object represents a class, the return value is an
      * array containing objects representing all interfaces
      * implemented by the class. The order of the interface objects in
@@ -918,6 +932,7 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      * interfaces {@code Cloneable} and {@code Serializable} are
      * returned in that order.
      *
+     * D.
      * <p>If this object represents an interface, the array contains
      * objects representing all interfaces directly extended by the
      * interface.  The order of the interface objects in the array
@@ -925,10 +940,12 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      * {@code extends} clause of the declaration of the interface
      * represented by this object.
      *
+     * E.
      * <p>If this object represents a class or interface that
      * implements no interfaces, the method returns an array of length
      * 0.
      *
+     * F.
      * <p>If this object represents a primitive type or void, the
      * method returns an array of length 0.
      *
@@ -944,6 +961,7 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      * @return an array of interfaces implemented by this class
      * @since 1.5
      */
+    // 20201207 返回表示由该对象实现的所有接口接口 -> 接口顺序为类的声明的{@code Implements}子句中接口名称的顺序
     public Type[] getGenericInterfaces() {
         ClassRepository info = getGenericInfo();
         return (info == null) ?  getInterfaces() : info.getSuperInterfaces();
