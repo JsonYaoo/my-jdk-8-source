@@ -767,12 +767,20 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      */
     public native Class<? super T> getSuperclass();
 
-
     /**
+     * 20201207
+     * A. 返回表示此{@code Class}表示的实体的直接超类的{@code Type}（类，接口，原始类型或void）。
+     * B. 如果超类是参数化类型，则返回的{@code Type}对象必须准确反映源代码中使用的实际类型参数。 如果以前没有创建过代表超级类的参数化类型，则会创建该参数化类型。
+     *    有关参数化类型的创建过程的语义，请参见{@link java.lang.reflect.ParameterizedType ParameterizedType}的声明。 如果此{@code Class}表示
+     *    {@code Object}类、接口、原始类型或void，则返回null。 如果此对象表示数组类，则返回表示{@code Object}类的{@code Class}对象。
+     */
+    /**
+     * A.
      * Returns the {@code Type} representing the direct superclass of
      * the entity (class, interface, primitive type or void) represented by
      * this {@code Class}.
      *
+     * B.
      * <p>If the superclass is a parameterized type, the {@code Type}
      * object returned must accurately reflect the actual type
      * parameters used in the source code. The parameterized type
@@ -797,6 +805,7 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      * @return the superclass of the class represented by this object
      * @since 1.5
      */
+    // 20201207 返回表示此{@code Class}表示的实体的直接超类的{@code Type}（类，接口，原始类型或void）。
     public Type getGenericSuperclass() {
         ClassRepository info = getGenericInfo();
         if (info == null) {
