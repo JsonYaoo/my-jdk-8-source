@@ -39,6 +39,7 @@ public interface WildcardType extends Type {
      *
      * @return the extends bounds of this wildcard type argument
      */
+    // 20201207 返回extends子句给出的通配符类型参数的上限。 如果未明确给出此类界限，则返回一个空数组。
     Type[] extendsBounds();
 
     /**
@@ -48,5 +49,6 @@ public interface WildcardType extends Type {
      *
      * @return the super bounds of this wildcard type argument
      */
+    // 20201207 返回super子句给定的通配符类型参数的下限。 如果未明确给出此类界限，则返回一个空数组。
     Type[] superBounds();
 }
