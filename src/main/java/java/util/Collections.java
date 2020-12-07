@@ -39,14 +39,27 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
+ * 20201207
+ * A. 此类仅包含对集合进行操作或返回集合的静态方法。 它包含对集合进行操作的多态算法，“包装器”（包装器），该包装器返回由指定集合支持的新集合，以及其他一些零碎的结局。
+ * B. 如果提供给它们的集合或类对象为null，则此类的所有方法都将引发NullPointerException。
+ * C. 此类中包含的多态算法文档通常包括对实现的简短描述。 此类描述应被视为实现说明，而不是说明书的一部分。 只要遵守规范本身，实现者就可以随意替换其他算法。
+ *   （例如，sort使用的算法不必是mergesort，但必须是sort。）
+ * D. 如果该集合不支持适当的突变原语（例如set方法），则将此类中包含的“破坏性”算法（即修改其操作的集合的算法）指定为引发UnsupportedOperationException。
+ *    如果调用对集合没有影响，则这些算法可能会（但不是必需）引发此异常。 例如，在已排序的不可修改列表上调用sort方法可能会或可能不会引发UnsupportedOperationException。
+ * E. 此类是<a href="{@docRoot}/../technotes/guides/collections/index.html"> Java集合框架</a>的成员。
+ */
+/**
+ * A.
  * This class consists exclusively of static methods that operate on or return
  * collections.  It contains polymorphic algorithms that operate on
  * collections, "wrappers", which return a new collection backed by a
  * specified collection, and a few other odds and ends.
  *
+ * B.
  * <p>The methods of this class all throw a <tt>NullPointerException</tt>
  * if the collections or class objects provided to them are null.
  *
+ * C.
  * <p>The documentation for the polymorphic algorithms contained in this class
  * generally includes a brief description of the <i>implementation</i>.  Such
  * descriptions should be regarded as <i>implementation notes</i>, rather than
@@ -55,6 +68,7 @@ import java.util.stream.StreamSupport;
  * to.  (For example, the algorithm used by <tt>sort</tt> does not have to be
  * a mergesort, but it does have to be <i>stable</i>.)
  *
+ * D.
  * <p>The "destructive" algorithms contained in this class, that is, the
  * algorithms that modify the collection on which they operate, are specified
  * to throw <tt>UnsupportedOperationException</tt> if the collection does not
@@ -64,6 +78,7 @@ import java.util.stream.StreamSupport;
  * example, invoking the <tt>sort</tt> method on an unmodifiable list that is
  * already sorted may or may not throw <tt>UnsupportedOperationException</tt>.
  *
+ * E.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -76,7 +91,7 @@ import java.util.stream.StreamSupport;
  * @see     Map
  * @since   1.2
  */
-
+// 20201207 此类仅包含对集合进行操作或返回集合的静态方法: 它包含对集合进行操作的多态算法
 public class Collections {
     // Suppresses default constructor, ensuring non-instantiability.
     private Collections() {
@@ -5410,6 +5425,16 @@ public class Collections {
     }
 
     /**
+     * 20201207
+     * A. 返回指定map支持的集合。 结果集显示的排序，并发性和性能特征与支持映射相同。 本质上，此工厂方法提供与任何{@link Map}实现相对应的{@link Set}实现。
+     *    不需要在已经具有相应的{@link Set}实现的{@link Map}实现（例如{@link HashMap}或{@link TreeMap}）上使用此方法。
+     * B. 此方法返回的集合上的每个方法调用都会在支持映射或其keySet视图上导致一个方法调用，只有一个例外。 addAll方法被实现为在支持映射上的一系列put调用。
+     * C. 调用此方法时，指定的映射必须为空，并且在此方法返回后不应直接对其进行访问。 如果将映射创建为空，将其直接传递给此方法，并且不保留对该映射的引用，
+     *    则可以确保满足这些条件，如以下代码片段所示：
+     *          Set<Object> weakHashSet = Collections.newSetFromMap(new WeakHashMap<Object, Boolean>());
+     */
+    /**
+     * A.
      * Returns a set backed by the specified map.  The resulting set displays
      * the same ordering, concurrency, and performance characteristics as the
      * backing map.  In essence, this factory method provides a {@link Set}
@@ -5418,11 +5443,13 @@ public class Collections {
      * already has a corresponding {@link Set} implementation (such as {@link
      * HashMap} or {@link TreeMap}).
      *
+     * B.
      * <p>Each method invocation on the set returned by this method results in
      * exactly one method invocation on the backing map or its <tt>keySet</tt>
      * view, with one exception.  The <tt>addAll</tt> method is implemented
      * as a sequence of <tt>put</tt> invocations on the backing map.
      *
+     * C.
      * <p>The specified map must be empty at the time this method is invoked,
      * and should not be accessed directly after this method returns.  These
      * conditions are ensured if the map is created empty, passed directly
@@ -5433,13 +5460,13 @@ public class Collections {
      *        new WeakHashMap&lt;Object, Boolean&gt;());
      * </pre>
      *
-     * @param <E> the class of the map keys and of the objects in the
-     *        returned set
-     * @param map the backing map
-     * @return the set backed by the map
+     * @param <E> the class of the map keys and of the objects in the returned set // 20201207 映射键和返回集中的对象的类
+     * @param map the backing map   // 20201207 Map集合
+     * @return the set backed by the map // 20201207 Map支持的Set集合
      * @throws IllegalArgumentException if <tt>map</tt> is not empty
      * @since 1.6
      */
+    // 20201207 返回指定map支持的集合 -> 等价于map.keySet();
     public static <E> Set<E> newSetFromMap(Map<E, Boolean> map) {
         return new SetFromMap<>(map);
     }
@@ -5447,16 +5474,18 @@ public class Collections {
     /**
      * @serial include
      */
-    private static class SetFromMap<E> extends AbstractSet<E>
-        implements Set<E>, Serializable
+    private static class SetFromMap<E> extends AbstractSet<E> implements Set<E>, Serializable
     {
         private final Map<E, Boolean> m;  // The backing map
         private transient Set<E> s;       // Its keySet
 
+        // 20201207 构造SetFromMap内部类
         SetFromMap(Map<E, Boolean> map) {
             if (!map.isEmpty())
                 throw new IllegalArgumentException("Map is non-empty");
             m = map;
+
+            // 20201207 注册该set结果集 = map中获取
             s = map.keySet();
         }
 
