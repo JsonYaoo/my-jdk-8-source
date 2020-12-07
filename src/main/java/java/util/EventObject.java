@@ -31,18 +31,22 @@ public class EventObject implements java.io.Serializable {
     /**
      * The object on which the Event initially occurred.
      */
+    // 20201207 最初发生事件的对象。
     protected transient Object  source;
 
     /**
      * Constructs a prototypical Event.
      *
-     * @param    source    The object on which the Event initially occurred.
+     * @param source The object on which the Event initially occurred. // 20201207 最初发生事件的对象。
      * @exception  IllegalArgumentException  if source is null.
      */
+    // 20201207 构造一个原型事件。
     public EventObject(Object source) {
+        // 20201207 最初发生事件的对象不能为空
         if (source == null)
             throw new IllegalArgumentException("null source");
 
+        // 20201207 设置最初发生事件的对象。
         this.source = source;
     }
 
