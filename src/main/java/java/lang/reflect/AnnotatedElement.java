@@ -479,17 +479,27 @@ public interface AnnotatedElement {
     }
 
     /**
+     * 20201208
+     * A. 返回直接在此元素上出现的注解。 此方法将忽略继承的注解。
+     * B. 如果此元素上没有直接存在的注解，则返回值为长度为0的数组。
+     * C. 该方法的调用者可以随意修改返回的数组； 它对返回给其他调用方的数组没有影响。
+     */
+    /**
+     * A.
      * Returns annotations that are <em>directly present</em> on this element.
      * This method ignores inherited annotations.
      *
+     * B.
      * If there are no annotations <em>directly present</em> on this element,
      * the return value is an array of length 0.
      *
+     * C.
      * The caller of this method is free to modify the returned array; it will
      * have no effect on the arrays returned to other callers.
      *
-     * @return annotations directly present on this element
+     * @return annotations directly present on this element // 20201208 注解直接存在于此元素上
      * @since 1.5
      */
+    // 20201208 返回直接在此元素上出现的注解, 此方法将忽略继承的注解
     Annotation[] getDeclaredAnnotations();
 }
