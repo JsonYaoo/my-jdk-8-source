@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1994, 2014, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -1307,12 +1287,12 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
 
     private native Class<?> getDeclaringClass0();
 
-
     /**
      * Returns the immediately enclosing class of the underlying
      * class.  If the underlying class is a top level class this
      * method returns {@code null}.
-     * @return the immediately enclosing class of the underlying class
+     *
+     * @return the immediately enclosing class of the underlying class // 20201208 基础类的直接封闭类
      * @exception  SecurityException
      *             If a security manager, <i>s</i>, is present and the caller's
      *             class loader is not the same as or an ancestor of the class
@@ -1321,6 +1301,7 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      *             denies access to the package of the enclosing class
      * @since 1.5
      */
+    // 20201208 返回基础类的直接封闭类。 如果基础类是顶级类，则此方法返回{@code null}。
     @CallerSensitive
     public Class<?> getEnclosingClass() throws SecurityException {
         // There are five kinds of classes (or interfaces):
@@ -1329,7 +1310,16 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
         // c) Inner classes (non-static member classes)
         // d) Local classes (named classes declared within a method)
         // e) Anonymous classes
-
+        /**
+         * 20201208
+         * A. 有五种类（或接口）：
+         *      a. 顶级类
+         *      b. 嵌套类（静态成员类）
+         *      c. 内部类（非静态成员类）
+         *      d. 本地类（在方法中声明的命名类）
+         *      e. 匿名类
+         * B. JVM Spec 4.8.6：当且仅当一个类是本地类或匿名类时，它才必须具有EnclosingMethod属性。
+         */
 
         // JVM Spec 4.8.6: A class must have an EnclosingMethod
         // attribute if and only if it is a local class or an
