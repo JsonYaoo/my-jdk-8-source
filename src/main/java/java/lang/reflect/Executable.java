@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
@@ -40,8 +20,8 @@ import sun.reflect.generics.repository.ConstructorRepository;
  *
  * @since 1.8
  */
-public abstract class Executable extends AccessibleObject
-    implements Member, GenericDeclaration {
+// 20201208 {@link方法}和{@link构造函数}的通用功能的共享超类。
+public abstract class Executable extends AccessibleObject implements Member, GenericDeclaration {
     /*
      * Only grant package-visibility to the constructor.
      */

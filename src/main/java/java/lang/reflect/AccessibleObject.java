@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
@@ -31,6 +11,14 @@ import sun.reflect.ReflectionFactory;
 import java.lang.annotation.Annotation;
 
 /**
+ * 20201208
+ * A. AccessibleObject类是Field，Method和Constructor对象的基类。 它提供了将反射对象标记为禁止使用时禁止默认Java语言访问控制检查的功能。 当使用字段，方法或构造函数设置或获取字段，
+ *   调用方法或创建和初始化类的新实例时，将 分别执行访问检查（针对公共，默认（程序包）访问，受保护的成员和私有成员）。
+ * B. 在反射对象中设置{@code accessibility}标志允许具有足够特权的复杂应用程序（例如Java Object Serialization或其他持久性机制）以通常会被禁止的方式操作对象。
+ * C. 默认情况下，无法访问反射对象。
+ */
+/**
+ * A.
  * The AccessibleObject class is the base class for Field, Method and
  * Constructor objects.  It provides the ability to flag a reflected
  * object as suppressing default Java language access control checks
@@ -40,11 +28,13 @@ import java.lang.annotation.Annotation;
  * methods, or to create and initialize new instances of classes,
  * respectively.
  *
+ * B.
  * <p>Setting the {@code accessible} flag in a reflected object
  * permits sophisticated applications with sufficient privilege, such
  * as Java Object Serialization or other persistence mechanisms, to
  * manipulate objects in a manner that would normally be prohibited.
  *
+ * C.
  * <p>By default, a reflected object is <em>not</em> accessible.
  *
  * @see Field
@@ -54,6 +44,7 @@ import java.lang.annotation.Annotation;
  *
  * @since 1.2
  */
+// 20201208 特权控制类: AccessibleObject类是Field，Method和Constructor对象的基类: 提供了将反射对象标记为: 禁止使用时禁止默认Java语言访问控制检查的功能。
 public class AccessibleObject implements AnnotatedElement {
 
     /**

@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1996, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
@@ -39,10 +19,17 @@ import java.lang.annotation.AnnotationFormatError;
 import java.nio.ByteBuffer;
 
 /**
+ * 20201208
+ * A. {@code Method}提供有关类或接口上单个方法的信息，以及对它们的访问。 反映的方法可以是类方法或实例方法（包括抽象方法）。
+ * B. {@code Method}允许匹配实际参数以使用底层方法的形式参数来调用时进行扩展转换，但是如果发生缩小转换，则会抛出{@code IllegalArgumentException}。
+ */
+/**
+ * A.
  * A {@code Method} provides information about, and access to, a single method
  * on a class or interface.  The reflected method may be a class method
  * or an instance method (including an abstract method).
  *
+ * B.
  * <p>A {@code Method} permits widening conversions to occur when matching the
  * actual parameters to invoke with the underlying method's formal
  * parameters, but it throws an {@code IllegalArgumentException} if a
@@ -58,6 +45,7 @@ import java.nio.ByteBuffer;
  * @author Kenneth Russell
  * @author Nakul Saraiya
  */
+// 20201208 提供有关类或接口上单个方法的信息，以及对它们的访问。 反映的方法可以是类方法或实例方法（包括抽象方法）
 public final class Method extends Executable {
     private Class<?>            clazz;
     private int                 slot;
@@ -598,6 +586,7 @@ public final class Method extends Executable {
      *     default class value.
      * @since  1.5
      */
+    // 20201208 返回此{@code Method}实例表示的注释成员的默认值。 如果成员是原始类型，则返回相应包装器类型的实例。 如果没有默认值与该成员相关联，或者方法实例不表示注解类型的已声明成员，则返回null。
     public Object getDefaultValue() {
         if  (annotationDefault == null)
             return null;
