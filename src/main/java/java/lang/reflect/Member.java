@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1996, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.reflect;
@@ -36,8 +16,8 @@ package java.lang.reflect;
  *
  * @author Nakul Saraiya
  */
-public
-interface Member {
+// 20201208 成员是反映有关单个成员（字段或方法）或构造函数的标识信息的接口。
+public interface Member {
 
     /**
      * Identifies the set of all public members of a class or interface,
