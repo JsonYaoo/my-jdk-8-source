@@ -7,9 +7,9 @@ package java.lang.annotation;
 
 /**
  * 20201208
- * A. 由所有注释类型扩展的公共接口。 请注意，手动扩展该接口的接口未定义注释类型。 另请注意，此接口本身并不定义注释类型。
- * B. 有关注释类型的更多信息，请参见《The Java&trade; Language Specification》。
- * C. {@link java.lang.reflect.AnnotatedElement}接口讨论了将注释类型从不可重复变为可重复时的兼容性问题。
+ * A. 由所有注解类型扩展的公共接口。 请注意，手动扩展该接口的接口未定义注解类型。 另请注意，此接口本身并不定义注解类型。
+ * B. 有关注解类型的更多信息，请参见《The Java&trade; Language Specification》。
+ * C. {@link java.lang.reflect.AnnotatedElement}接口讨论了将注解类型从不可重复变为可重复时的兼容性问题。
  */
 /**
  * A.
@@ -30,7 +30,7 @@ package java.lang.annotation;
  * @author  Josh Bloch
  * @since   1.5
  */
-// 20201208 由所有注释类型扩展的公共接口
+// 20201208 由所有注解类型扩展的公共接口
 public interface Annotation {
     /**
      * Returns true if the specified object represents an annotation
@@ -122,6 +122,6 @@ public interface Annotation {
      * Returns the annotation type of this annotation.
      * @return the annotation type of this annotation
      */
-    // 20201208 返回此注释的注释类型。
+    // 20201208 返回此注解的注解类型。
     Class<? extends Annotation> annotationType();
 }
