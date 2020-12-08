@@ -1,39 +1,28 @@
 /*
  * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.annotation;
 
 /**
+ * 20201208
+ * A. 由所有注释类型扩展的公共接口。 请注意，手动扩展该接口的接口未定义注释类型。 另请注意，此接口本身并不定义注释类型。
+ * B. 有关注释类型的更多信息，请参见《The Java&trade; Language Specification》。
+ * C. {@link java.lang.reflect.AnnotatedElement}接口讨论了将注释类型从不可重复变为可重复时的兼容性问题。
+ */
+/**
+ * A.
  * The common interface extended by all annotation types.  Note that an
  * interface that manually extends this one does <i>not</i> define
  * an annotation type.  Also note that this interface does not itself
  * define an annotation type.
  *
+ * B.
  * More information about annotation types can be found in section 9.6 of
  * <cite>The Java&trade; Language Specification</cite>.
  *
+ * C.
  * The {@link java.lang.reflect.AnnotatedElement} interface discusses
  * compatibility concerns when evolving an annotation type from being
  * non-repeatable to being repeatable.
@@ -41,6 +30,7 @@ package java.lang.annotation;
  * @author  Josh Bloch
  * @since   1.5
  */
+// 20201208 由所有注释类型扩展的公共接口
 public interface Annotation {
     /**
      * Returns true if the specified object represents an annotation
@@ -132,5 +122,6 @@ public interface Annotation {
      * Returns the annotation type of this annotation.
      * @return the annotation type of this annotation
      */
+    // 20201208 返回此注释的注释类型。
     Class<? extends Annotation> annotationType();
 }
