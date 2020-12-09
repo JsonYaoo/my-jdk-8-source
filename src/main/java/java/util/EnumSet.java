@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -28,6 +8,21 @@ package java.util;
 import sun.misc.SharedSecrets;
 
 /**
+ * 20201209
+ * A. 专门用于枚举类型的{@link Set}实现。 枚举集中的所有元素都必须来自创建该枚举集时显式或隐式指定的单个枚举类型。 枚举集在内部表示为位向量。 这种表示非常紧凑和高效。
+ *    此类的时空性能应足够好，以使其可以用作传统的基于int的“位标志”的高质量，类型安全的替代方法。 如果批量操作（例如containsAll和retainAll）的参数也是一个枚举集，
+ *    它们也应该非常快速地运行。
+ * B. 由iterator方法返回的迭代器以其自然顺序（声明枚举常量的顺序）遍历元素。 返回的迭代器是弱一致性的：它将永远不会抛出{@link ConcurrentModificationException}，
+ *    并且它可能会或可能不会显示在进行迭代时对集合进行的任何修改的效果。
+ * C. 空元素是不允许的。 尝试插入null元素将抛出{@link NullPointerException}。 尝试测试是否存在null元素或删除一个null元素将正常运行。
+ * D. 像大多数集合实现一样，EnumSet不同步。 如果多个线程同时访问一个枚举集，并且至少有一个线程修改了该枚举集，则应在外部对其进行同步。 通常，通过对自然封装枚举集的某个对象
+ *    进行同步来完成此操作。 如果不存在这样的对象，则应使用{@link Collections＃synchronizedSet}方法“包装”该集合。 最好在创建时完成此操作，以防止意外的非同步访问：
+ *          Set<MyEnum> s = Collections.synchronizedSet(EnumSet.noneOf(MyEnum.class));
+ * E. 实施注意事项：所有基本操作均按固定时间执行。 它们可能（尽管不能保证）比它们的{@link HashSet}同行快得多。 如果批量操作的参数也是一个枚举集，则即使批量操作也会在恒定时间内执行。
+ * F. 此类是<a href="{@docRoot}/../technotes/guides/collections/index.html"> Java Collections Framework </a>的成员。
+ */
+/**
+ * A.
  * A specialized {@link Set} implementation for use with enum types.  All of
  * the elements in an enum set must come from a single enum type that is
  * specified, explicitly or implicitly, when the set is created.  Enum sets
@@ -38,6 +33,7 @@ import sun.misc.SharedSecrets;
  * operations (such as <tt>containsAll</tt> and <tt>retainAll</tt>) should
  * run very quickly if their argument is also an enum set.
  *
+ * B.
  * <p>The iterator returned by the <tt>iterator</tt> method traverses the
  * elements in their <i>natural order</i> (the order in which the enum
  * constants are declared).  The returned iterator is <i>weakly
@@ -45,11 +41,13 @@ import sun.misc.SharedSecrets;
  * and it may or may not show the effects of any modifications to the set that
  * occur while the iteration is in progress.
  *
+ * C.
  * <p>Null elements are not permitted.  Attempts to insert a null element
  * will throw {@link NullPointerException}.  Attempts to test for the
  * presence of a null element or to remove one will, however, function
  * properly.
  *
+ * D.
  * <P>Like most collection implementations, <tt>EnumSet</tt> is not
  * synchronized.  If multiple threads access an enum set concurrently, and at
  * least one of the threads modifies the set, it should be synchronized
@@ -63,11 +61,13 @@ import sun.misc.SharedSecrets;
  * Set&lt;MyEnum&gt; s = Collections.synchronizedSet(EnumSet.noneOf(MyEnum.class));
  * </pre>
  *
+ * E.
  * <p>Implementation note: All basic operations execute in constant time.
  * They are likely (though not guaranteed) to be much faster than their
  * {@link HashSet} counterparts.  Even bulk operations execute in
  * constant time if their argument is also an enum set.
  *
+ * F.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -77,8 +77,8 @@ import sun.misc.SharedSecrets;
  * @see EnumMap
  * @serial exclude
  */
-public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
-    implements Cloneable, java.io.Serializable
+// 20201209 专门用于枚举类型的{@link Set}实现。 枚举集中的所有元素都必须来自创建该枚举集时显式或隐式指定的单个枚举类型。
+public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E> implements Cloneable, java.io.Serializable
 {
     /**
      * The class of all the elements of this set.
@@ -106,14 +106,18 @@ public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
      * @return An empty enum set of the specified type.
      * @throws NullPointerException if <tt>elementType</tt> is null
      */
+    // 20201209 用指定的元素类型创建一个空的枚举集。
     public static <E extends Enum<E>> EnumSet<E> noneOf(Class<E> elementType) {
+        // 20201209 返回包含E的所有值。结果将被所有调用者取消克隆，缓存和共享。
         Enum<?>[] universe = getUniverse(elementType);
         if (universe == null)
             throw new ClassCastException(elementType + " not an enum");
 
         if (universe.length <= 64)
+            // 20201209 EnumSet的私有实现类，用于“常规大小”枚举类型（即，具有64个或更少的枚举常量的枚举类型）。
             return new RegularEnumSet<>(elementType, universe);
         else
+            // 20201209 EnumSet的私有实现类，适用于“巨型”枚举类型（即具有64个以上元素的枚举类型）。
             return new JumboEnumSet<>(elementType, universe);
     }
 
@@ -402,6 +406,7 @@ public abstract class EnumSet<E extends Enum<E>> extends AbstractSet<E>
      * Returns all of the values comprising E.
      * The result is uncloned, cached, and shared by all callers.
      */
+    // 20201209 返回包含E的所有值。结果将被所有调用者取消克隆，缓存和共享。
     private static <E extends Enum<E>> E[] getUniverse(Class<E> elementType) {
         return SharedSecrets.getJavaLangAccess()
                                         .getEnumConstantsShared(elementType);

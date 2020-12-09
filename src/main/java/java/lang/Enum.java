@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2003, 2011, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -32,13 +12,22 @@ import java.io.ObjectInputStream;
 import java.io.ObjectStreamException;
 
 /**
+ * 20201208
+ * A. 这是所有Java语言枚举类型的通用基类。
+ * B. 有关枚举的更多信息，包括由编译器综合隐式声明的方法的描述，可以在《The Java&trade; Language Specification》。
+ * C. 请注意，在将枚举类型用作集合的类型或映射中的键的类型时，专用且高效的{@linkplain java.util.EnumSet set}和{@linkplain java.util.EnumMap map}实现是 可用。
+ */
+/**
+ * A.
  * This is the common base class of all Java language enumeration types.
  *
+ * B.
  * More information about enums, including descriptions of the
  * implicitly declared methods synthesized by the compiler, can be
  * found in section 8.9 of
  * <cite>The Java&trade; Language Specification</cite>.
  *
+ * C.
  * <p> Note that when using an enumeration type as the type of a set
  * or as the type of the keys in a map, specialized and efficient
  * {@linkplain java.util.EnumSet set} and {@linkplain
@@ -52,8 +41,8 @@ import java.io.ObjectStreamException;
  * @see     java.util.EnumMap
  * @since   1.5
  */
-public abstract class Enum<E extends Enum<E>>
-        implements Comparable<E>, Serializable {
+// 20201209 这是所有Java语言枚举类型的通用基类
+public abstract class Enum<E extends Enum<E>> implements Comparable<E>, Serializable {
     /**
      * The name of this enum constant, as declared in the enum declaration.
      * Most programmers should use the {@link #toString} method rather than

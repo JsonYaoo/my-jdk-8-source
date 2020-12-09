@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -33,6 +13,7 @@ package java.util;
  * @since 1.5
  * @serial exclude
  */
+// 20201209 EnumSet的私有实现类，适用于“巨型”枚举类型（即具有64个以上元素的枚举类型）。
 class JumboEnumSet<E extends Enum<E>> extends EnumSet<E> {
     private static final long serialVersionUID = 334349849919042784L;
 
