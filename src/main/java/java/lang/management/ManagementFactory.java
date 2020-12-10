@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.management;
@@ -55,6 +35,11 @@ import sun.management.ManagementFactoryHelper;
 import sun.management.ExtendedPlatformComponent;
 
 /**
+ * 20201210
+ * A. {@code ManagementFactory}类是一个工厂类，用于获取Java平台的托管bean。 此类由静态方法组成，每个方法均返回一个或多个平台MXBean，这些平台MXBean表示Java虚拟机的组件的管理接口。
+ */
+/**
+ * A.
  * The {@code ManagementFactory} class is a factory class for getting
  * managed beans for the Java platform.
  * This class consists of static methods each of which returns
@@ -232,6 +217,7 @@ import sun.management.ExtendedPlatformComponent;
  * @author  Mandy Chung
  * @since   1.5
  */
+// 20201210 {@code ManagementFactory}类是一个工厂类，用于获取Java平台的托管bean。
 public class ManagementFactory {
     // A class with only static fields and methods.
     private ManagementFactory() {};
@@ -417,7 +403,20 @@ public class ManagementFactory {
     }
 
     private static MBeanServer platformMBeanServer;
+
     /**
+     * 20201210
+     * A. 返回平台{@link javax.management.MBeanServer MBeanServer}。 首次调用此方法时，它首先通过调用
+     *    {@link javax.management.MBeanServerFactory＃createMBeanServer MBeanServerFactory.createMBeanServer}方法来创建平台{@code MBeanServer}，
+     *    并在该平台{@code MBeanServer}中注册每个平台MXBean。 其{@link PlatformManagedObject＃getObjectName ObjectName}。 在随后的调用中，此方法将仅返回
+     *    最初创建的平台{@code MBeanServer}。
+     * B. 动态创建和销毁的MXBean，例如，内存{@link MemoryPoolMXBean池}和{@link MemoryManagerMXBean管理器}，将自动注册并注销到平台{@code MBeanServer}中。
+     * C. 如果设置了系统属性{@code javax.management.builder.initial}，则平台{@code MBeanServer}的创建将由指定的{@link javax.management.MBeanServerBuilder}完成。
+     * D. 建议将此平台MBeanServer也用于注册除平台MXBean之外的其他应用程序托管的Bean。 这将允许所有MBean通过相同的{@code MBeanServer}发布，从而使网络发布和发现更加容易。
+     * E. 应避免与平台MXBeans发生名称冲突。
+     */
+    /**
+     * A.
      * Returns the platform {@link javax.management.MBeanServer MBeanServer}.
      * On the first call to this method, it first creates the platform
      * {@code MBeanServer} by calling the
@@ -428,16 +427,22 @@ public class ManagementFactory {
      * {@link PlatformManagedObject#getObjectName ObjectName}.
      * This method, in subsequent calls, will simply return the
      * initially created platform {@code MBeanServer}.
+     *
+     * B.
      * <p>
      * MXBeans that get created and destroyed dynamically, for example,
      * memory {@link MemoryPoolMXBean pools} and
      * {@link MemoryManagerMXBean managers},
      * will automatically be registered and deregistered into the platform
      * {@code MBeanServer}.
+     *
+     * C.
      * <p>
      * If the system property {@code javax.management.builder.initial}
      * is set, the platform {@code MBeanServer} creation will be done
      * by the specified {@link javax.management.MBeanServerBuilder}.
+     *
+     * D.
      * <p>
      * It is recommended that this platform MBeanServer also be used
      * to register other application managed beans
@@ -445,6 +450,8 @@ public class ManagementFactory {
      * This will allow all MBeans to be published through the same
      * {@code MBeanServer} and hence allow for easier network publishing
      * and discovery.
+     *
+     * E.
      * Name conflicts with the platform MXBeans should be avoided.
      *
      * @return the platform {@code MBeanServer}; the platform
@@ -458,6 +465,7 @@ public class ManagementFactory {
      * @see javax.management.MBeanServerFactory
      * @see javax.management.MBeanServerFactory#createMBeanServer
      */
+    // 20201210 将此平台MBeanServer也用于注册除平台MXBean之外的其他应用程序托管的Bean
     public static synchronized MBeanServer getPlatformMBeanServer() {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {

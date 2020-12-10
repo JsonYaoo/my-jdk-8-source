@@ -1,30 +1,9 @@
 /*
  * Copyright (c) 1999, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package javax.management;
-
 
 // java import
 import java.util.Set;
@@ -34,6 +13,11 @@ import java.io.ObjectInputStream;
 import javax.management.loading.ClassLoaderRepository;
 
 /**
+ * 20201210
+ * A. 这是在代理端进行MBean操作的接口。 它包含创建，注册和删除MBean所必需的方法，以及已注册MBean的访问方法。 这是JMX基础结构的核心组件。
+ */
+/**
+ * A.
  * <p>This is the interface for MBean manipulation on the agent
  * side. It contains the methods necessary for the creation,
  * registration, and deletion of MBeans as well as the access methods
@@ -257,6 +241,7 @@ import javax.management.loading.ClassLoaderRepository;
  * MBeanPermission#MBeanPermission(String,String,ObjectName,String)
  * MBeanPermission(null, null, name, "isRegistered")}.</p>
  */
+// 20201210 这是在代理端进行MBean操作的接口。 它包含创建，注册和删除MBean所必需的方法，以及已注册MBean的访问方法。 这是JMX基础结构的核心组件。
 public interface MBeanServer extends MBeanServerConnection {
 
     /**
@@ -384,6 +369,7 @@ public interface MBeanServer extends MBeanServerConnection {
      * @throws RuntimeMBeanException {@inheritDoc}
      * @throws RuntimeErrorException {@inheritDoc}
      */
+    // 20201210 如果此方法成功注销了MBean，则按照<a href="#notif">以上</a>中所述发送通知。
     public void unregisterMBean(ObjectName name)
             throws InstanceNotFoundException, MBeanRegistrationException;
 
