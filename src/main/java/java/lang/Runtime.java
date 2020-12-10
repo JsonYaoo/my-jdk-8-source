@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1995, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -31,10 +11,18 @@ import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
 
 /**
+ * 20201210
+ * A. 每个Java应用程序都有一个类Runtime的单个实例，该实例允许该应用程序与运行该应用程序的环境进行交互。 当前的运行时可以从getRuntime方法获得。
+ * B. 应用程序无法创建自己的此类的实例。
+ */
+/**
+ * A.
  * Every Java application has a single instance of class
  * <code>Runtime</code> that allows the application to interface with
  * the environment in which the application is running. The current
  * runtime can be obtained from the <code>getRuntime</code> method.
+ *
+ * B.
  * <p>
  * An application cannot create its own instance of this class.
  *
@@ -42,7 +30,7 @@ import sun.reflect.Reflection;
  * @see     java.lang.Runtime#getRuntime()
  * @since   JDK1.0
  */
-
+// 20201210 每个Java应用程序都有一个类Runtime的单个实例，该实例允许该应用程序与运行该应用程序的环境进行交互。 当前的运行时可以从getRuntime方法获得。
 public class Runtime {
     private static Runtime currentRuntime = new Runtime();
 
@@ -110,23 +98,47 @@ public class Runtime {
     }
 
     /**
+     * 20201210
+     * A. 注册一个新的虚拟机关闭挂钩。
+     * B. Java虚拟机响应以下两种事件而关闭：
+     *      a. 当最后一个非守护程序线程退出或调用{@link #exit退出（等效地，{@link System＃exit（int）System.exit}）方法时，程序将正常退出，或者
+     *      b. 响应于用户中断（例如键入^ C）或系统范围的事件（例如用户注销或系统关闭）来终止虚拟机。
+     * C. 关闭钩子只是一个初始化但未启动的线程。 当虚拟机开始其关闭序列时，它将以未指定的顺序启动所有已注册的关闭挂钩，并使其同时运行。 当所有挂钩完成后，
+     *    如果启用了退出时终结，则它将运行所有未调用的终结器。 最后，虚拟机将停止。 请注意，如果通过调用{@link #exit exit}方法启动了关闭操作，则
+     *    守护程序线程将在关闭序列期间继续运行，非守护程序线程也将继续运行。
+     * D. 一旦关闭序列开始，则只能通过调用{@link #halt halt}方法将其停止，该方法将强制终止虚拟机。
+     * E. 一旦关闭序列开始，就无法注册新的关闭挂钩或取消注册先前注册的挂钩。 尝试执行任何一个操作都将引发{@link IllegalStateException}。
+     * F. 关机挂钩在虚拟机的生命周期中的某个微妙时间运行，因此应进行防御性编码。 特别是，应将它们编写为线程安全的，并尽可能避免死锁。 他们也不应盲目依赖
+     *    可能已经注册了自己的关闭钩子的服务，因此可能自己处于关闭过程中。 尝试使用其他基于线程的服务（例如AWT事件调度线程）可能会导致死锁。
+     * G. 关机挂钩也应迅速完成工作。 当程序调用{@link #exit exit}时，期望虚拟机将立即关闭并退出。 当虚拟机由于用户注销或系统关闭而终止时，底层操作系统
+     *    可能只允许在固定的时间内关闭和退出。 因此，不建议尝试任何用户交互或在关闭挂钩中执行长时间运行的计算。
+     * H. 通过调用线程的{@link ThreadGroup}对象的{@link ThreadGroup＃uncaughtException uncaughtException}方法，可以像其他线程一样在关闭挂钩中处理未捕获的异常。
+     *    此方法的默认实现将异常的堆栈跟踪信息打印到{@link System＃err}并终止线程。 它不会导致虚拟机退出或停止。
+     * I. 在极少数情况下，虚拟机可能会中止，即在不干净关闭的情况下停止运行。 当虚拟机在外部终止时会发生这种情况，例如在Unix上使用SIGKILL信号或在Microsoft Windows
+     *    上使用TerminateProcess调用。 如果本机方法出错（例如，破坏内部数据结构或尝试访问不存在的内存），则虚拟机也可能中止。 如果虚拟机中止，则无法保证是否将运行
+     *    任何关闭挂钩。
+     */
+    /**
+     * A.
      * Registers a new virtual-machine shutdown hook.
      *
+     * B.
      * <p> The Java virtual machine <i>shuts down</i> in response to two kinds
      * of events:
      *
      *   <ul>
-     *
+     * a.
      *   <li> The program <i>exits</i> normally, when the last non-daemon
      *   thread exits or when the <tt>{@link #exit exit}</tt> (equivalently,
      *   {@link System#exit(int) System.exit}) method is invoked, or
-     *
+     * b.
      *   <li> The virtual machine is <i>terminated</i> in response to a
      *   user interrupt, such as typing <tt>^C</tt>, or a system-wide event,
      *   such as user logoff or system shutdown.
      *
      *   </ul>
      *
+     * C.
      * <p> A <i>shutdown hook</i> is simply an initialized but unstarted
      * thread.  When the virtual machine begins its shutdown sequence it will
      * start all registered shutdown hooks in some unspecified order and let
@@ -137,15 +149,18 @@ public class Runtime {
      * if shutdown was initiated by invoking the <tt>{@link #exit exit}</tt>
      * method.
      *
+     * D.
      * <p> Once the shutdown sequence has begun it can be stopped only by
      * invoking the <tt>{@link #halt halt}</tt> method, which forcibly
      * terminates the virtual machine.
      *
+     * E.
      * <p> Once the shutdown sequence has begun it is impossible to register a
      * new shutdown hook or de-register a previously-registered hook.
      * Attempting either of these operations will cause an
      * <tt>{@link IllegalStateException}</tt> to be thrown.
      *
+     * F.
      * <p> Shutdown hooks run at a delicate time in the life cycle of a virtual
      * machine and should therefore be coded defensively.  They should, in
      * particular, be written to be thread-safe and to avoid deadlocks insofar
@@ -155,6 +170,7 @@ public class Runtime {
      * services such as the AWT event-dispatch thread, for example, may lead to
      * deadlocks.
      *
+     * G.
      * <p> Shutdown hooks should also finish their work quickly.  When a
      * program invokes <tt>{@link #exit exit}</tt> the expectation is
      * that the virtual machine will promptly shut down and exit.  When the
@@ -164,6 +180,7 @@ public class Runtime {
      * user interaction or to perform a long-running computation in a shutdown
      * hook.
      *
+     * H.
      * <p> Uncaught exceptions are handled in shutdown hooks just as in any
      * other thread, by invoking the <tt>{@link ThreadGroup#uncaughtException
      * uncaughtException}</tt> method of the thread's <tt>{@link
@@ -172,6 +189,7 @@ public class Runtime {
      * terminates the thread; it does not cause the virtual machine to exit or
      * halt.
      *
+     * I.
      * <p> In rare circumstances the virtual machine may <i>abort</i>, that is,
      * stop running without shutting down cleanly.  This occurs when the
      * virtual machine is terminated externally, for example with the
@@ -203,6 +221,7 @@ public class Runtime {
      * @see #exit(int)
      * @since 1.3
      */
+    // 20201210 注册一个新的虚拟机关闭挂钩
     public void addShutdownHook(Thread hook) {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
