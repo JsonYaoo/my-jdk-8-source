@@ -1880,7 +1880,11 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
         return getConstructor0(parameterTypes, Member.PUBLIC);
     }
 
-
+    /**
+     * 20201214
+     * 返回一组{@code Class}对象的数组，这些对象反映了声明为此{@code Class}对象表示的类的成员的所有类和接口。 这包括公共，受保护的，默认（程序包）访问以及
+     * 由该类声明的私有类和接口，但不包括继承的类和接口。 如果该类未将任何类或接口声明为成员，或者此{@code Class}对象表示原始类型，数组类或void，则此方法返回长度为0的数组。
+     */
     /**
      * Returns an array of {@code Class} objects reflecting all the
      * classes and interfaces declared as members of the class represented by
@@ -1916,6 +1920,7 @@ public final class Class<T> implements java.io.Serializable, GenericDeclaration,
      *
      * @since JDK1.1
      */
+    // 20201214 获取表示的类的成员的所有类和接口的Class数组
     @CallerSensitive
     public Class<?>[] getDeclaredClasses() throws SecurityException {
         checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), false);
