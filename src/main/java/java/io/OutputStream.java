@@ -1,34 +1,22 @@
 /*
  * Copyright (c) 1994, 2004, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.io;
 
 /**
+ * 20201223
+ * A. 此抽象类是表示字节输出流的所有类的超类。 输出流接受输出字节并将其发送到某个接收器。
+ * B. 需要定义OutputStream子类的应用程序必须始终提供至少一个写入一个字节输出的方法。
+ */
+/**
+ * A.
  * This abstract class is the superclass of all classes representing
  * an output stream of bytes. An output stream accepts output bytes
  * and sends them to some sink.
+ *
+ * B.
  * <p>
  * Applications that need to define a subclass of
  * <code>OutputStream</code> must always provide at least a method
@@ -43,6 +31,7 @@ package java.io;
  * @see     java.io.OutputStream#write(int)
  * @since   JDK1.0
  */
+// 20201223 此抽象类是表示字节输出流的所有类的超类。 输出流接受输出字节并将其发送到某个接收器
 public abstract class OutputStream implements Closeable, Flushable {
     /**
      * Writes the specified byte to this output stream. The general
@@ -118,18 +107,30 @@ public abstract class OutputStream implements Closeable, Flushable {
     }
 
     /**
+     * 20201223
+     * A. 刷新此输出流，并强制写出所有缓冲的输出字节。 Flush的一般约定是调用它是一种指示，即如果先前写入的任何字节已由输出流的实现缓冲，则应立即将这些字节写入其预期的目标。
+     * B. 如果此流的预期目标是底层操作系统提供的抽象（例如文件），则刷新流可确保仅将先前写入该流的字节传递给操作系统以进行写入； 它不能保证它们实际上已写入到物理设备
+     *    （例如磁盘驱动器）中。
+     * C. OutputStream的Flush方法不执行任何操作。
+     */
+    /**
+     * A.
      * Flushes this output stream and forces any buffered output bytes
      * to be written out. The general contract of <code>flush</code> is
      * that calling it is an indication that, if any bytes previously
      * written have been buffered by the implementation of the output
      * stream, such bytes should immediately be written to their
      * intended destination.
+     *
+     * B.
      * <p>
      * If the intended destination of this stream is an abstraction provided by
      * the underlying operating system, for example a file, then flushing the
      * stream guarantees only that bytes previously written to the stream are
      * passed to the operating system for writing; it does not guarantee that
      * they are actually written to a physical device such as a disk drive.
+     *
+     * C.
      * <p>
      * The <code>flush</code> method of <code>OutputStream</code> does nothing.
      *
