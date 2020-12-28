@@ -1,32 +1,16 @@
 /*
  * Copyright (c) 1999, 2008, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package javax.management;
 
-
 /**
+ * 20201228
+ * A. 可以由MBean实现，以便在从MBean服务器注册或注销之前和之后执行操作。 MBean也可以实现此接口，以便获得对该MBean服务器和/或其名称的引用。
+ */
+/**
+ * A.
  * <p>Can be implemented by an MBean in order to
  * carry out operations before and after being registered or unregistered from
  * the MBean Server.  An MBean can also implement this interface in order
@@ -35,6 +19,7 @@ package javax.management;
  *
  * @since 1.5
  */
+// 20201228 可以由MBean实现，以便在从MBean服务器注册或注销之前和之后执行操作。 MBean也可以实现此接口，以便获得对该MBean服务器和/或其名称的引用。
 public interface MBeanRegistration   {
 
 
