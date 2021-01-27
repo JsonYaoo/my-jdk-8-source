@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -40,9 +20,37 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
+ * 20210127
+ * A. {@code String}类表示字符串。 Java程序中的所有字符串文字（例如{@code“ abc”}）都实现为此类的实例。
+ * B. 字符串是常量； 它们的值在创建后无法更改。 字符串缓冲区支持可变字符串。 由于String对象是不可变的，因此可以共享它们。 例如：
+ *      String str = "abc";
+ *    等效于：
+ *      char data[] = {'a', 'b', 'c'};
+ *      String str = new String(data);
+ * C. 以下是一些有关如何使用字符串的示例：
+ *      System.out.println("abc");
+ *      String cde = "cde";
+ *      System.out.println("abc" + cde);
+ *      String c = "abc".substring(2,3);
+ *      String d = cde.substring(1, 2);
+ * D. 类{@code String}包括以下方法：检查序列中的各个字符，比较字符串，搜索字符串，提取子字符串以及创建所有副本都转换为大写或小写的字符串副本。 大小写映射基于
+ *    {@link java.lang.Character Character}类指定的Unicode标准版本。
+ * E. Java语言为字符串连接运算符（＆nbsp; +＆nbsp;）以及将其他对象转换为字符串提供了特殊的支持。 字符串串联是通过{@code StringBuilder}（或{@code StringBuffer}）类
+ *    及其{@code append}方法实现的。 字符串转换是通过{@code toString}方法实现的，该方法由{@code Object}定义，并由Java中的所有类继承。 有关字符串连接和转换的其他信息，
+ *    请参见Java语言规范，Gosling，Joy和Steele。
+ * F. 除非另有说明，否则将null参数传递给此类中的构造函数或方法将引发{@link NullPointerException}。
+ * G. {@code String}代表UTF-16格式的字符串，其中的附加字符由代理对表示（请参见{中的<a href="Character.html#unicode"> Unicode字符表示</a> @code Character}类
+ *    以获取更多信息）。 索引值引用{@code char}代码单位，因此，补充字符在{@code String}中使用两个位置。
+ * H. {@code String}类提供了用于处理Unicode代码点（即字符）的方法，以及用于处理Unicode代码单元（即{@code char}值）的方法。
+ *
+ */
+/**
+ * A.
  * The {@code String} class represents character strings. All
  * string literals in Java programs, such as {@code "abc"}, are
  * implemented as instances of this class.
+ *
+ * B.
  * <p>
  * Strings are constant; their values cannot be changed after they
  * are created. String buffers support mutable strings.
@@ -54,7 +62,10 @@ import java.util.regex.PatternSyntaxException;
  * <blockquote><pre>
  *     char data[] = {'a', 'b', 'c'};
  *     String str = new String(data);
- * </pre></blockquote><p>
+ * </pre></blockquote>
+ *
+ * C.
+ * <p>
  * Here are some more examples of how strings can be used:
  * <blockquote><pre>
  *     System.out.println("abc");
@@ -63,6 +74,8 @@ import java.util.regex.PatternSyntaxException;
  *     String c = "abc".substring(2,3);
  *     String d = cde.substring(1, 2);
  * </pre></blockquote>
+ *
+ * D.
  * <p>
  * The class {@code String} includes methods for examining
  * individual characters of the sequence, for comparing strings, for
@@ -70,6 +83,8 @@ import java.util.regex.PatternSyntaxException;
  * copy of a string with all characters translated to uppercase or to
  * lowercase. Case mapping is based on the Unicode Standard version
  * specified by the {@link java.lang.Character Character} class.
+ *
+ * E.
  * <p>
  * The Java language provides special support for the string
  * concatenation operator (&nbsp;+&nbsp;), and for conversion of
@@ -82,10 +97,12 @@ import java.util.regex.PatternSyntaxException;
  * string concatenation and conversion, see Gosling, Joy, and Steele,
  * <i>The Java Language Specification</i>.
  *
+ * F.
  * <p> Unless otherwise noted, passing a <tt>null</tt> argument to a constructor
  * or method in this class will cause a {@link NullPointerException} to be
  * thrown.
  *
+ * G.
  * <p>A {@code String} represents a string in the UTF-16 format
  * in which <em>supplementary characters</em> are represented by <em>surrogate
  * pairs</em> (see the section <a href="Character.html#unicode">Unicode
@@ -93,6 +110,8 @@ import java.util.regex.PatternSyntaxException;
  * more information).
  * Index values refer to {@code char} code units, so a supplementary
  * character uses two positions in a {@code String}.
+ *
+ * H.
  * <p>The {@code String} class provides methods for dealing with
  * Unicode code points (i.e., characters), in addition to those for
  * dealing with Unicode code units (i.e., {@code char} values).
@@ -107,9 +126,8 @@ import java.util.regex.PatternSyntaxException;
  * @see     java.nio.charset.Charset
  * @since   JDK1.0
  */
-
-public final class String
-    implements java.io.Serializable, Comparable<String>, CharSequence {
+// 20210127 {@code String}类表示字符串。 Java程序中的所有字符串文字（例如{@code“ abc”}）都实现为此类的实例
+public final class String implements java.io.Serializable, Comparable<String>, CharSequence {
     /** The value is used for character storage. */
     private final char value[];
 
@@ -2179,10 +2197,24 @@ public final class String
     }
 
     /**
+     * 20210127
+     * A. 用给定的替换项替换与给定的<a href="../util/regex/Pattern.html#sum">正则表达式</a>匹配的该字符串的每个子字符串。
+     * B. 以str {@code .replaceAll（} regex {@code，} repl {@code）}形式调用此方法，其结果与表达式完全相同:
+     *      {@link java.util.regex.Pattern}.
+     *      {@link java.util.regex.Pattern#compile compile}(<i>regex</i>).
+     *      {@link java.util.regex.Pattern#matcher(java.lang.CharSequence) matcher}(<i>str</i>).
+     *      {@link java.util.regex.Matcher#replaceAll replaceAll}(<i>repl</i>)
+     * C. 请注意，替换字符串中的反斜杠（{@code \}）和美元符号（{@code $}）可能导致结果与被视为文字替换字符串的结果有所不同； 请参阅
+     *    {@link java.util.regex.Matcher＃replaceAll Matcher.replaceAll}。 如果需要，请使用{@link java.util.regex.Matcher＃quoteReplacement}取消显示
+     *    这些字符的特殊含义。
+     */
+    /**
+     * A.
      * Replaces each substring of this string that matches the given <a
      * href="../util/regex/Pattern.html#sum">regular expression</a> with the
      * given replacement.
      *
+     * B.
      * <p> An invocation of this method of the form
      * <i>str</i>{@code .replaceAll(}<i>regex</i>{@code ,} <i>repl</i>{@code )}
      * yields exactly the same result as the expression
@@ -2196,6 +2228,7 @@ public final class String
      * </code>
      * </blockquote>
      *
+     * C.
      *<p>
      * Note that backslashes ({@code \}) and dollar signs ({@code $}) in the
      * replacement string may cause the results to be different than if it were
@@ -2219,6 +2252,7 @@ public final class String
      * @since 1.4
      * @spec JSR-51
      */
+    // 20210127 用给定的替换项替换与给定的<a href="../util/regex/Pattern.html#sum">正则表达式</a>匹配的该字符串的每个子字符串
     public String replaceAll(String regex, String replacement) {
         return Pattern.compile(regex).matcher(this).replaceAll(replacement);
     }
