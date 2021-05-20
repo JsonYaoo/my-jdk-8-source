@@ -10,8 +10,29 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 /**
- * // 20201117 List接口的可调整大小的数组实现. 实现所有可选的列表操作, 并允许所有元素, 包括null
- * // 20201117 除了实现List接口之外, 此类还提供一些方法来操纵内部用于存储列表的数组的大小(此类与Vector大致等效, 但它是不同步的)
+ * 20210520
+ * A. List接口的可调整大小的数组实现。 实现所有可选的列表操作，并允许所有元素，包括null。 除了实现List接口之外，此类还提供一些方法来操纵内部用于存储列表的数组的大小。
+ *   （此类与Vector大致等效，但它是不同步的。）
+ * B. size、isEmpty、get、set、iterator与listIterator操作都在恒定时间内运行。 加法运算以固定的固定时间运行，也就是说，添加n个元素需要O（n）时间。
+ *    所有其他操作均以线性时间运行（大致而言）。 与LinkedList实现的常量因子相比，常量因子较低。
+ * C. 每个ArrayList实例都有一个容量。 容量是用于在列表中存储元素的数组的大小。 它总是至少与列表大小一样大。 将元素添加到ArrayList时，其容量会自动增长。
+ *    除了添加元素具有固定的摊销时间成本外，没有指定增长策略的详细信息。
+ * D. 应用程序可以使用sureCapacity操作在添加大量元素之前增加ArrayList实例的容量。 这可以减少增量重新分配的数量。
+ * E. 请注意，此实现未同步。 如果多个线程同时访问链接的哈希集，并且至少有一个线程修改了该哈希集，则必须在外部对其进行同步。
+ *    通常，通过在自然封装了该集合的某个对象上进行同步来完成此操作。
+ * F. 如果不存在这样的对象，则应使用{@link Collections＃synchronizedList Collections.synchronizedList}方法来“包装”该集合。
+ *    最好在创建时完成此操作，以防止意外地异步访问集合：
+ *      List list = Collections.synchronizedList(new ArrayList(...));
+ * G. 此类的迭代器方法返回的迭代器为
+ *    失败快速：如果在创建迭代器后的任何时间修改了集合，则除了通过迭代器自己的remove方法之外，该迭代器将以任何其他方式进行修改，
+ *    该迭代器将抛出{@link ConcurrentModificationException}。 因此，面对并发修改，迭代器会快速干净地失败，而不会在未来的不确定时间内冒任意，不确定的行为的风险。
+ * H. 请注意，迭代器的快速失败行为无法得到保证，因为通常来说，在存在不同步的并发修改的情况下，不可能做出任何严格的保证。
+ *    快速失败的迭代器会尽最大努力抛出ConcurrentModificationException，因此，编写依赖于此异常的程序的正确性是错误的：迭代器的快速失败行为应仅用于检测错误。
+ * I. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * Resizable-array implementation of the <tt>List</tt> interface.  Implements
  * all optional list operations, and permits all elements, including
  * <tt>null</tt>.  In addition to implementing the <tt>List</tt> interface,
@@ -19,6 +40,7 @@ import java.util.function.UnaryOperator;
  * used internally to store the list.  (This class is roughly equivalent to
  * <tt>Vector</tt>, except that it is unsynchronized.)
  *
+ * B.
  * <p>The <tt>size</tt>, <tt>isEmpty</tt>, <tt>get</tt>, <tt>set</tt>,
  * <tt>iterator</tt>, and <tt>listIterator</tt> operations run in constant
  * time.  The <tt>add</tt> operation runs in <i>amortized constant time</i>,
@@ -26,6 +48,7 @@ import java.util.function.UnaryOperator;
  * run in linear time (roughly speaking).  The constant factor is low compared
  * to that for the <tt>LinkedList</tt> implementation.
  *
+ * C.
  * <p>Each <tt>ArrayList</tt> instance has a <i>capacity</i>.  The capacity is
  * the size of the array used to store the elements in the list.  It is always
  * at least as large as the list size.  As elements are added to an ArrayList,
@@ -33,10 +56,12 @@ import java.util.function.UnaryOperator;
  * specified beyond the fact that adding an element has constant amortized
  * time cost.
  *
+ * D.
  * <p>An application can increase the capacity of an <tt>ArrayList</tt> instance
  * before adding a large number of elements using the <tt>ensureCapacity</tt>
  * operation.  This may reduce the amount of incremental reallocation.
  *
+ * E.
  * <p><strong>Note that this implementation is not synchronized.</strong>
  * If multiple threads access an <tt>ArrayList</tt> instance concurrently,
  * and at least one of the threads modifies the list structurally, it
@@ -46,12 +71,14 @@ import java.util.function.UnaryOperator;
  * a structural modification.)  This is typically accomplished by
  * synchronizing on some object that naturally encapsulates the list.
  *
+ * F.
  * If no such object exists, the list should be "wrapped" using the
  * {@link Collections#synchronizedList Collections.synchronizedList}
  * method.  This is best done at creation time, to prevent accidental
  * unsynchronized access to the list:<pre>
  *   List list = Collections.synchronizedList(new ArrayList(...));</pre>
  *
+ * G.
  * <p><a name="fail-fast">
  * The iterators returned by this class's {@link #iterator() iterator} and
  * {@link #listIterator(int) listIterator} methods are <em>fail-fast</em>:</a>
@@ -64,6 +91,7 @@ import java.util.function.UnaryOperator;
  * than risking arbitrary, non-deterministic behavior at an undetermined
  * time in the future.
  *
+ * H.
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -72,6 +100,7 @@ import java.util.function.UnaryOperator;
  * exception for its correctness:  <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
  *
+ * I.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.

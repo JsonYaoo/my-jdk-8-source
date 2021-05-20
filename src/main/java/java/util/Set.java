@@ -1,42 +1,32 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
 
 /**
  * 20201119
- * 不包含重复元素的集合。
- * 更正式地说，集合不包含一对元素<code> e1 </ code>和<code> e2 </ code>这样的元素，例如<code> e1.equals（e2）</ code>，最多包含一个null元素。
- * 顾名思义，该接口对数学<i> set </ i>抽象进行建模。
+ * A. 不包含重复元素的集合。 更正式地说，集合不包含元素对e1和e2，使得e1.equals（e2）最多包含一个空元素。 顾名思义，此接口对Set集合抽象进行数学建模。
+ * B. 除了从Collection接口继承的规定外，Set接口还对所有构造函数的协定以及add，equals和hashCode方法的协定附加了其他规定。 为了方便起见，还包括其他继承方法的声明。
+ *    （这些声明随附的规范是针对Set接口量身定制的，但不包含任何其他规定。）
+ * C. 毫不奇怪，对构造函数的附加规定是，所有构造函数都必须创建一个不包含重复元素（如上所述）的集合。
+ * D. 注意：如果将可变对象用作集合元素，则必须格外小心。 如果对象的值更改为影响相等比较的方式，而该对象是集合中的元素，则不指定集合的行为。
+ *    此禁止的一种特殊情况是，不允许集合将自身包含为元素。
+ * E. 一些集合实现对它们可能包含的元素有限制。 例如，某些实现禁止使用null元素，而某些实现对其元素类型进行限制。 尝试添加不合格元素会引发未经检查的异常，
+ *    通常为NullPointerException或ClassCastException。 尝试查询不合格元素的存在可能会引发异常，或者可能仅返回false；否则，可能会返回false。
+ *    一些实现将表现出前一种行为，而某些将表现出后者。 更一般地，尝试对不合格元素进行操作，该操作的完成不会导致将不合格元素插入集合中，这可能会导致异常或成功实现，
+ *    具体取决于实现方式。 此类异常在此接口的规范中标记为“可选”。
+ * F. {@docRoot}/../technotes/guides/collections/index.html">
  */
 /**
+ * A.
  * A collection that contains no duplicate elements.  More formally, sets
  * contain no pair of elements <code>e1</code> and <code>e2</code> such that
  * <code>e1.equals(e2)</code>, and at most one null element.  As implied by
  * its name, this interface models the mathematical <i>set</i> abstraction.
  *
+ * B.
  * <p>The <tt>Set</tt> interface places additional stipulations, beyond those
  * inherited from the <tt>Collection</tt> interface, on the contracts of all
  * constructors and on the contracts of the <tt>add</tt>, <tt>equals</tt> and
@@ -45,16 +35,19 @@ package java.util;
  * declarations have been tailored to the <tt>Set</tt> interface, but they do
  * not contain any additional stipulations.)
  *
+ * C.
  * <p>The additional stipulation on constructors is, not surprisingly,
  * that all constructors must create a set that contains no duplicate elements
  * (as defined above).
  *
+ * D.
  * <p>Note: Great care must be exercised if mutable objects are used as set
  * elements.  The behavior of a set is not specified if the value of an object
  * is changed in a manner that affects <tt>equals</tt> comparisons while the
  * object is an element in the set.  A special case of this prohibition is
  * that it is not permissible for a set to contain itself as an element.
  *
+ * E.
  * <p>Some set implementations have restrictions on the elements that
  * they may contain.  For example, some implementations prohibit null elements,
  * and some have restrictions on the types of their elements.  Attempting to
@@ -69,6 +62,7 @@ package java.util;
  * Such exceptions are marked as "optional" in the specification for this
  * interface.
  *
+ * F.
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.

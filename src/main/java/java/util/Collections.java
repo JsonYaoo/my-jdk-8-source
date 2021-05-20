@@ -2141,9 +2141,7 @@ public class Collections {
     /**
      * @serial include
      */
-    static class SynchronizedSet<E>
-          extends SynchronizedCollection<E>
-          implements Set<E> {
+    static class SynchronizedSet<E> extends SynchronizedCollection<E> implements Set<E> {
         private static final long serialVersionUID = 487447009682186044L;
 
         SynchronizedSet(Set<E> s) {

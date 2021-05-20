@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -29,14 +9,31 @@ import java.util.function.UnaryOperator;
 
 /**
  * 20201118
- * 有序集合（也称为序列）。此接口的用户可以精确控制列表中每个元素的插入位置。用户可以通过其整数索引（在列表中的位置）访问元素，并在列表中搜索元素。
+ * A. 有序集合（也称为序列）。此接口的用户可以精确控制列表中每个元素的插入位置。用户可以通过其整数索引（在列表中的位置）访问元素，并在列表中搜索元素。
+ * B. 与集合不同，列表通常允许重复的元素。 更正式地说，列表通常允许元素对e1和e2对，使得e1.equals（e2），并且如果它们完全允许空元素，则通常允许多个空元素。
+ *    并非不可想象的是，有人希望通过在用户尝试插入运行时异常时抛出运行时异常来实现禁止重复的列表，但是我们希望这种用法很少见。
+ * C. 除了在Collection接口中指定的规定之外，List接口还对迭代器，add，remove，equals和hashCode方法的协定附加了其他规定。 为了方便起见，还包括其他继承方法的声明。
+ * D. List接口提供了四种位置（索引）访问列表元素的方法。 列表（如Java数组）是从零开始的。 请注意，对于某些实现（例如，LinkedList类），
+ *    这些操作可能在时间上与索引值成比例执行。 因此，如果调用者不知道实现，则遍历列表中的元素通常比对其进行索引更可取。
+ * E. List接口提供了一个特殊的迭代器，称为ListIterator，除了元素执行的常规操作外，还允许元素的插入和替换以及双向访问提供Iterator接口。
+ *    提供一种获取列表迭代器的方法，该列表迭代器从列表中的指定位置开始。
+ * F. List接口提供了两种搜索指定对象的方法。 从性能的角度来看，应谨慎使用这些方法。 在许多实现中，它们将执行昂贵的线性搜索。
+ * G. List接口提供了两种方法，可以有效地在列表中的任意点插入和删除多个元素。
+ * H. 注意：虽然允许列表将自身包含为元素，但建议格外小心：equals和hashCode方法在这样的列表上不再定义良好。
+ * I. 一些列表实现对它们可能包含的元素有限制。 例如，某些实现禁止使用null元素，而某些实现对其元素类型进行限制。 尝试添加不合格元素会引发未经检查的异常，
+ *    通常为NullPointerException或ClassCastException。 尝试查询不合格元素的存在可能会引发异常，或者可能仅返回false；否则，可能会返回false。
+ *    一些实现将表现出前一种行为，而某些将表现出后者。 更一般地，尝试对不合格元素进行操作，该操作的完成不会导致将不合格元素插入列表中，这可能会导致异常或成功实现，
+ *    具体取决于实现方式。 此类异常在此接口的规范中标记为“可选”。
+ * J. {@docRoot}/../technotes/guides/collections/index.html">
  */
 /**
+ * A.
  * An ordered collection (also known as a <i>sequence</i>).  The user of this
  * interface has precise control over where in the list each element is
  * inserted.  The user can access elements by their integer index (position in
  * the list), and search for elements in the list.<p>
  *
+ * B.
  * Unlike sets, lists typically allow duplicate elements.  More formally,
  * lists typically allow pairs of elements <tt>e1</tt> and <tt>e2</tt>
  * such that <tt>e1.equals(e2)</tt>, and they typically allow multiple
@@ -45,12 +42,14 @@ import java.util.function.UnaryOperator;
  * throwing runtime exceptions when the user attempts to insert them, but we
  * expect this usage to be rare.<p>
  *
+ * C.
  * The <tt>List</tt> interface places additional stipulations, beyond those
  * specified in the <tt>Collection</tt> interface, on the contracts of the
  * <tt>iterator</tt>, <tt>add</tt>, <tt>remove</tt>, <tt>equals</tt>, and
  * <tt>hashCode</tt> methods.  Declarations for other inherited methods are
  * also included here for convenience.<p>
  *
+ * D.
  * The <tt>List</tt> interface provides four methods for positional (indexed)
  * access to list elements.  Lists (like Java arrays) are zero based.  Note
  * that these operations may execute in time proportional to the index value
@@ -59,24 +58,29 @@ import java.util.function.UnaryOperator;
  * preferable to indexing through it if the caller does not know the
  * implementation.<p>
  *
+ * E.
  * The <tt>List</tt> interface provides a special iterator, called a
  * <tt>ListIterator</tt>, that allows element insertion and replacement, and
  * bidirectional access in addition to the normal operations that the
  * <tt>Iterator</tt> interface provides.  A method is provided to obtain a
  * list iterator that starts at a specified position in the list.<p>
  *
+ * F.
  * The <tt>List</tt> interface provides two methods to search for a specified
  * object.  From a performance standpoint, these methods should be used with
  * caution.  In many implementations they will perform costly linear
  * searches.<p>
  *
+ * G.
  * The <tt>List</tt> interface provides two methods to efficiently insert and
  * remove multiple elements at an arbitrary point in the list.<p>
  *
+ * H.
  * Note: While it is permissible for lists to contain themselves as elements,
  * extreme caution is advised: the <tt>equals</tt> and <tt>hashCode</tt>
  * methods are no longer well defined on such a list.
  *
+ * I.
  * <p>Some list implementations have restrictions on the elements that
  * they may contain.  For example, some implementations prohibit null elements,
  * and some have restrictions on the types of their elements.  Attempting to
@@ -91,6 +95,7 @@ import java.util.function.UnaryOperator;
  * Such exceptions are marked as "optional" in the specification for this
  * interface.
  *
+ * J.
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.

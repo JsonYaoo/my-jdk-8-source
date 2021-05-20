@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -36,7 +16,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * 20201119 基于哈希表的Map接口实现。这个实现提供了所有可选的映射操作，并允许空值和空键。它保证了类在hashronis上保持不同步，除非它保证这个类在时间上保持不变。
+ * 20201119
+ * 基于哈希表的Map接口实现。这个实现提供了所有可选的映射操作，并允许空值和空键。它保证了类在hashronis上保持不同步，除非它保证这个类在时间上保持不变。
  */
 /**
  * Hash table based implementation of the <tt>Map</tt> interface.  This

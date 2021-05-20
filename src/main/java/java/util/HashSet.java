@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -28,12 +8,29 @@ package java.util;
 import java.io.InvalidObjectException;
 
 /**
+ * 20210520
+ * A. 此类实现Set接口，该接口由哈希表（实际上是HashMap实例）支持。 它不保证集合的迭代顺序。 特别是，它不能保证顺序会随着时间的推移保持恒定。 此类允许使用null元素。
+ * B. 该类为基本操作（add，remove，contain和size）提供恒定的时间性能，假设哈希函数将元素正确地分散在存储桶中。 对此集合进行迭代需要的时间与HashSet实例的大小（元素的数量）
+ *    加上后备HashMap实例的“容量”（存储桶的数量）之和成比例。 因此，如果迭代性能很重要，则不要将初始容量设置得过高（或负载因子过低），这一点非常重要。
+ * C. 请注意，此实现未同步。 如果多个线程同时访问哈希集，并且至少有一个线程修改了哈希集，则必须在外部对其进行同步。通常，通过在自然封装了该集合的某个对象上进行同步来完成此操作。
+ * D. 如果不存在这样的对象，则应使用{@link Collections＃synchronizedSet Collections.synchronizedSet}来“包装”该集合。方法。
+ *    最好在创建时完成，以防止意外对集合的非同步访问：Set s = Collections.synchronizedSet（new HashSet（...））;
+ * E. 此类的迭代器方法返回的迭代器是快速失败的：如果在创建迭代器后的任何时间以任何方式修改集合（除了通过迭代器自己的remove方法之外），
+ *    迭代器都会抛出{@link ConcurrentModificationException}。因此， 面对并发修改，迭代器会快速干净地失败，而不会在未来的不确定时间冒着任意、不确定的行为的风险。
+ * F. 请注意，迭代器的快速失败行为无法得到保证，因为通常来说，在存在不同步的并发修改的情况下，不可能做出任何严格的保证。
+ *    快速失败的迭代器会尽最大努力抛出ConcurrentModificationException，因此，编写依赖于此异常的程序的正确性是错误的：迭代器的快速失败行为应仅用于检测错误。
+ * G. {@docRoot}/../technotes/guides/collections/index.html">
+ */
+
+/**
+ * A.
  * This class implements the <tt>Set</tt> interface, backed by a hash table
  * (actually a <tt>HashMap</tt> instance).  It makes no guarantees as to the
  * iteration order of the set; in particular, it does not guarantee that the
  * order will remain constant over time.  This class permits the <tt>null</tt>
  * element.
  *
+ * B.
  * <p>This class offers constant time performance for the basic operations
  * (<tt>add</tt>, <tt>remove</tt>, <tt>contains</tt> and <tt>size</tt>),
  * assuming the hash function disperses the elements properly among the
@@ -43,18 +40,21 @@ import java.io.InvalidObjectException;
  * buckets).  Thus, it's very important not to set the initial capacity too
  * high (or the load factor too low) if iteration performance is important.
  *
+ * C.
  * <p><strong>Note that this implementation is not synchronized.</strong>
  * If multiple threads access a hash set concurrently, and at least one of
  * the threads modifies the set, it <i>must</i> be synchronized externally.
  * This is typically accomplished by synchronizing on some object that
  * naturally encapsulates the set.
  *
+ * D.
  * If no such object exists, the set should be "wrapped" using the
  * {@link Collections#synchronizedSet Collections.synchronizedSet}
  * method.  This is best done at creation time, to prevent accidental
  * unsynchronized access to the set:<pre>
  *   Set s = Collections.synchronizedSet(new HashSet(...));</pre>
  *
+ * E.
  * <p>The iterators returned by this class's <tt>iterator</tt> method are
  * <i>fail-fast</i>: if the set is modified at any time after the iterator is
  * created, in any way except through the iterator's own <tt>remove</tt>
@@ -63,6 +63,7 @@ import java.io.InvalidObjectException;
  * and cleanly, rather than risking arbitrary, non-deterministic behavior at
  * an undetermined time in the future.
  *
+ * F.
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -71,6 +72,7 @@ import java.io.InvalidObjectException;
  * exception for its correctness: <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
  *
+ * G.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -85,10 +87,7 @@ import java.io.InvalidObjectException;
  * @see     HashMap
  * @since   1.2
  */
-
-public class HashSet<E>
-    extends AbstractSet<E>
-    implements Set<E>, Cloneable, java.io.Serializable
+public class HashSet<E> extends AbstractSet<E> implements Set<E>, Cloneable, java.io.Serializable
 {
     static final long serialVersionUID = -5024744406713321676L;
 
