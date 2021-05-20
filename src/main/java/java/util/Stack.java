@@ -1,31 +1,20 @@
 /*
  * Copyright (c) 1994, 2010, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
 
 /**
+ * 20210520
+ * A. Stack类表示对象的后进先出（LIFO）堆栈。 它通过五个操作扩展了Vector类，这些操作允许将Vector视为堆栈。 提供了通常的Push和Pop操作，以及一种Peek堆栈顶部项目的方法，
+ *   一种用于测试堆栈是否empty的方法以及一种用于在堆栈中search并发现其距离的方法。 从顶部开始。
+ * B. 首次创建堆栈时，它不包含任何项目。
+ * C. {@link Deque}接口及其实现提供了一组更完整和一致的LIFO堆栈操作，应优先使用此类。 例如：{@code Deque <Integer> stack = new ArrayDeque <Integer>（）;}
+ */
+
+/**
+ * A.
  * The <code>Stack</code> class represents a last-in-first-out
  * (LIFO) stack of objects. It extends class <tt>Vector</tt> with five
  * operations that allow a vector to be treated as a stack. The usual
@@ -33,9 +22,12 @@ package java.util;
  * method to <tt>peek</tt> at the top item on the stack, a method to test
  * for whether the stack is <tt>empty</tt>, and a method to <tt>search</tt>
  * the stack for an item and discover how far it is from the top.
+ *
+ * B.
  * <p>
  * When a stack is first created, it contains no items.
  *
+ * C.
  * <p>A more complete and consistent set of LIFO stack operations is
  * provided by the {@link Deque} interface and its implementations, which
  * should be used in preference to this class.  For example:
@@ -45,8 +37,7 @@ package java.util;
  * @author  Jonathan Payne
  * @since   JDK1.0
  */
-public
-class Stack<E> extends Vector<E> {
+public class Stack<E> extends Vector<E> {
     /**
      * Creates an empty Stack.
      */

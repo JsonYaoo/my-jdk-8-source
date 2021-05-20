@@ -1,25 +1,5 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
@@ -51,6 +31,15 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
+/**
+ * 20210520
+ * A. ArrayList的线程安全变体，其中所有可变操作（{@code add}，{@ code set}等）都通过对基础数组进行全新复制来实现。
+ *
+ * B. 通常这样做的成本太高，但是在遍历操作的数量远远超过变异的情况下，它可能比替代方法更有效，并且在您无法或不想同步遍历而又需要防止并发线程之间的干扰时很有用。
+  *   “快照”样式的迭代器方法在创建迭代器时使用对数组状态的引用。 此数组在迭代器的生命周期内永不更改，因此不会发生干扰，
+  *   并且保证迭代器不会抛出{@code ConcurrentModificationException}。 自创建迭代器以来，该迭代器将不会反映对该列表的添加，删除或更改。
+ *   不支持对迭代器本身进行元素更改操作（{@code remove}，{@ code set}和{@code add}）。 这些方法抛出{@code UnsupportedOperationException}。
+ */
 /**
  * A thread-safe variant of {@link java.util.ArrayList} in which all mutative
  * operations ({@code add}, {@code set}, and so on) are implemented by

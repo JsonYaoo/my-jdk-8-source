@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -30,12 +10,30 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 
 /**
+ * 20210520
+ * A. {@code Vector}类实现对象的可增长数组。 像数组一样，它包含可以使用整数索引访问的组件。 但是，{@ code Vector}的大小可以根据需要增大或缩小，
+ *    以适应在创建{@code Vector}之后添加和删除项目。
+ * B. 每个Vector都尝试通过维持{@code Capacity}和{@code CapacityIncrement}来优化存储管理。 Capacity始终至少与Vector大小一样大；
+ *    它通常较大，因为随着向Vector中添加分量，Vector的存储量将以{@code CapacityIncrement}的大小逐块增加。 应用程序可以在插入大量组件之前增加Vector的容量。
+ *    这减少了增量重新分配的数量。
+ * C. 此类的{@link #iterator（）}和{@link #listIterator（int）}方法返回的迭代器是快速失败的：即如果在创建迭代器后的任何时间都对结构进行了结构修改，
+ *    除了通过迭代器自己的{@link ListIterator＃remove（）remove}或{@link ListIterator＃add（Object）add}方法之外，
+ *    迭代器都会抛出{@link ConcurrentModificationException}。 因此，面对并发修改，迭代器会快速干净地失败，而不会在未来的不确定时间内冒任意、不确定的行为的风险。
+ *    由{@link #elements（）elements}方法返回的{@link Enumeration Enumerations}不是快速失败的。
+ * D. 请注意，迭代器的快速失败行为无法得到保证，因为通常来说，在存在不同步的并发修改的情况下，不可能做出任何严格的保证。
+ *    快速失败的迭代器会尽最大努力抛出{@code ConcurrentModificationException}。 因此，编写依赖于此异常的程序的正确性是错误的：迭代器的快速失败行为应仅用于检测错误。
+ * E. 与新的集合实现不同，{@ code Vector}是同步的。 如果不需要线程安全的实现，建议使用{@link ArrayList}代替{@code Vector}。
+ */
+
+/**
+ * A.
  * The {@code Vector} class implements a growable array of
  * objects. Like an array, it contains components that can be
  * accessed using an integer index. However, the size of a
  * {@code Vector} can grow or shrink as needed to accommodate
  * adding and removing items after the {@code Vector} has been created.
  *
+ * B.
  * <p>Each vector tries to optimize storage management by maintaining a
  * {@code capacity} and a {@code capacityIncrement}. The
  * {@code capacity} is always at least as large as the vector
@@ -45,6 +43,7 @@ import java.util.function.UnaryOperator;
  * capacity of a vector before inserting a large number of
  * components; this reduces the amount of incremental reallocation.
  *
+ * C.
  * <p><a name="fail-fast">
  * The iterators returned by this class's {@link #iterator() iterator} and
  * {@link #listIterator(int) listIterator} methods are <em>fail-fast</em></a>:
@@ -58,6 +57,7 @@ import java.util.function.UnaryOperator;
  * time in the future.  The {@link Enumeration Enumerations} returned by
  * the {@link #elements() elements} method are <em>not</em> fail-fast.
  *
+ * D.
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -66,6 +66,7 @@ import java.util.function.UnaryOperator;
  * exception for its correctness:  <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
  *
+ * E.
  * <p>As of the Java 2 platform v1.2, this class was retrofitted to
  * implement the {@link List} interface, making it a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
@@ -80,9 +81,7 @@ import java.util.function.UnaryOperator;
  * @see LinkedList
  * @since   JDK1.0
  */
-public class Vector<E>
-    extends AbstractList<E>
-    implements List<E>, RandomAccess, Cloneable, java.io.Serializable
+public class Vector<E> extends AbstractList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable
 {
     /**
      * The array buffer into which the components of the vector are

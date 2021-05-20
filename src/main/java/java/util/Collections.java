@@ -2410,9 +2410,7 @@ public class Collections {
     /**
      * @serial include
      */
-    static class SynchronizedList<E>
-        extends SynchronizedCollection<E>
-        implements List<E> {
+    static class SynchronizedList<E> extends SynchronizedCollection<E> implements List<E> {
         private static final long serialVersionUID = -7754090372962971524L;
 
         final List<E> list;
