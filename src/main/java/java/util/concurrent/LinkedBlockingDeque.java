@@ -46,15 +46,30 @@ import java.util.Spliterators;
 import java.util.function.Consumer;
 
 /**
+ * 20210523
+ * A. 基于链接节点的可选绑定的{@linkplain BlockingDeque}阻塞双端队列。
+ * B. 可选的容量绑定构造函数参数是一种防止过度扩展的方法。 容量（如果未指定）等于{@link Integer＃MAX_VALUE}。 除非每次插入都会使双端队列超出容量，
+ *    否则将在每次插入时动态创建链接节点。
+ * C. 大多数操作都以固定时间运行（忽略阻塞所花费的时间）。 例外包括{@link #remove（Object）remove}，{@link #removeFirstOccurrence removeFirstOccurrence}，
+ *    {@link #removeLastOccurrence removeLastOccurrence}，{@link #contains contains}，{@link #iterator iterator.remove（）}和批量操作，
+ *    所有这些操作均以线性时间运行, 即O(n)。
+ * D. 此类及其迭代器实现{@link Collection}和{@link Iterator}接口的所有可选方法。
+ * E. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * An optionally-bounded {@linkplain BlockingDeque blocking deque} based on
  * linked nodes.
  *
+ * B.
  * <p>The optional capacity bound constructor argument serves as a
  * way to prevent excessive expansion. The capacity, if unspecified,
  * is equal to {@link Integer#MAX_VALUE}.  Linked nodes are
  * dynamically created upon each insertion unless this would bring the
  * deque above capacity.
  *
+ * C.
  * <p>Most operations run in constant time (ignoring time spent
  * blocking).  Exceptions include {@link #remove(Object) remove},
  * {@link #removeFirstOccurrence removeFirstOccurrence}, {@link
@@ -62,10 +77,12 @@ import java.util.function.Consumer;
  * contains}, {@link #iterator iterator.remove()}, and the bulk
  * operations, all of which run in linear time.
  *
+ * D.
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.
  *
+ * E.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -74,9 +91,7 @@ import java.util.function.Consumer;
  * @author  Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class LinkedBlockingDeque<E>
-    extends AbstractQueue<E>
-    implements BlockingDeque<E>, java.io.Serializable {
+public class LinkedBlockingDeque<E> extends AbstractQueue<E> implements BlockingDeque<E>, java.io.Serializable {
 
     /*
      * Implemented as a simple doubly-linked list protected by a

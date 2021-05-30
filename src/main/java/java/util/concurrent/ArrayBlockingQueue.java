@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -45,6 +20,19 @@ import java.util.Spliterators;
 import java.util.Spliterator;
 
 /**
+ * 20210523
+ * A. 由数组支持的有界阻塞队列{@linkplain BlockingQueue}。 此队列对元素FIFO（先进先出）进行排序。
+ *    队列的头是已经在队列中最长时间的元素。队列的尾部是最短时间出现在队列中的元素。新元素插入到队列的尾部，并且队列检索操作在队列的开头获取元素。
+ * B. 这是经典的“有界缓冲区”，其中固定大小的数组保存由生产者插入并由消费者提取的元素。 创建后，容量将无法更改。 尝试将元素{@code put}到完整队列中将导致操作阻塞；
+ *    尝试从空队列中{@code pull]一个元素也会类似地被阻塞。
+ * C. 此类支持可选的公平性策略，用于订购正在等待的生产者和使用者线程。 默认情况下，不保证此排序。
+ *    但是，使用公平性设置为{@code true}构造的队列将按FIFO顺序授予线程访问权限。公平通常会降低吞吐量，但会减少可变性并避免饥饿。
+ * D. 此类及其迭代器实现{@link Collection}和{@link Iterator}接口的所有可选方法。
+ * E. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * A bounded {@linkplain BlockingQueue blocking queue} backed by an
  * array.  This queue orders elements FIFO (first-in-first-out).  The
  * <em>head</em> of the queue is that element that has been on the
@@ -53,6 +41,7 @@ import java.util.Spliterator;
  * are inserted at the tail of the queue, and the queue retrieval
  * operations obtain elements at the head of the queue.
  *
+ * B.
  * <p>This is a classic &quot;bounded buffer&quot;, in which a
  * fixed-sized array holds elements inserted by producers and
  * extracted by consumers.  Once created, the capacity cannot be
@@ -60,6 +49,7 @@ import java.util.Spliterator;
  * will result in the operation blocking; attempts to {@code take} an
  * element from an empty queue will similarly block.
  *
+ * C.
  * <p>This class supports an optional fairness policy for ordering
  * waiting producer and consumer threads.  By default, this ordering
  * is not guaranteed. However, a queue constructed with fairness set
@@ -67,10 +57,12 @@ import java.util.Spliterator;
  * generally decreases throughput but reduces variability and avoids
  * starvation.
  *
+ * D.
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.
  *
+ * E.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -79,8 +71,7 @@ import java.util.Spliterator;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class ArrayBlockingQueue<E> extends AbstractQueue<E>
-        implements BlockingQueue<E>, java.io.Serializable {
+public class ArrayBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E>, java.io.Serializable {
 
     /**
      * Serialization ID. This class relies on default serialization
@@ -102,20 +93,28 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     /** Number of elements in the queue */
     int count;
 
+    /**
+     * 20210523
+     * 并发控制使用在任何教科书中都可以找到的经典的两条件算法
+     */
     /*
      * Concurrency control uses the classic two-condition algorithm
      * found in any textbook.
      */
 
     /** Main lock guarding all access */
-    final ReentrantLock lock;
+    final ReentrantLock lock;// 20210523 主锁保护所有通道
 
     /** Condition for waiting takes */
-    private final Condition notEmpty;
+    private final Condition notEmpty;// 20210523 等待条件
 
     /** Condition for waiting puts */
-    private final Condition notFull;
+    private final Condition notFull;// 20210523 等待条件
 
+    /**
+     * 20210523
+     * 当前活动迭代器的共享状态；如果已知不存在，则为null。 允许队列操作更新迭代器状态。
+     */
     /**
      * Shared state for currently active iterators, or null if there
      * are known not to be any.  Allows queue operations to update
@@ -151,6 +150,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * 在当前放置位置插入元素，前进并发出信号。 仅在保持锁定状态时呼叫。
+     */
+    /**
      * Inserts element at current put position, advances, and signals.
      * Call only when holding lock.
      */
@@ -166,6 +169,10 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * 提取当前位置，前进和信号的元素。 仅在保持锁定状态时呼叫。
+     */
+    /**
      * Extracts element at current take position, advances, and signals.
      * Call only when holding lock.
      */
@@ -180,11 +187,15 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             takeIndex = 0;
         count--;
         if (itrs != null)
-            itrs.elementDequeued();
-        notFull.signal();
+            itrs.elementDequeued();// 每当元素已出队（在takeIndex处）时调用。
+        notFull.signal();// 唤醒一个等待线程：通知队列非满了
         return x;
     }
 
+    /***
+     * 20210523
+     * 删除数组索引为removeIndex的项。 remove（Object）和iterator.remove的实用程序。 仅在保持锁定状态时呼叫。
+     */
     /**
      * Deletes item at array index removeIndex.
      * Utility for remove(Object) and iterator.remove.
@@ -225,7 +236,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             if (itrs != null)
                 itrs.removedAt(removeIndex);
         }
-        notFull.signal();
+        notFull.signal();// 唤醒一个等待线程：通知队列非满了
     }
 
     /**
@@ -474,13 +485,23 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. 从此队列中删除指定元素的单个实例（如果存在）。 更正式地说，如果此队列包含一个或多个这样的元素，则删除元素{@code e}，以使{@code o.equals（e）}。
+     * B. 如果此队列包含指定的元素（或者等效地，如果此队列由于调用而更改），则返回{@code true}。
+     * C. 移除基于圆形阵列的队列中的内部元素本质上是缓慢且破坏性的操作，因此仅应在特殊情况下进行，理想情况下，仅在已知该队列无法被其他线程访问的情况下进行。
+     */
+    /**
+     * A.
      * Removes a single instance of the specified element from this queue,
      * if it is present.  More formally, removes an element {@code e} such
      * that {@code o.equals(e)}, if this queue contains one or more such
      * elements.
+     *
+     * B.
      * Returns {@code true} if this queue contained the specified element
      * (or equivalently, if this queue changed as a result of the call).
      *
+     * C.
      * <p>Removal of interior elements in circular array based queues
      * is an intrinsically slow and disruptive operation, so should
      * be undertaken only in exceptional circumstances, ideally
@@ -501,7 +522,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
                 int i = takeIndex;
                 do {
                     if (o.equals(items[i])) {
-                        removeAt(i);
+                        removeAt(i);// 移除第一个equal的元素, 唤醒一个等待线程：通知队列非满了, 然后返回true
                         return true;
                     }
                     if (++i == items.length)
@@ -754,9 +775,16 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. 以适当的顺序返回对该队列中的元素的迭代器。 元素将按照从头（头）到后（尾）的顺序返回。
+     * B. 返回的迭代器是弱一致性的。
+     */
+    /**
+     * A.
      * Returns an iterator over the elements in this queue in proper sequence.
      * The elements will be returned in order from first (head) to last (tail).
      *
+     * B.
      * <p>The returned iterator is
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
@@ -1004,12 +1032,24 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. ArrayBlockingQueue的迭代器。
+     * B. 为了保持关于puts和takes的弱一致性，预读了一个槽位，以免报告hasNext为true，但是没有要返回的元素。
+     * C. 当所有索引均为负数时，或者当hasNext首次返回false时，我们将切换到“分离”模式（允许在不使用GC的情况下迅速从itr取消链接）。
+     *    这使迭代器可以完全准确地跟踪并发更新，但在hasNext（）返回false之后用户调用Iterator.remove（）的特殊情况除外。
+     *    即使在这种情况下，我们也确保通过在lastItem中跟踪要删除的预期元素来确保不会删除错误的元素。 是的，由于在分离模式下交错移除内部，
+     *    我们可能无法将lastItem从队列中移除。
+     */
+    /**
+     * A.
      * Iterator for ArrayBlockingQueue.
      *
+     * B.
      * To maintain weak consistency with respect to puts and takes, we
      * read ahead one slot, so as to not report hasNext true but then
      * not have an element to return.
      *
+     * C.
      * We switch into "detached" mode (allowing prompt unlinking from
      * itrs without help from the GC) when all indices are negative, or
      * when hasNext returns false for the first time.  This allows the
@@ -1023,37 +1063,37 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
      */
     private class Itr implements Iterator<E> {
         /** Index to look for new nextItem; NONE at end */
-        private int cursor;
+        private int cursor;// 查找新的nextItem的索引； 无尾
 
         /** Element to be returned by next call to next(); null if none */
-        private E nextItem;
+        private E nextItem;// 下次调用next（）时要返回的元素； 如果没有则为null
 
         /** Index of nextItem; NONE if none, REMOVED if removed elsewhere */
-        private int nextIndex;
+        private int nextIndex;// nextItem的索引； 如果没有，则为NONE；如果在其他地方，则去除
 
         /** Last element returned; null if none or not detached. */
-        private E lastItem;
+        private E lastItem;// 返回的最后一个元素； 如果没有或未分离，则为null。
 
         /** Index of lastItem, NONE if none, REMOVED if removed elsewhere */
-        private int lastRet;
+        private int lastRet;// lastItem的索引，如果没有则为NONE，如果在其他地方删除则为REMOTED
 
         /** Previous value of takeIndex, or DETACHED when detached */
-        private int prevTakeIndex;
+        private int prevTakeIndex;// takeIndex的先前值，或在分离时已分离
 
         /** Previous value of iters.cycles */
-        private int prevCycles;
+        private int prevCycles;// iters.cycles的先前值
 
         /** Special index value indicating "not available" or "undefined" */
-        private static final int NONE = -1;
+        private static final int NONE = -1;// 特殊索引值，指示“不可用”或“未定义”
 
         /**
          * Special index value indicating "removed elsewhere", that is,
          * removed by some operation other than a call to this.remove().
          */
-        private static final int REMOVED = -2;
+        private static final int REMOVED = -2;// 特殊索引值，指示“已在其他位置删除”，即通过除调用this.remove（）之外的某些操作删除。
 
         /** Special value for prevTakeIndex indicating "detached mode" */
-        private static final int DETACHED = -3;
+        private static final int DETACHED = -3;// prevTakeIndex的特殊值，指示“分离模式”
 
         Itr() {
             // assert lock.getHoldCount() == 0;

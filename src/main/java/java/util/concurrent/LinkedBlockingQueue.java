@@ -1,25 +1,5 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
@@ -47,6 +27,18 @@ import java.util.Spliterators;
 import java.util.function.Consumer;
 
 /**
+ * 20210523
+ * A. 基于链接节点的（可选）有界的{@linkplain BlockingQueue阻塞队列}。 此队列对元素FIFO（先进先出）进行排序。 队列的头是已经在队列中最长时间的元素。
+ *    队列的尾部是最短时间出现在队列中的元素。 新元素插入到队列的尾部，并且队列检索操作在队列的开头获取元素。 链接队列通常比基于数组的队列具有更高的吞吐量，
+ *    但是在大多数并发应用程序中，可预测的性能较差。
+ * B. 可选的容量绑定构造函数参数是一种防止过多队列扩展的方法。 容量（如果未指定）等于{@link Integer＃MAX_VALUE}。 除非每次插入都会使队列超出容量，
+ *    否则将在每次插入时动态创建链接节点。
+ * C. 此类及其迭代器实现{@link Collection}和{@link Iterator}接口的所有可选方法。
+ * D. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * An optionally-bounded {@linkplain BlockingQueue blocking queue} based on
  * linked nodes.
  * This queue orders elements FIFO (first-in-first-out).
@@ -59,16 +51,19 @@ import java.util.function.Consumer;
  * Linked queues typically have higher throughput than array-based queues but
  * less predictable performance in most concurrent applications.
  *
+ * B.
  * <p>The optional capacity bound constructor argument serves as a
  * way to prevent excessive queue expansion. The capacity, if unspecified,
  * is equal to {@link Integer#MAX_VALUE}.  Linked nodes are
  * dynamically created upon each insertion unless this would bring the
  * queue above capacity.
  *
+ * C.
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.
  *
+ * D.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -77,8 +72,7 @@ import java.util.function.Consumer;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class LinkedBlockingQueue<E> extends AbstractQueue<E>
-        implements BlockingQueue<E>, java.io.Serializable {
+public class LinkedBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = -6903933977591709194L;
 
     /*
@@ -338,6 +332,11 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         final AtomicInteger count = this.count;
         putLock.lockInterruptibly();
         try {
+            /**
+             * 20210523
+             * 请注意，即使未受锁保护，计数仍在等待保护中使用。 之所以可行，是因为此时只能减少计数（所有其他看跌期权都被锁定锁住了），
+             * 并且如果我们（或其他一些等待看跌期权）的容量发生变化，则会发出信号。 对于其他等待警卫中的count的所有其他用途，也是如此。
+             */
             /*
              * Note that count is used in wait guard even though it is
              * not protected by lock. This works because count can
@@ -347,17 +346,17 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
              * for all other uses of count in other wait guards.
              */
             while (count.get() == capacity) {
-                notFull.await();
+                notFull.await();// 队列满时，会一直阻塞等待非满条件（阻塞等待锁时可以被中断）
             }
-            enqueue(node);
+            enqueue(node);// 队列非满时，入队
             c = count.getAndIncrement();
             if (c + 1 < capacity)
-                notFull.signal();
+                notFull.signal();// // 如果实际大小还没达到容量时，唤醒等待非满条件的线程
         } finally {
             putLock.unlock();
         }
         if (c == 0)
-            signalNotEmpty();
+            signalNotEmpty();// 如果该元素为第一个元素并添加成功后，唤醒等待非空条件的线程
     }
 
     /**
@@ -382,17 +381,17 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
             while (count.get() == capacity) {
                 if (nanos <= 0)
                     return false;
-                nanos = notFull.awaitNanos(nanos);
+                nanos = notFull.awaitNanos(nanos);// 队列满时，会在限定时间内一直阻塞等待非满条件（阻塞等待锁时可以被中断）
             }
-            enqueue(new Node<E>(e));
+            enqueue(new Node<E>(e));// 队列非满时，入队
             c = count.getAndIncrement();
             if (c + 1 < capacity)
-                notFull.signal();
+                notFull.signal();// 如果实际大小还没达到容量时，唤醒等待非满条件的线程
         } finally {
             putLock.unlock();
         }
         if (c == 0)
-            signalNotEmpty();
+            signalNotEmpty();// 如果该元素为第一个元素并添加成功后，唤醒等待非空条件的线程
         return true;
     }
 
@@ -418,16 +417,16 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         putLock.lock();
         try {
             if (count.get() < capacity) {
-                enqueue(node);
+                enqueue(node);// 队列非满时，入队
                 c = count.getAndIncrement();
                 if (c + 1 < capacity)
-                    notFull.signal();
+                    notFull.signal();// 如果实际大小还没达到容量时，唤醒等待非满条件的线程
             }
         } finally {
             putLock.unlock();
         }
         if (c == 0)
-            signalNotEmpty();
+            signalNotEmpty();// 如果该元素为第一个元素并添加成功后，唤醒等待非空条件的线程
         return c >= 0;
     }
 
@@ -763,9 +762,16 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. 以适当的顺序返回对该队列中的元素的迭代器。 元素将按照从头（头）到后（尾）的顺序返回。
+     * B. 返回的迭代器是弱一致性的。
+     */
+    /**
+     * A.
      * Returns an iterator over the elements in this queue in proper sequence.
      * The elements will be returned in order from first (head) to last (tail).
      *
+     * B.
      * <p>The returned iterator is
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
@@ -775,6 +781,10 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         return new Itr();
     }
 
+    /**
+     * 20210523
+     * 基本的弱一致性迭代器。 始终保留要分发的下一个项目，这样，如果hasNext（）报告为true，即使丢失带走等的种族，我们仍然可以将其返回。
+     */
     private class Itr implements Iterator<E> {
         /*
          * Basic weakly-consistent iterator.  At all times hold the next

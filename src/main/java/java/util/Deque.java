@@ -36,11 +36,46 @@
 package java.util;
 
 /**
- * 20201118
- * 在两端支持元素插入和删除的线性集合。deque是“双头队列”的缩写，通常发音为“deck”。
- * 大多数{@codedeque}实现对它们可能包含的元素数量没有固定的限制，但是这个接口支持容量受限的deques以及没有固定大小限制的deques。
+ * 20210521
+ * A. 支持在两端插入和删除元素的线性集合。 名称双端队列是“双端队列”的缩写，通常发音为“deck”。 大多数{@code Deque}实现对它们可能包含的元素数量没有固定的限制，
+ *    但是此接口支持容量受限的双端队列以及没有固定大小限制的双端队列。
+ * B. 该接口定义了访问双端队列两端的元素的方法。 提供了用于插入，删除和检查元素的方法。 这些方法均以两种形式存在：一种在操作失败时引发异常，另一种返回特殊值
+ *    （{@code null}或{@code false}，具体取决于操作）。 后一种形式的插入操作是专为与容量受限的{@code Deque}实现一起使用而设计的； 在大多数实现中，插入操作不会失败。
+ * C. 下表总结了上述十二种方法：
+ *                                                              Summary of Deque methods
+ *           First Element (Head)                   First Element (Head)                    Last Element (Tail)
+ *           Throws exception	                    Special value	                        Throws exception	                    Special value
+ * Insert	{@link Deque#addFirst addFirst(e)}	    {@link Deque#offerFirst offerFirst(e)}	{@link Deque#addLast addLast(e)}	    {@link Deque#offerLast offerLast(e)}
+ * Remove	{@link Deque#removeFirst removeFirst()}	{@link Deque#pollFirst pollFirst()}	    {@link Deque#removeLast removeLast()}	{@link Deque#pollLast pollLast()}
+ * Examine	{@link Deque#getFirst getFirst()}	    {@link Deque#peekFirst peekFirst()}	    {@link Deque#getLast getLast()}	        {@link Deque#peekLast peekLast()}
+ * D. 此接口扩展了{@link Queue}接口。 当双端队列用作队列时，将导致FIFO（先进先出）行为。 元素在双端队列的末尾添加，并从开头删除。 如下表所示，
+ *    从{@code Queue}接口继承的方法与{@code Deque}方法完全等效：
+ *                                                          Comparison of Queue and Deque methods
+ *           {@code Queue} Method	                    Equivalent {@code Deque} Method
+ *           {@link java.util.Queue#add add(e)}         {@link #addLast addLast(e)}
+ *           {@link java.util.Queue#offer offer(e)}     {@link #offerLast offerLast(e)}
+ *           {@link java.util.Queue#remove remove()}    {@link #removeFirst removeFirst()}
+ *           {@link java.util.Queue#poll poll()}        {@link #pollFirst pollFirst()}
+ *           {@link java.util.Queue#element element()}  {@link #getFirst getFirst()}
+ *           {@link java.util.Queue#peek peek()}        {@link #peek peekFirst()}
+ * E. 双端队列也可以用作LIFO（后进先出）堆栈。 此接口应优先于旧式{@link Stack}类使用。 当双端队列用作堆栈时，元素从双端队列的开头被压入并弹出。
+ *    堆栈方法完全等同于{@code Deque}方法，如下表所示：
+ *                                                          Comparison of Stack and Deque methods
+ *           Stack Method	                            Equivalent {@code Deque} Method
+ *           {@link #push push(e)}	                    {@link #addFirst addFirst(e)}
+ *           {@link #pop pop()}	                        {@link #removeFirst removeFirst()}
+ *           {@link #peek peek()}	                    {@link #peekFirst peekFirst()}
+ * F. 请注意，当将双端队列用作队列或堆栈时，{@link #peek peek}方法同样有效。 无论哪种情况，元素都是从双端队列的开头开始绘制的。
+ * G. 该接口提供了两种删除内部元素的方法：{@link #removeFirstOccurrence removeFirstOccurrence}和{@link #removeLastOccurrence removeLastOccurrence}。
+ * H. 与{@link List}接口不同，此接口不支持对元素的索引访问。
+ * I. 虽然并非严格要求{@code Deque}实现禁止插入空元素，但强烈建议这样做。 强烈建议任何允许使用null元素的{@code Deque}实现的用户不要利用插入null的能力。
+ *    之所以如此，是因为各种方法都将{@code null}用作特殊的返回值，以指示双端队列为空。
+ * J. {@code Deque}实现通常不定义{@code equals}和{@code hashCode}方法的基于元素的版本，而是从类{@code Object}继承基于身份的版本。
+ * K. {@docRoot}/../technotes/guides/collections/index.html
  */
+
 /**
+ * A.
  * A linear collection that supports element insertion and removal at
  * both ends.  The name <i>deque</i> is short for "double ended queue"
  * and is usually pronounced "deck".  Most {@code Deque}
@@ -48,6 +83,7 @@ package java.util;
  * they may contain, but this interface supports capacity-restricted
  * deques as well as those with no fixed size limit.
  *
+ * B.
  * <p>This interface defines methods to access the elements at both
  * ends of the deque.  Methods are provided to insert, remove, and
  * examine the element.  Each of these methods exists in two forms:
@@ -58,6 +94,7 @@ package java.util;
  * {@code Deque} implementations; in most implementations, insert
  * operations cannot fail.
  *
+ * C.
  * <p>The twelve methods described above are summarized in the
  * following table:
  *
@@ -98,6 +135,7 @@ package java.util;
  *  </tr>
  * </table>
  *
+ * D.
  * <p>This interface extends the {@link Queue} interface.  When a deque is
  * used as a queue, FIFO (First-In-First-Out) behavior results.  Elements are
  * added at the end of the deque and removed from the beginning.  The methods
@@ -136,6 +174,7 @@ package java.util;
  *  </tr>
  * </table>
  *
+ * E.
  * <p>Deques can also be used as LIFO (Last-In-First-Out) stacks.  This
  * interface should be used in preference to the legacy {@link Stack} class.
  * When a deque is used as a stack, elements are pushed and popped from the
@@ -162,17 +201,21 @@ package java.util;
  *  </tr>
  * </table>
  *
+ * F.
  * <p>Note that the {@link #peek peek} method works equally well when
  * a deque is used as a queue or a stack; in either case, elements are
  * drawn from the beginning of the deque.
  *
+ * G.
  * <p>This interface provides two methods to remove interior
  * elements, {@link #removeFirstOccurrence removeFirstOccurrence} and
  * {@link #removeLastOccurrence removeLastOccurrence}.
  *
+ * H.
  * <p>Unlike the {@link List} interface, this interface does not
  * provide support for indexed access to elements.
  *
+ * I.
  * <p>While {@code Deque} implementations are not strictly required
  * to prohibit the insertion of null elements, they are strongly
  * encouraged to do so.  Users of any {@code Deque} implementations
@@ -181,11 +224,13 @@ package java.util;
  * {@code null} is used as a special return value by various methods
  * to indicated that the deque is empty.
  *
+ * J.
  * <p>{@code Deque} implementations generally do not define
  * element-based versions of the {@code equals} and {@code hashCode}
  * methods, but instead inherit the identity-based versions from class
  * {@code Object}.
  *
+ * K.
  * <p>This interface is a member of the <a
  * href="{@docRoot}/../technotes/guides/collections/index.html"> Java Collections
  * Framework</a>.

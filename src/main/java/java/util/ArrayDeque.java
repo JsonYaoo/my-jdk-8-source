@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Josh Bloch of Google Inc. and released to the public domain,
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/.
  */
@@ -38,6 +13,21 @@ import java.io.Serializable;
 import java.util.function.Consumer;
 
 /**
+ * 20210522
+ * A. {@link Deque}接口的可调整大小的数组实现。 ArrayDeque双端队列没有容量限制。 它们会根据需要增长以支持使用。 它们不是线程安全的。
+ *    在没有外部同步的情况下，它们不支持多个线程的并发访问。 空元素是禁止的。 用作堆栈时，此类可能比{@link Stack}更快，而用作队列时，此类可能比{@link LinkedList}更快。
+ * B. 大多数{@code ArrayDeque}操作均以固定的固定时间运行。 例外包括{@link #remove（Object）remove}，{@link #removeFirstOccurrence removeFirstOccurrence}，
+ *    {@link #removeLastOccurrence removeLastOccurrence}，{@link #contains contains}，{@link #iterator iterator.remove（）}和批量操作，所有这些操作均以线性时间运行。
+ * C. 此类的迭代器方法返回的迭代器为
+ *    失败快速：如果在创建迭代器后的任何时间修改了集合，则除了通过迭代器自己的remove方法之外，该迭代器将以任何其他方式进行修改，
+ *    该迭代器将抛出{@link ConcurrentModificationException}。 因此，面对并发修改，迭代器会快速干净地失败，而不会在未来的不确定时间内冒任意，不确定的行为的风险。
+ * D. 请注意，迭代器的快速失败行为无法得到保证，因为通常来说，在存在不同步的并发修改的情况下，不可能做出任何严格的保证。
+ *    快速失败的迭代器会尽最大努力抛出ConcurrentModificationException，因此，编写依赖于此异常的程序的正确性是错误的：迭代器的快速失败行为应仅用于检测错误。
+ * E. 此类及其迭代器实现{@link Collection}和{@link Iterator}接口的所有可选方法。
+ * F. {@docRoot}/../technotes/guides/collections/index.html
+ */
+/**
+ * A.
  * Resizable-array implementation of the {@link Deque} interface.  Array
  * deques have no capacity restrictions; they grow as necessary to support
  * usage.  They are not thread-safe; in the absence of external
@@ -46,6 +36,7 @@ import java.util.function.Consumer;
  * {@link Stack} when used as a stack, and faster than {@link LinkedList}
  * when used as a queue.
  *
+ * B.
  * <p>Most {@code ArrayDeque} operations run in amortized constant time.
  * Exceptions include {@link #remove(Object) remove}, {@link
  * #removeFirstOccurrence removeFirstOccurrence}, {@link #removeLastOccurrence
@@ -53,6 +44,7 @@ import java.util.function.Consumer;
  * iterator.remove()}, and the bulk operations, all of which run in linear
  * time.
  *
+ * C.
  * <p>The iterators returned by this class's {@code iterator} method are
  * <i>fail-fast</i>: If the deque is modified at any time after the iterator
  * is created, in any way except through the iterator's own {@code remove}
@@ -62,6 +54,7 @@ import java.util.function.Consumer;
  * arbitrary, non-deterministic behavior at an undetermined time in the
  * future.
  *
+ * D.
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -70,10 +63,12 @@ import java.util.function.Consumer;
  * exception for its correctness: <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
  *
+ * E.
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.
  *
+ * F.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -82,8 +77,7 @@ import java.util.function.Consumer;
  * @since   1.6
  * @param <E> the type of elements held in this collection
  */
-public class ArrayDeque<E> extends AbstractCollection<E>
-                           implements Deque<E>, Cloneable, Serializable
+public class ArrayDeque<E> extends AbstractCollection<E> implements Deque<E>, Cloneable, Serializable
 {
     /**
      * The array in which the elements of the deque are stored.
@@ -124,17 +118,18 @@ public class ArrayDeque<E> extends AbstractCollection<E>
      * @param numElements  the number of elements to hold
      */
     private void allocateElements(int numElements) {
-        int initialCapacity = MIN_INITIAL_CAPACITY;
+        int initialCapacity = MIN_INITIAL_CAPACITY;// 2^3
         // Find the best power of two to hold elements.
         // Tests "<=" because arrays aren't kept full.
         if (numElements >= initialCapacity) {
-            initialCapacity = numElements;
-            initialCapacity |= (initialCapacity >>>  1);
-            initialCapacity |= (initialCapacity >>>  2);
-            initialCapacity |= (initialCapacity >>>  4);
-            initialCapacity |= (initialCapacity >>>  8);
-            initialCapacity |= (initialCapacity >>> 16);
-            initialCapacity++;
+            initialCapacity = numElements;// eg: 2^3 = 0000 1000
+            initialCapacity |= (initialCapacity >>>  1);// eg: 0000 1000 | 0000 0100 = 0000 1100
+            initialCapacity |= (initialCapacity >>>  2);// eg: 0000 1100 | 0000 0011 = 0000 1111
+            initialCapacity |= (initialCapacity >>>  4);// eg: 0000 1111 | 0000 0000 = 0000 1111
+            initialCapacity |= (initialCapacity >>>  8);// eg: 0000 1111 | 0000 0000 = 0000 1111
+            initialCapacity |= (initialCapacity >>> 16);// eg: 0000 1111 | 0000 0000 = 0000 1111
+            initialCapacity++;// eg: 0000 1111 + 1 = 0001 0000 => 16
+            // => 右移这么位的目的是: 为了取得容纳CAP最高位且保证是2的幂次, 是保证求出的最高的那个1 在32位指定容量中最高位的那个1之前
 
             if (initialCapacity < 0)   // Too many elements, must back off
                 initialCapacity >>>= 1;// Good luck allocating 2 ^ 30 elements
@@ -348,6 +343,12 @@ public class ArrayDeque<E> extends AbstractCollection<E>
     }
 
     /**
+     * 20210522
+     * 删除此双端队列中指定元素的第一个匹配项（从头到尾遍历双端队列时）。 如果双端队列不包含元素，则它保持不变。
+     * 更正式地说，删除第一个元素{@code e}，以使{@code o.equals（e）}（如果存在这样的元素）。
+     * 如果此双端队列包含指定的元素（或者等效地，如果此双端队列由于调用而更改），则返回{@code true}。
+     */
+    /**
      * Removes the first occurrence of the specified element in this
      * deque (when traversing the deque from head to tail).
      * If the deque does not contain the element, it is unchanged.
@@ -375,6 +376,11 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         return false;
     }
 
+    /**
+     * 20210522
+     * 删除此双端队列中指定元素的最后一次出现（将双端队列从头到尾遍历时）。如果双端队列不包含元素，则它保持不变。 更正式地讲，删除最后一个元素{@code e}，
+     * 以使{@code o.equals（e）}（如果存在这样的元素）。 如果此双端队列包含指定的元素（或者等效地，如果此双端队列由于调用而更改），则返回{@code true}。
+     */
     /**
      * Removes the last occurrence of the specified element in this
      * deque (when traversing the deque from head to tail).
@@ -594,6 +600,10 @@ public class ArrayDeque<E> extends AbstractCollection<E>
         return head == tail;
     }
 
+    /**
+     * 返回此双端队列中的元素的迭代器。 元素将从头（头）到最后（尾）排序。
+     * 这与元素出队（通过连续调用{@link #remove}或弹出（通过连续调用{@link #pop}）的顺序相同。
+     */
     /**
      * Returns an iterator over the elements in this deque.  The elements
      * will be ordered from first (head) to last (tail).  This is the same

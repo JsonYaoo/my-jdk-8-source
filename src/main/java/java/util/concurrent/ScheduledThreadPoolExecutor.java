@@ -177,8 +177,7 @@ public class ScheduledThreadPoolExecutor
         return System.nanoTime();
     }
 
-    private class ScheduledFutureTask<V>
-            extends FutureTask<V> implements RunnableScheduledFuture<V> {
+    private class ScheduledFutureTask<V> extends FutureTask<V> implements RunnableScheduledFuture<V> {
 
         /** Sequence number to break ties FIFO */
         private final long sequenceNumber;
@@ -197,6 +196,10 @@ public class ScheduledThreadPoolExecutor
         /** The actual task to be re-enqueued by reExecutePeriodic */
         RunnableScheduledFuture<V> outerTask = this;
 
+        /**
+         * 20210523
+         * 索引到延迟队列中，以支持更快的取消。
+         */
         /**
          * Index into delay queue, to support faster cancellation.
          */
@@ -802,14 +805,27 @@ public class ScheduledThreadPoolExecutor
     }
 
     /**
+     * 20210523
+     * 专门的延迟队列。 为了与TPE声明进行网格划分，即使该类只能容纳RunnableScheduledFutures，也必须将其声明为BlockingQueue <Runnable>。
+     */
+    /**
      * Specialized delay queue. To mesh with TPE declarations, this
      * class must be declared as a BlockingQueue<Runnable> even though
      * it can only hold RunnableScheduledFutures.
      */
-    static class DelayedWorkQueue extends AbstractQueue<Runnable>
-        implements BlockingQueue<Runnable> {
+    static class DelayedWorkQueue extends AbstractQueue<Runnable> implements BlockingQueue<Runnable> {
 
+        /**
+         * 20210523
+         * A. 除了每个ScheduledFutureTask还将其索引记录到堆数组中之外，DelayedWorkQueue都基于基于堆的数据结构，如DelayQueue和PriorityQueue中的数据结构。
+         *    这样就消除了在取消时查找任务的需要，极大地加快了清除速度（从O（n）降到O（log n）），并减少了垃圾保留，否则将通过等待元素在清除之前上升到顶部而发生垃圾保留。
+         *    但是由于队列中还可能包含不是ScheduledFutureTasks的RunnableScheduledFuture，所以我们不能保证有这样的索引可用，在这种情况下，我们将退回到线性搜索。
+         *    （我们希望大多数任务不会被修饰，并且更快的案例会更加常见。）
+         * B. 所有堆操作必须记录索引更改-主要在siftUp和siftDown中。 删除后，任务的heapIndex设置为-1。 请注意，ScheduledFutureTasks最多可以在队列中出现一次
+         *    （对于其他类型的任务或工作队列，则不必为true），因此由heapIndex唯一标识。
+         */
         /*
+         * A.
          * A DelayedWorkQueue is based on a heap-based data structure
          * like those in DelayQueue and PriorityQueue, except that
          * every ScheduledFutureTask also records its index into the
@@ -824,6 +840,7 @@ public class ScheduledThreadPoolExecutor
          * most tasks will not be decorated, and that the faster cases
          * will be much more common.)
          *
+         * B.
          * All heap operations must record index changes -- mainly
          * within siftUp and siftDown. Upon removal, a task's
          * heapIndex is set to -1. Note that ScheduledFutureTasks can
@@ -833,11 +850,17 @@ public class ScheduledThreadPoolExecutor
          */
 
         private static final int INITIAL_CAPACITY = 16;
-        private RunnableScheduledFuture<?>[] queue =
-            new RunnableScheduledFuture<?>[INITIAL_CAPACITY];
+        private RunnableScheduledFuture<?>[] queue = new RunnableScheduledFuture<?>[INITIAL_CAPACITY];
         private final ReentrantLock lock = new ReentrantLock();
         private int size = 0;
 
+        /**
+         * 20210523
+         * 指定用于在队列开头等待任务的线程。 Leader-Follower模式的这种变体（http://www.cs.wustl.edu/~schmidt/POSA/POSA2/）用于最大程度地减少不必要的定时等待。
+         * 当某个线程成为领导者时，它仅等待下一个延迟过去，但是其他线程将无限期地等待。 引导线程必须在从take（）或poll（...）返回之前向其他线程发出信号，
+         * 除非其他线程成为过渡期间的引导者。 每当队列的开头被具有更早到期时间的任务替换时，领导字段将通过重置为null来无效，
+         * 并且会发出一些等待线程（但不一定是当前领导）的信号。 因此，等待线程必须准备好在等待时获得并失去领导能力。
+         */
         /**
          * Thread designated to wait for the task at the head of the
          * queue.  This variant of the Leader-Follower pattern
@@ -857,11 +880,19 @@ public class ScheduledThreadPoolExecutor
         private Thread leader = null;
 
         /**
+         * 20210523
+         * 当更新的任务在队列的开头可用时，或者在新的线程可能需要成为领导者时，会发出条件信号。
+         */
+        /**
          * Condition signalled when a newer task becomes available at the
          * head of the queue or a new thread may need to become leader.
          */
         private final Condition available = lock.newCondition();
 
+        /**
+         * 20210523
+         * 如果f是ScheduledFutureTask，则设置f的heapIndex。
+         */
         /**
          * Sets f's heapIndex if it is a ScheduledFutureTask.
          */
@@ -871,19 +902,27 @@ public class ScheduledThreadPoolExecutor
         }
 
         /**
+         * 20210523
+         * 筛选元素从底部开始添加到按堆排序的位置。 仅在保持锁定状态时呼叫。
+         */
+        /**
          * Sifts element added at bottom up to its heap-ordered spot.
          * Call only when holding lock.
          */
         private void siftUp(int k, RunnableScheduledFuture<?> key) {
             while (k > 0) {
-                int parent = (k - 1) >>> 1;
+                int parent = (k - 1) >>> 1;// (n-1)/2 => 父结点
                 RunnableScheduledFuture<?> e = queue[parent];
+                // 如果当前元素的值大于父结点, 则可以直接跳出循环
                 if (key.compareTo(e) >= 0)
                     break;
+
+                // 否则说明当前元素的值小于父结点, 则父结点插入当前位置, 当前位置走上父结点位置, 继续循环比较下一个父结点
                 queue[k] = e;
                 setIndex(e, k);
                 k = parent;
             }
+            // 插入当前元素, 经过了上面的调整, 该位置一定是符合小顶堆的位置(比上大时)
             queue[k] = key;
             setIndex(key, k);
         }
@@ -895,21 +934,29 @@ public class ScheduledThreadPoolExecutor
         private void siftDown(int k, RunnableScheduledFuture<?> key) {
             int half = size >>> 1;
             while (k < half) {
-                int child = (k << 1) + 1;
+                int child = (k << 1) + 1;// 左孩子: 2k + 1
                 RunnableScheduledFuture<?> c = queue[child];
-                int right = child + 1;
+                int right = child + 1;// 右孩子: 2k + 2
+                // 如果存在右孩子, 且左孩子比右孩子大, 则取右孩子(较小的一个)设置为待交换结点
                 if (right < size && c.compareTo(queue[right]) > 0)
                     c = queue[child = right];
+                // 如果当前元素的值比待交换结点的值还小, 说明当前元素的值已经是最小的了, 适合插入, 则退出循环
                 if (key.compareTo(c) <= 0)
                     break;
+                // 否则说明, 当前元素的值比左(右)孩子的大, 则带交换结点插入当前位置, 当前位置走下到待交换结点的位置, 继续循环比较新的左右孩子
                 queue[k] = c;
                 setIndex(c, k);
                 k = child;
             }
+            // 插入当前元素, 经过了上面的调整, 该位置一定是符合小顶堆的位置(比下小时)
             queue[k] = key;
             setIndex(key, k);
         }
 
+        /**
+         * 20210523
+         * 调整堆数组的大小。 仅在保持锁定状态时呼叫。
+         */
         /**
          * Resizes the heap array.  Call only when holding lock.
          */
@@ -1249,6 +1296,10 @@ public class ScheduledThreadPoolExecutor
             return new Itr(Arrays.copyOf(queue, size));
         }
 
+        /**
+         * 20210523
+         * 快照迭代器，可处理基础q数组的副本。
+         */
         /**
          * Snapshot iterator that works off copy of underlying q array.
          */

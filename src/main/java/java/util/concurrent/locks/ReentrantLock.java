@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -286,15 +261,33 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     }
 
     /**
+     * 20210523
+     * A. 除非当前线程为{@linkplain Thread＃interrupt interrupted}(即阻塞等待锁时可以被中断)，否则获取锁。
+     * B. 如果没有其他线程持有该锁，则获取该锁并立即返回，将锁保持计数设置为1。
+     * C. 如果当前线程已经持有此锁，则持有计数将增加一，并且该方法将立即返回。
+     * D. 如果锁是由另一个线程持有的，则出于线程调度目的，当前线程将被禁用，并处于休眠状态，直到发生以下两种情况之一：
+     *      1) 该锁是由当前线程获取的；
+     *      2) 或者 其他一些线程{@linkplain Thread＃interrupt interrupts}当前线程。
+     *    如果当前线程获取了锁，则锁保持计数将设置为1。如果当前线程：
+     *      1) 在进入此方法时已设置其中断状态；
+     *      2) 或者 在获取锁的过程中被{@linkplain Thread＃interrupt interrupted中断了，
+     *    然后抛出{@link InterruptedException}并清除当前线程的中断状态。
+     * E. 在此实现中，由于此方法是显式的中断点，因此优先于对中断的响应而不是正常或可重入的锁获取。
+     */
+    /**
+     * A.
      * Acquires the lock unless the current thread is
      * {@linkplain Thread#interrupt interrupted}.
      *
+     * B.
      * <p>Acquires the lock if it is not held by another thread and returns
      * immediately, setting the lock hold count to one.
      *
+     * C.
      * <p>If the current thread already holds this lock then the hold count
      * is incremented by one and the method returns immediately.
      *
+     * D.
      * <p>If the lock is held by another thread then the
      * current thread becomes disabled for thread scheduling
      * purposes and lies dormant until one of two things happens:
@@ -325,6 +318,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
      * then {@link InterruptedException} is thrown and the current thread's
      * interrupted status is cleared.
      *
+     * E.
      * <p>In this implementation, as this method is an explicit
      * interruption point, preference is given to responding to the
      * interrupt over normal or reentrant acquisition of the lock.

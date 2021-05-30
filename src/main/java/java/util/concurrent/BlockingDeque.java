@@ -37,10 +37,53 @@ package java.util.concurrent;
 import java.util.*;
 
 /**
+ * 20210523
+ * A. {@link Deque}额外支持阻塞操作，这些操作将在检索元素时等待双端队列变为非空，并在存储元素时等待双端队列中的空间可用。
+ * B. {@code BlockingDeque}方法有四种形式，它们以不同的方式处理操作，这些方法无法立即满足，但将来可能会满足：
+ *    一种抛出异常，
+ *    第二种返回一个特殊值（两种方法之一 null}或{@code false}，具体取决于操作），
+ *    第三个无限期阻塞当前线程，直到操作成功为止；
+ *    第四个阻塞仅一个给定的最大时间限制，然后再放弃。 下表总结了这些方法：
+ *                                                          Summary of BlockingDeque methods
+ *                                                          First Element (Head)
+ *          Throws exception	                 Special value	                              Blocks	                        Times out
+ * Insert	{@link #addFirst addFirst(e)}        {@link #offerFirst(Object) offerFirst(e)}    {@link #putFirst putFirst(e)}    {@link #offerFirst(Object, long, TimeUnit) offerFirst(e, time, unit)}
+ * Remove	{@link #removeFirst removeFirst()}   {@link #pollFirst pollFirst()}               {@link #takeFirst takeFirst()}   {@link #pollFirst(long, TimeUnit) pollFirst(time, unit)}
+ * Examine	{@link #getFirst getFirst()}         {@link #peekFirst peekFirst()}	              not applicable	               not applicable
+ *                                                          Last Element (Tail)
+ *          Throws exception	                 Special value	                              Blocks	                        Times out
+ * Insert	{@link #addLast addLast(e)}          {@link #offerLast(Object) offerLast(e)}      {@link #putLast putLast(e)}       {@link #offerLast(Object, long, TimeUnit) offerLast(e, time, unit)}
+ * Remove	{@link #removeLast() removeLast()}   {@link #pollLast() pollLast()}               {@link #takeLast takeLast()}      {@link #pollLast(long, TimeUnit) pollLast(time, unit)}
+ * Examine	{@link #getLast getLast()}           {@link #peekLast peekLast()}	              not applicable	                not applicable
+ * C. 像任何{@link BlockingQueue}一样，{@code BlockingDeque}是线程安全的，不允许使用null元素，并且可能（也可能不）受容量限制。
+ * D. {@code BlockingDeque}实现可以直接用作FIFO {@code BlockingQueue}。 如下表所示，从{@code BlockingQueue}接口继承的方法与{@code BlockingDeque}方法完全等效：
+ *                                              Comparison of BlockingQueue and BlockingDeque methods
+ *          {@code BlockingQueue} Method	                                Equivalent {@code BlockingDeque} Method
+ * Insert
+ *          {@link #add(Object) add(e)}                                     {@link #addLast(Object) addLast(e)}
+ *          {@link #offer(Object) offer(e)}                                 {@link #offerLast(Object) offerLast(e)}
+ *          {@link #put(Object) put(e)}                                     {@link #putLast(Object) putLast(e)}
+ *          {@link #offer(Object, long, TimeUnit) offer(e, time, unit)}     {@link #offerLast(Object, long, TimeUnit) offerLast(e, time, unit)}
+ * Remove
+ *          {@link #remove() remove()}                                      {@link #removeFirst() removeFirst()}
+ *          {@link #poll() poll()}                                          {@link #pollFirst() pollFirst()}
+ *          {@link #take() take()}                                          {@link #takeFirst() takeFirst()}
+ *          {@link #poll(long, TimeUnit) poll(time, unit)}                  {@link #pollFirst(long, TimeUnit) pollFirst(time, unit)}
+ * Examine
+ *          {@link #element() element()}                                    {@link #getFirst() getFirst()}
+ *          {@link #peek() peek()}                                          {@link #peekFirst() peekFirst()}
+ * E. 内存一致性影响：与其他并发集合一样，在将对象放入{@code BlockingDeque} <a href="package-summary.html#MemoryVisibility"> <i> happen-before </ i>之前，
+ *    线程中的操作。 </a>在另一个线程中从{@code BlockingDeque}访问或删除该元素之后执行的操作。
+ * F. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * A {@link Deque} that additionally supports blocking operations that wait
  * for the deque to become non-empty when retrieving an element, and wait for
  * space to become available in the deque when storing an element.
  *
+ * B.
  * <p>{@code BlockingDeque} methods come in four forms, with different ways
  * of handling operations that cannot be satisfied immediately, but may be
  * satisfied at some point in the future:
@@ -116,10 +159,12 @@ import java.util.*;
  *  </tr>
  * </table>
  *
+ * C.
  * <p>Like any {@link BlockingQueue}, a {@code BlockingDeque} is thread safe,
  * does not permit null elements, and may (or may not) be
  * capacity-constrained.
  *
+ * D.
  * <p>A {@code BlockingDeque} implementation may be used directly as a FIFO
  * {@code BlockingQueue}. The methods inherited from the
  * {@code BlockingQueue} interface are precisely equivalent to
@@ -182,6 +227,7 @@ import java.util.*;
  *  </tr>
  * </table>
  *
+ * E.
  * <p>Memory consistency effects: As with other concurrent
  * collections, actions in a thread prior to placing an object into a
  * {@code BlockingDeque}
@@ -189,6 +235,7 @@ import java.util.*;
  * actions subsequent to the access or removal of that element from
  * the {@code BlockingDeque} in another thread.
  *
+ * F.
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -314,8 +361,7 @@ public interface BlockingDeque<E> extends BlockingQueue<E>, Deque<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this deque
      */
-    boolean offerFirst(E e, long timeout, TimeUnit unit)
-        throws InterruptedException;
+    boolean offerFirst(E e, long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
      * Inserts the specified element at the end of this deque,
@@ -336,8 +382,7 @@ public interface BlockingDeque<E> extends BlockingQueue<E>, Deque<E> {
      * @throws IllegalArgumentException if some property of the specified
      *         element prevents it from being added to this deque
      */
-    boolean offerLast(E e, long timeout, TimeUnit unit)
-        throws InterruptedException;
+    boolean offerLast(E e, long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
      * Retrieves and removes the first element of this deque, waiting
@@ -370,8 +415,7 @@ public interface BlockingDeque<E> extends BlockingQueue<E>, Deque<E> {
      *         waiting time elapses before an element is available
      * @throws InterruptedException if interrupted while waiting
      */
-    E pollFirst(long timeout, TimeUnit unit)
-        throws InterruptedException;
+    E pollFirst(long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
      * Retrieves and removes the last element of this deque, waiting
@@ -386,8 +430,7 @@ public interface BlockingDeque<E> extends BlockingQueue<E>, Deque<E> {
      *         waiting time elapses before an element is available
      * @throws InterruptedException if interrupted while waiting
      */
-    E pollLast(long timeout, TimeUnit unit)
-        throws InterruptedException;
+    E pollLast(long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
      * Removes the first occurrence of the specified element from this deque.

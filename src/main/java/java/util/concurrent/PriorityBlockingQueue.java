@@ -1,25 +1,5 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
@@ -50,6 +30,36 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 
 /**
+ * 20210523
+ * A. 无界的{@linkplain BlockingQueue}阻塞队列，其使用与类{@link PriorityQueue}相同的排序规则，并提供阻塞检索操作。 尽管此队列在逻辑上是不受限制的，
+ *    但是尝试添加可能会由于资源耗尽而失败（导致{@code OutOfMemoryError}）。 此类不允许{@code null}元素。
+ *    依赖{@linkplain Comparable natural ordering}的优先级队列也不允许插入不可比较的对象（这样做会导致{@code ClassCastException}）。
+ * B. 此类及其迭代器实现{@link Collection}和{@link Iterator}接口的所有可选方法。 不保证方法{@link #iterator（）}中提供的Iterator以任何特定顺序遍历
+ *    PriorityBlockingQueue的元素。 如果需要有序遍历，请考虑使用{@code Arrays.sort（pq.toArray（））}。
+ *    同样，方法{@code rainTo}可以用于按优先级顺序删除部分或全部元素，并将它们放置在另一个集合中。
+ * C. 此类的操作不能保证具有相同优先级的元素的顺序。 如果需要执行排序，则可以定义使用辅助键来中断主优先级值中的联系的自定义类或比较器。
+ *    例如，这是一个将先进先出抢七规则应用到可比较元素的类。 要使用它，您将插入一个{@code new FIFOEntry（anEntry）}而不是一个普通的输入对象:
+ * class FIFOEntry<E extends Comparable<? super E>> implements Comparable<FIFOEntry<E>> {
+ *   static final AtomicLong seq = new AtomicLong(0);
+ *   final long seqNum;
+ *   final E entry;
+ *   public FIFOEntry(E entry) {
+ *     seqNum = seq.getAndIncrement();
+ *     this.entry = entry;
+ *   }
+ *   public E getEntry() { return entry; }
+ *   public int compareTo(FIFOEntry<E> other) {
+ *     int res = entry.compareTo(other.entry);
+ *     if (res == 0 && other.entry != this.entry)
+ *       res = (seqNum < other.seqNum ? -1 : 1);
+ *     return res;
+ *   }
+ * }}
+ * D. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * An unbounded {@linkplain BlockingQueue blocking queue} that uses
  * the same ordering rules as class {@link PriorityQueue} and supplies
  * blocking retrieval operations.  While this queue is logically
@@ -60,6 +70,7 @@ import java.util.function.Consumer;
  * non-comparable objects (doing so results in
  * {@code ClassCastException}).
  *
+ * B.
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.  The Iterator provided in method {@link
@@ -70,6 +81,7 @@ import java.util.function.Consumer;
  * can be used to <em>remove</em> some or all elements in priority
  * order and place them in another collection.
  *
+ * C.
  * <p>Operations on this class make no guarantees about the ordering
  * of elements with equal priority. If you need to enforce an
  * ordering, you can define custom classes or comparators that use a
@@ -97,6 +109,7 @@ import java.util.function.Consumer;
  *   }
  * }}</pre>
  *
+ * D.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -106,8 +119,7 @@ import java.util.function.Consumer;
  * @param <E> the type of elements held in this collection
  */
 @SuppressWarnings("unchecked")
-public class PriorityBlockingQueue<E> extends AbstractQueue<E>
-    implements BlockingQueue<E>, java.io.Serializable {
+public class PriorityBlockingQueue<E> extends AbstractQueue<E> implements BlockingQueue<E>, java.io.Serializable {
     private static final long serialVersionUID = 5595510919245408276L;
 
     /*
@@ -277,6 +289,10 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * 尝试增加数组以容纳至少一个其他元素（但通常会增加约50％），放弃（允许重试）争用（我们希望这种情况很少见）。 仅在保持锁定状态下拨打电话。
+     */
+    /**
      * Tries to grow array to accommodate at least one more element
      * (but normally expand by about 50%), giving up (allowing retry)
      * on contention (which we expect to be rare). Call only while
@@ -286,9 +302,13 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
      * @param oldCap the length of the array
      */
     private void tryGrow(Object[] array, int oldCap) {
+        // 这里必须先释放掉主锁的目的是为了提高性能：
+        // 因为如果不释放主锁，CAS失败而走到了Thread.yield()方法，将会导致线程持有主锁进入阻塞态，从而导致其他线程都工作不了；
+        // 但如果释放了锁，扩容期间，队列还是可以正常加减元素，直到扩容完成，重新获取主锁，复制元素到新数组，完成扩容
         lock.unlock(); // must release and then re-acquire main lock
         Object[] newArray = null;
         if (allocationSpinLock == 0 &&
+            // CAS操作：将自旋锁从0修改为1
             UNSAFE.compareAndSwapInt(this, allocationSpinLockOffset,
                                      0, 1)) {
             try {
@@ -298,13 +318,13 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
                 if (newCap - MAX_ARRAY_SIZE > 0) {    // possible overflow
                     int minCap = oldCap + 1;
                     if (minCap < 0 || minCap > MAX_ARRAY_SIZE)
-                        throw new OutOfMemoryError();
+                        throw new OutOfMemoryError();// 内存溢出校验
                     newCap = MAX_ARRAY_SIZE;
                 }
                 if (newCap > oldCap && queue == array)
                     newArray = new Object[newCap];
             } finally {
-                allocationSpinLock = 0;
+                allocationSpinLock = 0;// 还原自旋锁标志为0
             }
         }
         if (newArray == null) // back off if another thread is allocating
@@ -339,10 +359,18 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. 将项目x插入位置k，通过将x提升到树的上方直到其大于或等于其父级或成为根，从而保持堆不变。
+     * B. 简化并加快强制和比较。 比较版本和比较版本分为不同的方法，这些方法在其他方面是相同的。
+     *   （类似siftDown。）这些方法是静态的，以堆状态作为参数，以根据可能的比较器异常简化使用。
+     */
+    /**
+     * A.
      * Inserts item x at position k, maintaining heap invariant by
      * promoting x up the tree until it is greater than or equal to
      * its parent, or is the root.
      *
+     * B.
      * To simplify and speed up coercions and comparisons. the
      * Comparable and Comparator versions are separated into different
      * methods that are otherwise identical. (Similarly for siftDown.)
@@ -353,32 +381,45 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
      * @param x the item to insert
      * @param array the heap array
      */
+    // 没有指定比较器时, 使用自然排序筛选比较: 向上调整小顶堆, 直到有合适位置插入指定元素
     private static <T> void siftUpComparable(int k, T x, Object[] array) {
         Comparable<? super T> key = (Comparable<? super T>) x;
         while (k > 0) {
+            // 父结点序号 = (k - 1) / 2
             int parent = (k - 1) >>> 1;
             Object e = array[parent];
+            // 如果当前元素的值大于父结点, 则可以直接跳出循环
             if (key.compareTo((T) e) >= 0)
                 break;
+            // 否则说明当前元素的值小于父结点, 则父结点插入当前位置, 当前位置走上父结点位置, 继续循环比较下一个父结点
             array[k] = e;
             k = parent;
         }
+        // 插入当前元素, 经过了上面的调整, 该位置一定是符合小顶堆的位置(比上大时)
         array[k] = key;
     }
 
-    private static <T> void siftUpUsingComparator(int k, T x, Object[] array,
-                                       Comparator<? super T> cmp) {
+    // 有指定比较器时, 使用指定比较器进行筛选比较: 向上调整小顶堆, 直到有合适位置插入指定元素
+    private static <T> void siftUpUsingComparator(int k, T x, Object[] array, Comparator<? super T> cmp) {
         while (k > 0) {
+            // 父结点序号 = (k - 1) / 2
             int parent = (k - 1) >>> 1;
             Object e = array[parent];
+            // 如果当前元素的值大于父结点, 则可以直接跳出循环
             if (cmp.compare(x, (T) e) >= 0)
                 break;
+            // 否则说明当前元素的值小于父结点, 则父结点插入当前位置, 当前位置走上父结点位置, 继续循环比较下一个父结点
             array[k] = e;
             k = parent;
         }
+        // 插入当前元素, 经过了上面的调整, 该位置一定是符合小顶堆的位置(比上大时)
         array[k] = x;
     }
 
+    /**
+     * 20210523
+     * 在位置k插入项x，通过将树反复降级到x小于或等于其子级或为叶子，从而保持堆不变。
+     */
     /**
      * Inserts item x at position k, maintaining heap invariant by
      * demoting x down the tree repeatedly until it is less than or
@@ -389,63 +430,76 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
      * @param array the heap array
      * @param n heap size
      */
-    private static <T> void siftDownComparable(int k, T x, Object[] array,
-                                               int n) {
+    // 没有指定比较器时, 使用自然排序筛选比较: 向下调整小顶堆, 使得插入后, 当前树成为最小堆
+    // 参数解析: [当前根结点索引, 待插入元素, 原数组, 原数组长度]
+    private static <T> void siftDownComparable(int k, T x, Object[] array, int n) {
         if (n > 0) {
             Comparable<? super T> key = (Comparable<? super T>)x;
             int half = n >>> 1;           // loop while a non-leaf
             while (k < half) {
-                int child = (k << 1) + 1; // assume left child is least
+                int child = (k << 1) + 1; // assume left child is least 左孩子: 2k + 1
                 Object c = array[child];
-                int right = child + 1;
-                if (right < n &&
-                    ((Comparable<? super T>) c).compareTo((T) array[right]) > 0)
+                int right = child + 1;// 右孩子: 2k + 2
+                // 如果存在右孩子, 且左孩子比右孩子大, 则取右孩子(较小的一个)设置为待交换结点
+                if (right < n && ((Comparable<? super T>) c).compareTo((T) array[right]) > 0)
                     c = array[child = right];
+                // 如果当前元素的值比待交换结点的值还小, 说明当前元素的值已经是最小的了, 适合插入, 则退出循环
                 if (key.compareTo((T) c) <= 0)
                     break;
+                // 否则说明, 当前元素的值比左(右)孩子的大, 则带交换结点插入当前位置, 当前位置走下到待交换结点的位置, 继续循环比较新的左右孩子
                 array[k] = c;
                 k = child;
             }
+            // 插入当前元素, 经过了上面的调整, 该位置一定是符合小顶堆的位置(比下小时)
             array[k] = key;
         }
     }
 
-    private static <T> void siftDownUsingComparator(int k, T x, Object[] array,
-                                                    int n,
-                                                    Comparator<? super T> cmp) {
+    // 有指定比较器时, 使用指定比较器进行筛选比较: 向下调整小顶堆, 使得插入后, 当前树成为最小堆
+    // 参数解析: [当前根结点索引, 待插入元素, 原数组, 原数组长度, 指定的比较器]
+    private static <T> void siftDownUsingComparator(int k, T x, Object[] array, int n, Comparator<? super T> cmp) {
         if (n > 0) {
             int half = n >>> 1;
             while (k < half) {
-                int child = (k << 1) + 1;
+                int child = (k << 1) + 1;// 左孩子: 2k + 1
                 Object c = array[child];
-                int right = child + 1;
+                int right = child + 1;// 右孩子: 2k + 2
+                // 如果存在右孩子, 且左孩子比右孩子大, 则取右孩子(较小的一个)设置为待交换结点
                 if (right < n && cmp.compare((T) c, (T) array[right]) > 0)
                     c = array[child = right];
+                // 如果当前元素的值比待交换结点的值还小, 说明当前元素的值已经是最小的了, 适合插入, 则退出循环
                 if (cmp.compare(x, (T) c) <= 0)
                     break;
+                // 否则说明, 当前元素的值比左(右)孩子的大, 则带交换结点插入当前位置, 当前位置走下到待交换结点的位置, 继续循环比较新的左右孩子
                 array[k] = c;
                 k = child;
             }
+            // 插入当前元素, 经过了上面的调整, 该位置一定是符合小顶堆的位置(比下小时)
             array[k] = x;
         }
     }
 
     /**
+     * 20210523
+     * 在整个树中建立堆不变式（如上所述），不假设调用之前元素的顺序。
+     */
+    /**
      * Establishes the heap invariant (described above) in the entire tree,
      * assuming nothing about the order of the elements prior to the call.
      */
+    // 数组最小堆化
     private void heapify() {
         Object[] array = queue;
         int n = size;
-        int half = (n >>> 1) - 1;
+        int half = (n >>> 1) - 1;// n/2 - 1, 从最后一个非结点开始
         Comparator<? super E> cmp = comparator;
         if (cmp == null) {
-            for (int i = half; i >= 0; i--)
-                siftDownComparable(i, (E) array[i], array, n);
+            for (int i = half; i >= 0; i--)// 直到根结点, 经过调整后, 整个树就成为了最小堆
+                siftDownComparable(i, (E) array[i], array, n);// 自然排序
         }
         else {
             for (int i = half; i >= 0; i--)
-                siftDownUsingComparator(i, (E) array[i], array, n, cmp);
+                siftDownUsingComparator(i, (E) array[i], array, n, cmp);// 使用比较器
         }
     }
 
@@ -629,16 +683,19 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
         if (n == i) // removed last element
             array[i] = null;
         else {
-            E moved = (E) array[n];
-            array[n] = null;
+            E moved = (E) array[n];// 设置末尾结点为替代结点
+            array[n] = null;// 清空末尾结点
             Comparator<? super E> cmp = comparator;
             if (cmp == null)
-                siftDownComparable(i, moved, array, n);
+                siftDownComparable(i, moved, array, n);// 向下调整小顶堆, 使得替代结点的值插入后，当前树成为最小堆
             else
                 siftDownUsingComparator(i, moved, array, n, cmp);
+
+            // PriorityQueue.iterator#remove()才会触发下面代码
+            // 如果当前树的根结点的值为替代结点的值，说明当前数组有可能不是最小堆的结构
             if (array[i] == moved) {
                 if (cmp == null)
-                    siftUpComparable(i, moved, array);
+                    siftUpComparable(i, moved, array);// 所以接着向上调整小顶堆, 插入替代结点的值到合适位置
                 else
                     siftUpUsingComparator(i, moved, array, cmp);
             }
@@ -861,9 +918,16 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. 返回对该队列中的元素进行迭代的迭代器。 迭代器不会以任何特定顺序返回元素。
+     * B. 返回的迭代器是弱一致性的。
+     */
+    /**
+     * A.
      * Returns an iterator over the elements in this queue. The
      * iterator does not return the elements in any particular order.
      *
+     * B.
      * <p>The returned iterator is
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *

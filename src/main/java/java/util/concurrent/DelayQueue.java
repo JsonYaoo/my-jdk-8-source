@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -40,6 +15,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.*;
 
 /**
+ * 20210523
+ * A. {@code Delayed}元素的无界{@linkplain BlockingQueue}阻塞队列，其中的元素只能在其延迟到期后才能使用。 队列的头是该{@code Delayed}元素，其延迟在过去最远时过期。
+ *    如果没有延迟，则没有Head，{@code poll}将返回{@code null}。 当元素的{@code getDelay（TimeUnit.NANOSECONDS）}方法返回的值小于或等于零时，就会发生过期。
+ *    即使无法使用{@code take}或{@code poll}删除未过期的元素，也将它们视为普通元素。 例如，{@code size}方法返回已过期和未过期元素的计数。 此队列不允许使用null元素。
+ * B. 此类及其迭代器实现{@link Collection}和{@link Iterator}接口的所有可选方法。 不保证方法{@link #iterator（）}中提供的Iterator以任何特定顺序遍历DelayQueue的元素。
+ * C. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * An unbounded {@linkplain BlockingQueue blocking queue} of
  * {@code Delayed} elements, in which an element can only be taken
  * when its delay has expired.  The <em>head</em> of the queue is that
@@ -53,12 +38,14 @@ import java.util.*;
  * returns the count of both expired and unexpired elements.
  * This queue does not permit null elements.
  *
+ * B.
  * <p>This class and its iterator implement all of the
  * <em>optional</em> methods of the {@link Collection} and {@link
  * Iterator} interfaces.  The Iterator provided in method {@link
  * #iterator()} is <em>not</em> guaranteed to traverse the elements of
  * the DelayQueue in any particular order.
  *
+ * C.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -67,12 +54,18 @@ import java.util.*;
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
  */
-public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
-    implements BlockingQueue<E> {
+public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements BlockingQueue<E> {
 
     private final transient ReentrantLock lock = new ReentrantLock();
     private final PriorityQueue<E> q = new PriorityQueue<E>();
 
+    /**
+     * 20210523
+     * 指定用于等待队列开头的元素的线程。 Leader-Follower模式的这种变体（http://www.cs.wustl.edu/~schmidt/POSA/POSA2/）用于最大程度地减少不必要的定时等待。
+     * 当某个线程成为领导者时，它仅等待下一个延迟过去，但是其他线程将无限期地等待。 Leader线程必须在从take（）或poll（...）返回之前向其他线程发出信号，
+     * 除非其他线程成为过渡期间的Leader。 每当队列的开头被具有更早到期时间的元素替换时，leader字段都会被重置为null来使之无效，
+     * 并且会发出一些等待线程（但不一定是当前leader）的信号。 因此，等待线程必须准备好在等待时获得并失去领导能力。
+     */
     /**
      * Thread designated to wait for the element at the head of
      * the queue.  This variant of the Leader-Follower pattern
@@ -92,12 +85,20 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     private Thread leader = null;
 
     /**
+     * 20210523
+     * 当更新的元素在队列的开头可用或新的线程可能需要成为领导者时，会发出条件信号。
+     */
+    /**
      * Condition signalled when a newer element becomes available
      * at the head of the queue or a new thread may need to
      * become leader.
      */
     private final Condition available = lock.newCondition();
 
+    /**
+     * 20210523
+     * 创建一个新的{@code DelayQueue}，它最初是空的。
+     */
     /**
      * Creates a new {@code DelayQueue} that is initially empty.
      */
@@ -188,7 +189,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
             if (first == null || first.getDelay(NANOSECONDS) > 0)
                 return null;
             else
-                return q.poll();
+                return q.poll();// 队头有过期元素，则底层调用PriorityQueue#offer（）返回
         } finally {
             lock.unlock();
         }
@@ -208,19 +209,19 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
             for (;;) {
                 E first = q.peek();
                 if (first == null)
-                    available.await();
+                    available.await();// 阻塞等待队头有过期元素
                 else {
                     long delay = first.getDelay(NANOSECONDS);
                     if (delay <= 0)
-                        return q.poll();
-                    first = null; // don't retain ref while waiting
+                        return q.poll();// 队头有过期元素，则底层调用PriorityQueue#offer（）返回
+                    first = null; // don't retain ref while waiting // 等待时不要保留引用
                     if (leader != null)
-                        available.await();
+                        available.await();// 队头有Delay元素，但还没过期，继续等待信号
                     else {
                         Thread thisThread = Thread.currentThread();
                         leader = thisThread;
                         try {
-                            available.awaitNanos(delay);
+                            available.awaitNanos(delay);// 阻塞等待delay毫秒后，自旋重新poll（）
                         } finally {
                             if (leader == thisThread)
                                 leader = null;
@@ -230,7 +231,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
             }
         } finally {
             if (leader == null && q.peek() != null)
-                available.signal();
+                available.signal();// 如果队头存在Delay元素，则发出队头可用信号，唤醒等待线程
             lock.unlock();
         }
     }
@@ -256,20 +257,21 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
                     if (nanos <= 0)
                         return null;
                     else
-                        nanos = available.awaitNanos(nanos);
+                        nanos = available.awaitNanos(nanos);// 阻塞等待delay毫秒后，自旋重新poll（）
                 } else {
                     long delay = first.getDelay(NANOSECONDS);
                     if (delay <= 0)
-                        return q.poll();
+                        return q.poll();// 队头有过期元素，则底层调用PriorityQueue#offer（）返回
                     if (nanos <= 0)
                         return null;
-                    first = null; // don't retain ref while waiting
+                    first = null; // don't retain ref while waiting// 等待时不要保留引用
                     if (nanos < delay || leader != null)
-                        nanos = available.awaitNanos(nanos);
+                        nanos = available.awaitNanos(nanos);// 队头有Delay元素，但还没过期，继续等待信号
                     else {
                         Thread thisThread = Thread.currentThread();
                         leader = thisThread;
                         try {
+                            // 阻塞等待delay毫秒后，自旋重新poll（）
                             long timeLeft = available.awaitNanos(delay);
                             nanos -= delay - timeLeft;
                         } finally {
@@ -281,7 +283,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
             }
         } finally {
             if (leader == null && q.peek() != null)
-                available.signal();
+                available.signal();// 如果队头存在Delay元素，则发出队头可用信号，唤醒等待线程
             lock.unlock();
         }
     }
@@ -508,10 +510,17 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     }
 
     /**
+     * 20210523
+     * A. 返回此队列中所有元素（已过期和未过期）的迭代器。 迭代器不会以任何特定顺序返回元素。
+     * B. 返回的迭代器是弱一致性的。
+     */
+    /**
+     * A.
      * Returns an iterator over all the elements (both expired and
      * unexpired) in this queue. The iterator does not return the
      * elements in any particular order.
      *
+     * B.
      * <p>The returned iterator is
      * <a href="package-summary.html#Weakly"><i>weakly consistent</i></a>.
      *
@@ -521,6 +530,10 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         return new Itr(toArray());
     }
 
+    /**
+     * 20210523
+     * 快照迭代器，可处理基础q数组的副本。
+     */
     /**
      * Snapshot iterator that works off copy of underlying q array.
      */

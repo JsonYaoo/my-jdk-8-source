@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -450,14 +425,23 @@ public interface Condition {
     boolean awaitUntil(Date deadline) throws InterruptedException;
 
     /**
+     * 20210523
+     * A. 唤醒一个等待线程。
+     * B. 如果有任何线程在这种情况下等待，则选择一个线程进行唤醒。 然后，该线程必须重新获取锁，然后才能从{@code await}返回。
+     * C. 实施注意事项: 当调用此方法时，实现可能（并且通常确实）要求当前线程持有与此{@code Condition}关联的锁。 实现必须记录此前提条件，以及如果未持有该锁，
+     *    则应采取的任何措施。 通常，将引发诸如{@link IllegalMonitorStateException}之类的异常。
+     */
+    /**
+     * A.
      * Wakes up one waiting thread.
      *
+     * B.
      * <p>If any threads are waiting on this condition then one
      * is selected for waking up. That thread must then re-acquire the
      * lock before returning from {@code await}.
      *
+     * C.
      * <p><b>Implementation Considerations</b>
-     *
      * <p>An implementation may (and typically does) require that the
      * current thread hold the lock associated with this {@code
      * Condition} when this method is called. Implementations must
