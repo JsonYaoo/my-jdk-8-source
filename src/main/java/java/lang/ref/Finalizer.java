@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang.ref;
@@ -31,6 +11,10 @@ import sun.misc.JavaLangAccess;
 import sun.misc.SharedSecrets;
 import sun.misc.VM;
 
+/**
+ * 20210614
+ * 包-私有； 必须与 Reference 类在同一个包中
+ */
 final class Finalizer extends FinalReference<Object> { /* Package-private; must be in
                                                           same package as the Reference
                                                           class */
@@ -105,14 +89,24 @@ final class Finalizer extends FinalReference<Object> { /* Package-private; must 
         super.clear();
     }
 
-    /* Create a privileged secondary finalizer thread in the system thread
+    /**
+     * 20210614
+     * A. 在系统线程组中为给定的Runnable创建一个特权辅助终结器线程，并等待它完成。
+     * B. runFinalization 和 runFinalizersOnExit 都使用此方法。 前一种方法调用所有挂起的终结器，而如果启用了退出终结器，后一种方法会调用所有未调用的终结器。
+     * C. 这两种方法可以通过将它们的工作卸载到常规终结器线程并等待该线程完成来实现。然而，创建新线程的优点是它将这些方法的调用者与停滞或死锁的终结器线程隔离开来。
+     */
+    /*
+       A.
+       Create a privileged secondary finalizer thread in the system thread
        group for the given Runnable, and wait for it to complete.
 
+       B.
        This method is used by both runFinalization and runFinalizersOnExit.
        The former method invokes all pending finalizers, while the latter
        invokes all uninvoked finalizers if on-exit finalization has been
        enabled.
 
+       C.
        These two methods could have been implemented by offloading their work
        to the regular finalizer thread and waiting for that thread to finish.
        The advantage of creating a fresh thread, however, is that it insulates

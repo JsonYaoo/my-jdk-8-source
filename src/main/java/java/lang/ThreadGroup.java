@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1995, 2012, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -30,10 +10,18 @@ import java.util.Arrays;
 import sun.misc.VM;
 
 /**
+ * 20210613
+ * A. 一个线程组代表一组线程。 此外，一个线程组还可以包含其他线程组。 线程组形成一棵树，其中除了初始线程组之外的每个线程组都有一个父线程组。
+ * B. 一个线程可以访问关于它自己的线程组的信息，但不能访问关于它的线程组的父线程组或任何其他线程组的信息。
+ */
+/**
+ * A.
  * A thread group represents a set of threads. In addition, a thread
  * group can also include other thread groups. The thread groups form
  * a tree in which every thread group except the initial thread group
  * has a parent.
+ *
+ * B.
  * <p>
  * A thread is allowed to access information about its own thread
  * group, but not to access information about its thread group's
@@ -41,6 +29,12 @@ import sun.misc.VM;
  *
  * @author  unascribed
  * @since   JDK1.0
+ */
+
+/**
+ * 20210613
+ * 这段代码的锁定策略是尽可能只锁定树的一层，否则从底向上锁定。即从子线程组到父线程组。这样做的好处是限制了需要持有的锁定数量，特别是避免必须获取根线程组的锁（或全局锁），
+ * 这将成为具有许多线程组的多处理器系统上的争用源。此策略通常导致采取 线程组状态的快照并处理该快照，而不是在我们处理子线程时锁定线程组。
  */
 /* The locking strategy for this code is to try to lock only one level of the
  * tree wherever possible, but otherwise to lock from the bottom up.
@@ -53,8 +47,7 @@ import sun.misc.VM;
  * and working off of that snapshot, rather than holding the thread group locked
  * while we work on the children.
  */
-public
-class ThreadGroup implements Thread.UncaughtExceptionHandler {
+public class ThreadGroup implements Thread.UncaughtExceptionHandler {
     private final ThreadGroup parent;
     String name;
     int maxPriority;
@@ -147,8 +140,16 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     /**
+     * 20210613
+     * A. 返回此线程组的父级。
+     * B. 首先，如果parent不为null，则不带参数调用父线程组的checkAccess方法； 这可能会导致安全异常。
+     */
+    /**
+     * A.
      * Returns the parent of this thread group.
      * <p>
+     *
+     * B.
      * First, if the parent is not <code>null</code>, the
      * <code>checkAccess</code> method of the parent thread group is
      * called with no arguments; this may result in a security exception.
