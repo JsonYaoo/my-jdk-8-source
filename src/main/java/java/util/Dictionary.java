@@ -6,12 +6,13 @@
 package java.util;
 
 /**
- * 20201203
- * A. Dictionary类是任何类的抽象父类，例如Hashtable，它将键映射到值。每个键和值都是一个对象。在任何一个Dictionary对象中，每个键最多与一个值相关联。
- *    给定一个字典和一个键，可以查找相关联的元素。任何非空对象都可以用作键和值。
- * B. 通常，此类的实现应该使用equals方法来确定两个键是否相同。
- * C. 注意：这个类已过时。新的实现应该实现Map接口，而不是扩展这个类。
+ * 20210616
+ * A. Dictionary 类是任何类的抽象父类，例如 Hashtable，它将键映射到值。 每个键和每个值都是一个对象。 在任何一个 Dictionary 对象中，每个键最多与一个值相关联。
+ *    给定一个字典和一个键，可以查找相关的元素。 任何非null对象都可以用作键和值。
+ * B. 通常，此类的实现应使用equals方法来确定两个键是否相同。
+ * C. 注意：这个类已经过时了。 新的实现应该实现 Map 接口，而不是扩展这个类。
  */
+
 /**
  * A.
  * The <code>Dictionary</code> class is the abstract parent of any
@@ -38,12 +39,12 @@ package java.util;
  * @see     java.util.Hashtable
  * @since   JDK1.0
  */
-// 20201203 Dictionary类是任何类的抽象父类，例如Hashtable，它将键映射到值。 => 这个类已过时。新的实现应该实现Map接口，而不是扩展这个类。
 public abstract class Dictionary<K,V> {
+
     /**
-     * Sole constructor.  (For invocation by subclass constructors, typically
-     * implicit.)
+     * Sole constructor.  (For invocation by subclass constructors, typically implicit.)
      */
+    // 唯一的构造函数。 （对于子类构造函数的调用，通常是隐式的。）
     public Dictionary() {
     }
 
@@ -52,6 +53,7 @@ public abstract class Dictionary<K,V> {
      *
      * @return  the number of keys in this dictionary.
      */
+    // 返回此字典中的条目数（不同的键）。
     abstract public int size();
 
     /**
@@ -62,6 +64,7 @@ public abstract class Dictionary<K,V> {
      * @return  <code>true</code> if this dictionary maps no keys to values;
      *          <code>false</code> otherwise.
      */
+    // 测试此字典是否没有将键映射到值。 isEmpty 方法的一般约定是，当且仅当此字典不包含任何条目时，结果才为真。
     abstract public boolean isEmpty();
 
     /**
@@ -74,6 +77,7 @@ public abstract class Dictionary<K,V> {
      * @see     java.util.Dictionary#elements()
      * @see     java.util.Enumeration
      */
+    // 返回此字典中键的枚举。 keys方法的一般约定是返回一个Enumeration对象，该对象将生成此字典包含条目的所有键。
     abstract public Enumeration<K> keys();
 
     /**
@@ -86,6 +90,7 @@ public abstract class Dictionary<K,V> {
      * @see     java.util.Dictionary#keys()
      * @see     java.util.Enumeration
      */
+    // 返回此字典中值的枚举。元素方法的一般约定是返回一个枚举，它将生成此字典中条目中包含的所有元素。
     abstract public Enumeration<V> elements();
 
     /**
@@ -101,12 +106,22 @@ public abstract class Dictionary<K,V> {
      * @exception NullPointerException if the <tt>key</tt> is <tt>null</tt>.
      * @see     java.util.Dictionary#put(java.lang.Object, java.lang.Object)
      */
+    // 返回此字典中键映射到的值。 get方法的一般约定是，如果此字典包含指定键的条目，则返回关联的值； 否则，返回 null。
     abstract public V get(Object key);
 
     /**
+     * 20210616
+     * A. 将指定的键映射到此字典中的指定值。 键和值都不能为null。
+     * B. 如果此字典已包含指定键的条目，则在修改条目以包含新元素后，将返回此字典中该键的已有值。 如果此字典还没有指定键的条目，则为指定的键和值创建一个条目，并返回 null。
+     * C. 可以通过使用与原始键相等的键调用 get 方法来检索该值。
+     */
+    /**
+     * A.
      * Maps the specified <code>key</code> to the specified
      * <code>value</code> in this dictionary. Neither the key nor the
      * value can be <code>null</code>.
+     *
+     * B.
      * <p>
      * If this dictionary already contains an entry for the specified
      * <tt>key</tt>, the value already in this dictionary for that
@@ -115,6 +130,8 @@ public abstract class Dictionary<K,V> {
      *  for the specified <tt>key</tt>, an entry is created for the
      *  specified <tt>key</tt> and <tt>value</tt>, and <tt>null</tt> is
      *  returned.
+     *
+     * C.
      * <p>
      * The <code>value</code> can be retrieved by calling the
      * <code>get</code> method with a <code>key</code> that is equal to
@@ -143,5 +160,6 @@ public abstract class Dictionary<K,V> {
      *          mapping.
      * @exception NullPointerException if <tt>key</tt> is <tt>null</tt>.
      */
+    // 从此字典中删除键（及其相应的值）。 如果键不在此字典中，则此方法不执行任何操作。
     abstract public V remove(Object key);
 }

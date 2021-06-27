@@ -6,13 +6,13 @@
 package java.util;
 
 /**
- * 20201205
- * A. 实现Enumeration接口的对象生成一系列元素，一次生成一个。 连续调用nextElement方法将返回该系列的连续元素。
- * B. 例如，要打印Vector <E> v的所有元素：
- *      a. for (Enumeration&lt;E&gt; e = v.elements(); e.hasMoreElements();)
- *              System.out.println(e.nextElement());
- * C. 提供了一些方法来枚举向量的元素，哈希表的键以及哈希表中的值。 枚举还用于指定SequenceInputStream的输入流
- * D. 注意：此接口的功能由Iterator接口复制。 此外，Iterator添加了可选的remove操作，并且具有较短的方法名称。 新的实现应优先考虑使用Iterator而不是Enumeration。
+ * 20210616
+ * A. 实现 Enumeration 接口的对象一次生成一系列元素。 对nextElement方法的连续调用将返回系列的连续元素。
+ * B. 例如，要打印 a 的所有元素 Vector<E> v:
+ *      for (Enumeration<E> e = v.elements(); e.hasMoreElements();)
+ *          System.out.println(e.nextElement());
+ * C. 提供了方法来枚举向量的元素、哈希表的键和哈希表中的值。 枚举也用于指定SequenceInputStream的输入流。
+ * D. 注意：此接口的功能由Iterator接口复制。此外，Iterator 添加了一个可选的删除操作，并具有较短的方法名称。新的实现应该考虑使用Iterator而不是Enumeration。
  */
 /**
  * A.
@@ -54,7 +54,6 @@ package java.util;
  * @author  Lee Boynton
  * @since   JDK1.0
  */
-// 20201205 实现Enumeration接口的对象生成一系列元素，一次生成一个。 连续调用nextElement方法将返回该系列的连续元素。
 public interface Enumeration<E> {
     /**
      * Tests if this enumeration contains more elements.

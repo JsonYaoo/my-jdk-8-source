@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -31,12 +11,43 @@ import java.util.function.Function;
 import java.io.Serializable;
 
 /**
+ * 20210530
+ * A. 将键映射到值的对象。 映射不能包含重复的键； 每个键最多可以映射到一个值。
+ * B. 这个接口取代了Dictionary 类，它是一个完全抽象的类，而不是一个接口。
+ * C. Map接口提供了三个集合视图，允许将地图的内容视为一组键、一组值或一组键值映射。 Map的顺序定义为Map集合视图上的迭代器返回其元素的顺序。 一些Map实现，
+ *    如 TreeMap 类，对它们的顺序做出特定保证； 其他的，比如 HashMap 类，没有。
+ * D. 注意：如果将可变对象用作映射键，则必须非常小心。 如果在对象是映射中的键的情况下以影响等值比较的方式更改对象的值，则不会指定映射的行为。
+ *    此禁令的一个特殊情况是不允许映射将自身包含为键。 虽然允许映射将自身包含为值，但建议格外小心：在此类映射上不再明确定义 equals 和 hashCode 方法。
+ * E. 所有通用映射实现类都应该提供两个“标准”构造函数：一个 void（无参数）构造函数，它创建一个空映射，以及一个带有 Map 类型的单个参数的构造函数，
+ *    它创建一个具有相同键值的新映射映射作为其参数。 实际上，后一个构造函数允许用户复制任何映射，生成所需类的等效映射。
+ *    没有办法强制执行此建议（因为接口不能包含构造函数），但 JDK 中的所有通用映射实现都符合。
+ * F. 此接口中包含的“破坏性”方法，即修改它们操作的映射的方法，如果此映射不支持该操作，则指定为抛出 UnsupportedOperationException。 在这种情况下，
+ *    如果调用对Map没有影响，则这些方法可能会（但不是必需）引发UnsupportedOperationException。 例如，如果要“叠加”映射的映射为空，则在不可修改的映射上调用
+ *    {@link #putAll(Map)} 方法可能（但不是必需）抛出异常。
+ * G. 一些Map实现对它们可能包含的键和值有限制。例如，有些实现禁止空键和值，有些实现对其键的类型有限制。尝试插入不合格的键或值会引发未经检查的异常，
+ *    通常为NullPointerException 或 ClassCastException。 尝试查询不合格的键或值的存在可能会引发异常，或者它可能只是返回 false； 一些实现会表现出前一种行为，
+ *    而另一些会表现出后者。更一般地，尝试对不合格的键或值执行操作，其完成不会导致不合格的元素插入到映射中，可能会引发异常，也可能会成功，具体取决于实现的选择。
+ *    在此接口的规范中，此类异常被标记为“可选”。
+ * H. Collections Framework接口中的许多方法都是根据{@link Object#equals(Object) equals} 方法定义的。例如，
+ *    {@link #containsKey(Object) containsKey(Object key)}方法的规范说：“当且仅当此映射包含键 k 的映射使得(key==null ? k= =null：key.equals(k))。
+ *    ”本规范不应被解释为暗示使用非空参数键调用 Map.containsKey 将导致为任何键 k 调用 key.equals(k)。实现可以自由地实现优化，从而避免 equals 调用，
+ *    例如，通过首先比较两个键的哈希码。 （{@link Object#hashCode()} 规范保证哈希码不相等的两个对象不能相等。）更一般地说，各种集合框架接口的实现可以自由地利用底层
+ *    对象的指定行为在实现者认为合适的任何地方使用方法。
+ * I. 某些执行映射递归遍历的映射操作可能会失败，但映射直接或间接包含自身的自引用实例除外。 这包括 {@code clone()}、{@code equals()}、{@code hashCode()}
+ *     {@code toString()} 方法。 实现可以选择性地处理自引用场景，但是大多数当前的实现都没有这样做。
+ * J. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * An object that maps keys to values.  A map cannot contain duplicate keys;
  * each key can map to at most one value.
  *
+ * B.
  * <p>This interface takes the place of the <tt>Dictionary</tt> class, which
  * was a totally abstract class rather than an interface.
  *
+ * C.
  * <p>The <tt>Map</tt> interface provides three <i>collection views</i>, which
  * allow a map's contents to be viewed as a set of keys, collection of values,
  * or set of key-value mappings.  The <i>order</i> of a map is defined as
@@ -45,6 +56,7 @@ import java.io.Serializable;
  * specific guarantees as to their order; others, like the <tt>HashMap</tt>
  * class, do not.
  *
+ * D.
  * <p>Note: great care must be exercised if mutable objects are used as map
  * keys.  The behavior of a map is not specified if the value of an object is
  * changed in a manner that affects <tt>equals</tt> comparisons while the
@@ -54,6 +66,7 @@ import java.io.Serializable;
  * advised: the <tt>equals</tt> and <tt>hashCode</tt> methods are no longer
  * well defined on such a map.
  *
+ * E.
  * <p>All general-purpose map implementation classes should provide two
  * "standard" constructors: a void (no arguments) constructor which creates an
  * empty map, and a constructor with a single argument of type <tt>Map</tt>,
@@ -63,6 +76,7 @@ import java.io.Serializable;
  * enforce this recommendation (as interfaces cannot contain constructors) but
  * all of the general-purpose map implementations in the JDK comply.
  *
+ * F.
  * <p>The "destructive" methods contained in this interface, that is, the
  * methods that modify the map on which they operate, are specified to throw
  * <tt>UnsupportedOperationException</tt> if this map does not support the
@@ -72,6 +86,7 @@ import java.io.Serializable;
  * method on an unmodifiable map may, but is not required to, throw the
  * exception if the map whose mappings are to be "superimposed" is empty.
  *
+ * G.
  * <p>Some map implementations have restrictions on the keys and values they
  * may contain.  For example, some implementations prohibit null keys and
  * values, and some have restrictions on the types of their keys.  Attempting
@@ -86,6 +101,7 @@ import java.io.Serializable;
  * Such exceptions are marked as "optional" in the specification for this
  * interface.
  *
+ * H.
  * <p>Many methods in Collections Framework interfaces are defined
  * in terms of the {@link Object#equals(Object) equals} method.  For
  * example, the specification for the {@link #containsKey(Object)
@@ -103,6 +119,7 @@ import java.io.Serializable;
  * the specified behavior of underlying {@link Object} methods wherever the
  * implementor deems it appropriate.
  *
+ * I.
  * <p>Some map operations which perform recursive traversal of the map may fail
  * with an exception for self-referential instances where the map directly or
  * indirectly contains itself. This includes the {@code clone()},
@@ -110,6 +127,7 @@ import java.io.Serializable;
  * Implementations may optionally handle the self-referential scenario, however
  * most current implementations do not do so.
  *
+ * J.
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -131,6 +149,10 @@ public interface Map<K,V> {
     // Query Operations
 
     /**
+     * 20210530
+     * 返回此映射中键值映射的数量。 如果Map包含多个Integer.MAX_VALUE 元素，则返回Integer.MAX_VALUE。
+     */
+    /**
      * Returns the number of key-value mappings in this map.  If the
      * map contains more than <tt>Integer.MAX_VALUE</tt> elements, returns
      * <tt>Integer.MAX_VALUE</tt>.
@@ -140,12 +162,21 @@ public interface Map<K,V> {
     int size();
 
     /**
+     * 20210530
+     * 如果此映射不包含键值映射，则返回 true。
+     */
+    /**
      * Returns <tt>true</tt> if this map contains no key-value mappings.
      *
      * @return <tt>true</tt> if this map contains no key-value mappings
      */
     boolean isEmpty();
 
+    /**
+     * 20210530
+     * 如果此映射包含指定键的映射，则返回 true。 更正式地说，当且仅当此映射包含键 k 的映射使得 (key==null ? k==null : key.equals(k)) 时才返回 true。
+     * （最多可以有一个这样的映射。）
+     */
     /**
      * Returns <tt>true</tt> if this map contains a mapping for the specified
      * key.  More formally, returns <tt>true</tt> if and only if
@@ -773,9 +804,23 @@ public interface Map<K,V> {
     }
 
     /**
+     * 20210605
+     * A. 仅当当前映射到指定值时，才删除指定键的条目。
+     * B. 对于此 {@code map}，默认实现等效于：
+     * if (map.containsKey(key) && Objects.equals(map.get(key), value)) {
+     *     map.remove(key);
+     *     return true;
+     * } else
+     *     return false;
+     * }
+     * C. 默认实现不保证此方法的同步或原子性属性。 任何提供原子性保证的实现都必须覆盖此方法并记录其并发属性。
+     */
+    /**
+     * A.
      * Removes the entry for the specified key only if it is currently
      * mapped to the specified value.
      *
+     * B.
      * @implSpec
      * The default implementation is equivalent to, for this {@code map}:
      *
@@ -787,6 +832,7 @@ public interface Map<K,V> {
      *     return false;
      * }</pre>
      *
+     * C.
      * <p>The default implementation makes no guarantees about synchronization
      * or atomicity properties of this method. Any implementation providing
      * atomicity guarantees must override this method and document its
@@ -806,6 +852,7 @@ public interface Map<K,V> {
      *         (<a href="{@docRoot}/java/util/Collection.html#optional-restrictions">optional</a>)
      * @since 1.8
      */
+    // 删除key和value都equals的键值对
     default boolean remove(Object key, Object value) {
         Object curValue = get(key);
         if (!Objects.equals(curValue, value) ||

@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -707,6 +687,10 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
 
     }
 
+    /**
+     * 20210613
+     * 维护不可变键和值的条目。 此类不支持方法 setValue。 此类在返回键值映射的线程安全快照的方法中可能很方便。
+     */
     /**
      * An Entry maintaining an immutable key and value.  This class
      * does not support method <tt>setValue</tt>.  This class may be

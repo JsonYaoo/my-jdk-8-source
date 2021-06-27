@@ -1,33 +1,9 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
+
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -126,6 +102,7 @@ public class ThreadLocalRandom extends Random {
      */
 
     /** Generates per-thread initialization/probe field */
+    // 生成每线程初始化/探测字段
     private static final AtomicInteger probeGenerator =
         new AtomicInteger();
 
@@ -157,6 +134,7 @@ public class ThreadLocalRandom extends Random {
     /**
      * The increment for generating probe values
      */
+    // 生成探针值的增量
     private static final int PROBE_INCREMENT = 0x9e3779b9;
 
     /**
@@ -197,6 +175,11 @@ public class ThreadLocalRandom extends Random {
     /** The common ThreadLocalRandom */
     static final ThreadLocalRandom instance = new ThreadLocalRandom();
 
+    /**
+     * 20210621
+     * 为当前线程初始化线程字段。 仅在 Thread.threadLocalRandomProbe 为零时调用，表示需要生成线程本地种子值。
+     * 请注意，即使初始化纯粹是线程本地的，我们也需要依赖（静态）原子生成器来初始化值。
+     */
     /**
      * Initialize Thread fields for the current thread.  Called only
      * when Thread.threadLocalRandomProbe is zero, indicating that a
@@ -334,6 +317,7 @@ public class ThreadLocalRandom extends Random {
      *
      * @return a pseudorandom {@code int} value
      */
+    // 返回一个伪随机 {@code int} 值。
     public int nextInt() {
         return mix32(nextSeed());
     }
@@ -972,6 +956,10 @@ public class ThreadLocalRandom extends Random {
      * these methods also appear in some subpackage classes.
      */
 
+    /**
+     * 20210620
+     * 返回当前线程的探测值而不强制初始化。 请注意，调用 ThreadLocalRandom.current() 可用于强制初始化为零返回。
+     */
     /**
      * Returns the probe value for the current thread without forcing
      * initialization. Note that invoking ThreadLocalRandom.current()

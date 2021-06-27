@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 package java.lang;
 
@@ -530,6 +510,10 @@ public final class System {
                                         Object dest, int destPos,
                                         int length);
 
+    /**
+     * 20210605
+     * 为给定对象返回与默认方法 hashCode() 返回的相同的哈希码，无论给定对象的类是否覆盖 hashCode()。 空引用的哈希码为零。
+     */
     /**
      * Returns the same hash code for the given object as
      * would be returned by the default method hashCode(),

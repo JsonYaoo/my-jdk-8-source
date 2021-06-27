@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.lang;
@@ -1372,12 +1352,21 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     /**
+     * 20210619
+     * A. 返回指定 {@code int} 值的二进制补码表示中最高位（“最左边”）一位之前的零位数。 如果指定值在其二进制补码表示中没有一位，换句话说，如果它等于 0，则返回 32。
+     * B. 请注意，此方法与以 2 为底的对数密切相关。对于所有正 {@code int} 值 x：
+     *      a. floor(log2(x)) = {@code 31 - numberOfLeadingZeros(x)}
+     *      b. ceil(log2(x)) = {@code 32 - numberOfLeadingZeros(x - 1)}
+     */
+    /**
+     * A.
      * Returns the number of zero bits preceding the highest-order
      * ("leftmost") one-bit in the two's complement binary representation
      * of the specified {@code int} value.  Returns 32 if the
      * specified value has no one-bits in its two's complement representation,
      * in other words if it is equal to zero.
      *
+     * B.
      * <p>Note that this method is closely related to the logarithm base 2.
      * For all positive {@code int} values x:
      * <ul>
@@ -1385,23 +1374,40 @@ public final class Integer extends Number implements Comparable<Integer> {
      * <li>ceil(log<sub>2</sub>(x)) = {@code 32 - numberOfLeadingZeros(x - 1)}
      * </ul>
      *
+     * // 要计算其前导零数量的值
      * @param i the value whose number of leading zeros is to be computed
+     *
+     * // 指定 {@code int} 值的二进制补码表示中最高位（“最左边”）一位之前的零位数，如果该值等于零，则为 32。
      * @return the number of zero bits preceding the highest-order
      *     ("leftmost") one-bit in the two's complement binary representation
      *     of the specified {@code int} value, or 32 if the value
      *     is equal to zero.
      * @since 1.5
      */
+    // 返回二进制补码最高位前的为零的位数, 比如10的二进制表示为 0000 0000 0000 0000 0000 0000 0000 1010, 则返回28
     public static int numberOfLeadingZeros(int i) {
         // HD, Figure 5-6
         if (i == 0)
             return 32;
+
+        // 为什么是1呢？因为如果i不是0，那么就表明在二进制表示中其至少有一位为1
         int n = 1;
+
+        // 如果 i 无符号右移 16位成立，那么就表示i的前16为0，这是就可以对n进行+16(32-16)的操作，然后，再将i左移16位，这个主要是将低位的数值移到高位去进行处理
         if (i >>> 16 == 0) { n += 16; i <<= 16; }
+
+        // 如果 i 无符号右移 24位成立，那么就表示前24位为0，这时就可以对n进行+8操作(加8操作的来源是：32 - 24 得来的)，接着将i左移8位，这样就把24位的0覆盖掉，将低位数字移到高位来进行处理
         if (i >>> 24 == 0) { n +=  8; i <<=  8; }
+
+        // 一样的逻辑来进行处理（加4的来源是：32-28）
         if (i >>> 28 == 0) { n +=  4; i <<=  4; }
+
+        // 一样的逻辑（加2的来源是：32-30）
         if (i >>> 30 == 0) { n +=  2; i <<=  2; }
+
+        // 判断第一个非零值是否位于左边第一位
         n -= i >>> 31;
+
         return n;
     }
 

@@ -12,38 +12,34 @@ import java.util.function.Function;
 import java.util.function.BiFunction;
 
 /**
- * 20201203
- * A. 这个类实现了一个哈希表，它将键映射到值。任何非空对象都可以用作键或值。
- * B. 要成功地从哈希表中存储和检索对象，用作键的对象必须实现hashCode方法和equals方法。
- * C. Hashtable的实例有两个影响其pe的参数性能：初始容量以及荷载系数。capacity是哈希表中的bucket数，初始容量就是创建哈希表时的容量。注意哈希表是打开的：
- *    在“哈希冲突”的情况下，一个bucket存储多个条目，必须按顺序搜索。加载因子是一个度量哈希表在容量自动增加之前可以达到的完整程度。初始容量和负载系数参数只是对实现的提示。
- *    关于何时以及是否调用rehash方法的确切细节取决于实现。
- * D. 通常，默认的负载系数（0.75）在时间和空间成本之间提供了很好的折衷。较高的值会减少空间开销，但会增加查找条目的时间开销（这反映在大多数哈希表操作中，包括get和put）。
- * E. 初始容量控制着浪费的空间和需要重新处理的操作之间的权衡，这是非常耗时的。如果初始容量大于哈希表将包含的最大条目数除以其负载因子，则不会发生任何重新哈希操作。
- *    但是，将初始容量设置得过高会浪费空间。
- * F. 如果要在哈希表中创建多个条目，那么以足够大的容量创建哈希表可能会比让哈希表根据需要执行自动重新哈希来增加表更有效地插入这些条目。
- * G. 这个例子创建了一个数字哈希表。它使用数字的名称作为键：
- *      a. {@code
- *              Hashtable<String, Integer> numbers = new Hashtable<String, Integer>();
- *              numbers.put("one", 1);
- *              numbers.put("two", 2);
- *              numbers.put("three", 3);
- *         }
- *      b. 要检索数字，请使用以下代码：
- *          {@code
- *              Integer n = numbers.get("two");
- *              if (n != null) {
- *                  System.out.println("two = " + n);
- *              }
- *          }
- * H. 这个类的所有“集合视图方法”返回的集合的迭代器方法返回的迭代器是快速失败的：如果在迭代器创建之后的任何时候，以任何方式（除了通过迭代器自己的remove方法）修改哈希表，
- *    迭代器将抛出{@link ConcurrentModificationException}。因此，在并发修改的情况下，迭代器会迅速而彻底地失败，而不是在将来某个不确定的时间冒着任意的、不确定的行为
- *    的风险。Hashtable的keys和elements方法返回的枚举不是fail fast。
- * I. 注意，迭代器的fail-fast行为不能得到保证，因为一般来说，在存在不同步的并发修改时，不可能做出任何硬保证。Fail fast迭代器尽最大努力抛出ConcurrentModificationException。
- *    因此，编写一个依赖于这个异常来保证其正确性的程序是错误的：迭代器的fail-fast行为应该只用于检测bug。
- * J. 在Java2平台v1.2中，这个类被改造为实现{@link Map}接口，使其成为<a href=“{@docRoot}/./technonotes/guides/collections”的成员/索引.html“>Java集合框架</a>。
- *    与新的集合实现不同，{@code Hashtable}是同步的。如果不需要线程安全实现，建议使用{@link hashmap}代替{@code Hashtable}。如果需要线程安全的高并发实现，
- *    那么建议使用{@link java.util.concurrent.ConcurrentHashMap}代替{@code Hashtable}。
+ * 20210616
+ * A. 这个类实现了一个哈希表，它将键映射到值。 任何非null对象都可以用作键或值。
+ * B. 要从哈希表中成功存储和检索对象，用作键的对象必须实现 hashCode 方法和 equals 方法。
+ * C. Hashtable 的实例有两个影响其性能的参数：初始容量和负载因子。 容量是哈希表中的桶数，初始容量就是哈希表创建时的容量。
+ *    请注意哈希表是开放的：在“哈希冲突”的情况下，单个存储桶存储多个条目，必须顺序搜索。 负载因子是衡量哈希表在其容量自动增加之前允许达到多满的指标。
+ *    初始容量和负载因子参数只是对实现的提示。关于何时以及是否调用rehash方法的确切细节取决于实现。
+ * D. 通常，默认负载因子(0.75) 在时间和空间成本之间提供了很好的权衡。 较高的值会减少空间开销，但会增加查找条目的时间成本（这反映在大多数 Hashtable 操作中，包括 get 和 put）。
+ * E. 初始容量控制浪费空间和需要重新哈希操作之间的权衡，这很耗时。 如果初始容量大于Hashtable将包含的最大条目数除以其负载因子，则不会发生重新哈希操作。
+ *    但是，将初始容量设置得太高会浪费空间。
+ * F. 如果要将许多条目放入Hashtable，创建具有足够大容量的条目可以比让它根据需要执行自动重新散列来更有效地插入条目以增加表。
+ * G. 此示例创建一个数字哈希表。 它使用数字的名称作为键：
+ *      Hashtable<String, Integer> numbers = new Hashtable<String, Integer>();
+ *      numbers.put("one", 1);
+ *      numbers.put("two", 2);
+ *      numbers.put("three", 3);
+ *    要检索数字，请使用以下代码：
+ *      Integer n = numbers.get("two");
+ *      if (n != null) {
+ *          System.out.println("two = " + n);
+ *      }
+ * H. 该类的所有“集合视图方法”返回的集合的迭代器方法返回的迭代器是快速失败的：如果在迭代器创建后的任何时间对 Hashtable 进行结构修改，除了通过迭代器自己的 remove 方法，
+ *    迭代器将抛出一个 {@link ConcurrentModificationException}。 因此，面对并发修改，迭代器快速而干净地失败，而不是冒着在未来不确定的时间出现任意、
+ *    非确定性行为的风险。Hashtable 的键和元素方法返回的枚举不是快速失败的。
+ * I. 请注意，无法保证迭代器的快速失败行为，因为一般而言，在存在非同步并发修改的情况下不可能做出任何硬保证。 快速失败的迭代器会在尽力而为的基础上抛出
+ *    ConcurrentModificationException。因此，编写依赖此异常来确保其正确性的程序是错误的：迭代器的快速失败行为应该仅用于检测错误。
+ * J. 从Java 2平台v1.2 开始，该类经过改造以实现{@link Map} 接口，使其成为a href="{@docRoot}/../technotes/guides/collections/index.html">Java 集合框架</a>。
+ *    与新的集合实现不同，{@code Hashtable} 是同步的。如果不需要线程安全的实现，建议使用 {@link HashMap} 代替 {@code Hashtable}。 如果需要线程安全的高并发实现，
+ *    则建议使用 {@link java.util.concurrent.ConcurrentHashMap} 代替 {@code Hashtable}。
  */
 /**
  * A.
@@ -150,19 +146,18 @@ import java.util.function.BiFunction;
  * @see     TreeMap
  * @since JDK1.0
  */
-// 20201203 这个类实现了一个哈希表，它将键映射到值。任何非空对象都可以用作键或值。
-// 20201203 如果不需要线程安全实现，建议使用{@link hashmap}代替{@code Hashtable}。
-// 20201203 如果需要线程安全的高并发实现，那么建议使用{@link java.util.concurrent.ConcurrentHashMap}代替{@code Hashtable}。
 public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneable, java.io.Serializable {
 
     /**
      * The hash table data.
      */
+    // 哈希表数据。
     private transient Entry<?,?>[] table;
 
     /**
      * The total number of entries in the hash table.
      */
+    // 哈希表中的条目总数。
     private transient int count;
 
     /**
@@ -171,6 +166,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      *
      * @serial
      */
+    // 当表的大小超过此阈值时，将重新散列该表。（该字段的值为(int)(capacity * loadFactor））
     private int threshold;
 
     /**
@@ -178,8 +174,14 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      *
      * @serial
      */
+    // 哈希表的负载因子。
     private float loadFactor;
 
+    /**
+     * 20210617
+     * 此Hashtable被结构修改的次数结构修改是更改Hashtable中的条目数或以其他方式修改其内部结构（例如，重新散列）。
+     * 该字段用于在Hashtable的Collection-views上创建迭代器快速失败。（请参阅 ConcurrentModificationException）。
+     */
     /**
      * The number of times this Hashtable has been structurally modified
      * Structural modifications are those that change the number of entries in
@@ -190,6 +192,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
     private transient int modCount = 0;
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
+    // 使用 JDK 1.0.2中的serialVersionUID实现互操作性
     private static final long serialVersionUID = 1421746759512286392L;
 
     /**
@@ -201,6 +204,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * @exception  IllegalArgumentException  if the initial capacity is less
      *             than zero, or if the load factor is nonpositive.
      */
+    // 使用指定的初始容量和指定的负载因子构造一个新的空哈希表。
     public Hashtable(int initialCapacity, float loadFactor) {
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal Capacity: "+
@@ -223,6 +227,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * @exception IllegalArgumentException if the initial capacity is less
      *              than zero.
      */
+    // 使用指定的初始容量和默认加载因子 (0.75) 构造一个新的空哈希表。
     public Hashtable(int initialCapacity) {
         this(initialCapacity, 0.75f);
     }
@@ -231,6 +236,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * Constructs a new, empty hashtable with a default initial capacity (11)
      * and load factor (0.75).
      */
+    // 构造一个具有默认初始容量 (11) 和负载因子 (0.75) 的新的空哈希表。
     public Hashtable() {
         this(11, 0.75f);
     }
@@ -244,6 +250,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * @throws NullPointerException if the specified map is null.
      * @since   1.2
      */
+    // 构造一个与给定 Map 具有相同映射的新哈希表。 哈希表的初始容量足以容纳给定 Map 中的映射和默认负载因子 (0.75)。
     public Hashtable(Map<? extends K, ? extends V> t) {
         this(Math.max(2*t.size(), 11), 0.75f);
         putAll(t);
@@ -367,9 +374,17 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
     }
 
     /**
+     * 20210617
+     * A. 返回指定键映射到的值，如果此映射不包含键的映射，则返回 {@code null}。
+     * B. 更正式地说，如果此映射包含从键 {@code k} 到值 {@code v} 的映射，使得 {@code (key.equals(k))}，则此方法返回 {@code v}； 否则返回 {@code null}。
+     *   （最多可以有一个这样的映射。）
+     */
+    /**
+     * A.
      * Returns the value to which the specified key is mapped,
      * or {@code null} if this map contains no mapping for the key.
      *
+     * B.
      * <p>More formally, if this map contains a mapping from a key
      * {@code k} to a value {@code v} such that {@code (key.equals(k))},
      * then this method returns {@code v}; otherwise it returns
@@ -382,18 +397,27 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * @see     #put(Object, Object)
      */
     @SuppressWarnings("unchecked")
+    // 返回指定键映射到的值，如果此映射不包含键的映射，则返回 {@code null}
     public synchronized V get(Object key) {
         Entry<?,?> tab[] = table;
         int hash = key.hashCode();
         int index = (hash & 0x7FFFFFFF) % tab.length;
+
+        // 遍历index桶链表, 如果hash值相等且key相等, 说明找到了对应结点, 则返回该结点的value值
         for (Entry<?,?> e = tab[index] ; e != null ; e = e.next) {
             if ((e.hash == hash) && e.key.equals(key)) {
                 return (V)e.value;
             }
         }
+
+        // 如果确实找不到对应结点, 则返回null
         return null;
     }
 
+    /**
+     * 20210617
+     * 要分配的数组的最大大小。某些 VM 在数组中保留一些头字。尝试分配更大的数组可能会导致 OutOfMemoryError：请求的数组大小超出 VM 限制
+     */
     /**
      * The maximum size of array to allocate.
      * Some VMs reserve some header words in an array.
@@ -403,6 +427,10 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     /**
+     * 20210617
+     * 增加此哈希表的容量并在内部重新组织此哈希表，以便更有效地容纳和访问其条目。 当哈希表中的键数超过此哈希表的容量和负载因子时，将自动调用此方法。
+     */
+    /**
      * Increases the capacity of and internally reorganizes this
      * hashtable, in order to accommodate and access its entries more
      * efficiently.  This method is called automatically when the
@@ -410,29 +438,32 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * and load factor.
      */
     @SuppressWarnings("unchecked")
+    // 如果超过阈值，则扩容散列表, 并重新计算每个结点的hash索引、移动结点位置
     protected void rehash() {
         int oldCapacity = table.length;
         Entry<?,?>[] oldMap = table;
 
-        // overflow-conscious code
+        // overflow-conscious code // 溢出意识代码
         int newCapacity = (oldCapacity << 1) + 1;
         if (newCapacity - MAX_ARRAY_SIZE > 0) {
             if (oldCapacity == MAX_ARRAY_SIZE)
                 // Keep running with MAX_ARRAY_SIZE buckets
+                // 使用 MAX_ARRAY_SIZE 个存储桶继续运行
                 return;
             newCapacity = MAX_ARRAY_SIZE;
         }
+
         Entry<?,?>[] newMap = new Entry<?,?>[newCapacity];
 
         modCount++;
         threshold = (int)Math.min(newCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
         table = newMap;
 
+        // 从最后一桶开始遍历到数组开头, 然后遍历每桶的结点, 并根据结点的hash值取模新容量得到新桶位置, 把该结点存入新桶完成rehash操作
         for (int i = oldCapacity ; i-- > 0 ;) {
             for (Entry<K,V> old = (Entry<K,V>)oldMap[i] ; old != null ; ) {
                 Entry<K,V> e = old;
                 old = old.next;
-
                 int index = (e.hash & 0x7FFFFFFF) % newCapacity;
                 e.next = (Entry<K,V>)newMap[index];
                 newMap[index] = e;
@@ -440,12 +471,14 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
         }
     }
 
+    // 在hash值对应的索引处添加key-value条目, 如果当前实际大小超过阈值, 则扩容散列表, 最后头插式插入到桶的位置
     private void addEntry(int hash, K key, V value, int index) {
         modCount++;
 
         Entry<?,?> tab[] = table;
         if (count >= threshold) {
             // Rehash the table if the threshold is exceeded
+            // 如果超过阈值，则扩容散列表, 并重新计算每个结点的hash索引、移动结点位置
             rehash();
 
             tab = table;
@@ -456,15 +489,22 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
         // Creates the new entry.
         @SuppressWarnings("unchecked")
         Entry<K,V> e = (Entry<K,V>) tab[index];
-        tab[index] = new Entry<>(hash, key, value, e);
+        tab[index] = new Entry<>(hash, key, value, e);// 头插法
         count++;
     }
 
     /**
+     * 20210617
+     * A. 将指定的键映射到此哈希表中的指定值。 键和值都不能为null。
+     * B. 可以通过使用等于原始键的键调用get方法来检索该值。
+     */
+    /**
+     * A.
      * Maps the specified <code>key</code> to the specified
      * <code>value</code> in this hashtable. Neither the key nor the
      * value can be <code>null</code>. <p>
      *
+     * B.
      * The value can be retrieved by calling the <code>get</code> method
      * with a key that is equal to the original key.
      *
@@ -477,13 +517,16 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * @see     Object#equals(Object)
      * @see     #get(Object)
      */
+    // 将指定的键映射到此哈希表中的指定值。 键和值都不能为null
     public synchronized V put(K key, V value) {
         // Make sure the value is not null
+        // 确保该值不为空
         if (value == null) {
             throw new NullPointerException();
         }
 
         // Makes sure the key is not already in the hashtable.
+        // 确保键不在哈希表中
         Entry<?,?> tab[] = table;
         int hash = key.hashCode();
         int index = (hash & 0x7FFFFFFF) % tab.length;
@@ -497,6 +540,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
             }
         }
 
+        // 在hash值对应的索引处添加key-value条目, 如果当前实际大小超过阈值, 则扩容散列表, 最后头插式插入到桶的位置
         addEntry(hash, key, value, index);
         return null;
     }
@@ -510,12 +554,15 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      *          or <code>null</code> if the key did not have a mapping
      * @throws  NullPointerException  if the key is <code>null</code>
      */
+    // 从此哈希表中删除键（及其相应的值）。 如果键不在哈希表中，则此方法不执行任何操作。
     public synchronized V remove(Object key) {
         Entry<?,?> tab[] = table;
         int hash = key.hashCode();
         int index = (hash & 0x7FFFFFFF) % tab.length;
         @SuppressWarnings("unchecked")
         Entry<K,V> e = (Entry<K,V>)tab[index];
+
+        // 遍历index桶链表, 如果hash值相等且key相等, 说明找到了对应结点, 则脱钩该结点, 并返回旧值
         for(Entry<K,V> prev = null ; e != null ; prev = e, e = e.next) {
             if ((e.hash == hash) && e.key.equals(key)) {
                 modCount++;
@@ -530,6 +577,8 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
                 return oldValue;
             }
         }
+
+        // 如果确实找不到对应结点, 则返回null
         return null;
     }
 
@@ -542,6 +591,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
      * @throws NullPointerException if the specified map is null
      * @since 1.2
      */
+    // 将所有映射从指定映射复制到此哈希表。 这些映射将替换此哈希表对当前在指定映射中的任何键的任何映射。
     public synchronized void putAll(Map<? extends K, ? extends V> t) {
         for (Map.Entry<? extends K, ? extends V> e : t.entrySet())
             put(e.getKey(), e.getValue());
@@ -635,7 +685,10 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
     }
 
     // Views
-
+    /**
+     * 20210617
+     * 在第一次请求此视图时，这些字段中的每一个都被初始化为包含相应视图的实例。 视图是无状态的，因此没有理由创建多个视图。
+     */
     /**
      * Each of these fields are initialized to contain an instance of the
      * appropriate view the first time this view is requested.  The views are
@@ -963,6 +1016,8 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
         int index = (hash & 0x7FFFFFFF) % tab.length;
         @SuppressWarnings("unchecked")
         Entry<K,V> e = (Entry<K,V>)tab[index];
+
+        // 遍历index桶链表, 如果hash值相等、key相等且value相等, 说明找到了对应结点, 则脱钩该结点, 并返回true
         for (Entry<K,V> prev = null; e != null; prev = e, e = e.next) {
             if ((e.hash == hash) && e.key.equals(key) && e.value.equals(value)) {
                 modCount++;
@@ -976,6 +1031,8 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
                 return true;
             }
         }
+
+        // 如果确实找不到对应结点, 则返回false
         return false;
     }
 
@@ -1256,6 +1313,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
     /**
      * Hashtable bucket collision list entry
      */
+    // 哈希表桶冲突列表条目
     private static class Entry<K,V> implements Map.Entry<K,V> {
         final int hash;
         final K key;
@@ -1313,10 +1371,15 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
     }
 
     // Types of Enumerations/Iterations
+    // 枚举/迭代的类型
     private static final int KEYS = 0;
     private static final int VALUES = 1;
     private static final int ENTRIES = 2;
 
+    /**
+     * 20210617
+     * 哈希表枚举类。此类实现了Enumeration和Iterator 接口，但可以在禁用Iterator方法的情况下创建单个实例。这对于避免通过传递枚举无意中增加授予用户的能力是必要的。
+     */
     /**
      * A hashtable enumerator class.  This class implements both the
      * Enumeration and Iterator interfaces, but individual instances
@@ -1329,12 +1392,13 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
         int index = table.length;
         Entry<?,?> entry;
         Entry<?,?> lastReturned;
-        int type;
+        int type;// Key: 0, Values: 1, Entries: 2
 
         /**
          * Indicates whether this Enumerator is serving as an Iterator
          * or an Enumeration.  (true -> Iterator).
          */
+        // 指示此Enumerator 是用作 Iterator还是Enumeration。（真 -> 迭代器）。
         boolean iterator;
 
         /**
@@ -1349,6 +1413,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
             this.iterator = iterator;
         }
 
+        // 通过往前移动指针, 判断散列表数组是否存在元素
         public boolean hasMoreElements() {
             Entry<?,?> e = entry;
             int i = index;
@@ -1363,6 +1428,7 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
         }
 
         @SuppressWarnings("unchecked")
+        // 通过往前移动指针, 遍历散列表数组元素
         public T nextElement() {
             Entry<?,?> et = entry;
             int i = index;
@@ -1382,10 +1448,12 @@ public class Hashtable<K,V> extends Dictionary<K,V> implements Map<K,V>, Cloneab
         }
 
         // Iterator methods
+        // 底层调用Enumeration接口的hasMoreElements()
         public boolean hasNext() {
             return hasMoreElements();
         }
 
+        // 底层调用Enumeration接口的nextElement()
         public T next() {
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();

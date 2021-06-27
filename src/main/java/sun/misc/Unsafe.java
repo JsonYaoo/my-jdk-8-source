@@ -745,6 +745,10 @@ public final class Unsafe {
             = theUnsafe.arrayBaseOffset(Object[].class);
 
     /**
+     * 20210619
+     * 报告在给定数组类的存储分配中寻址元素的比例因子。但是，“窄”类型的数组通常无法与{@link #getByte(Object, int)} 等访问器一起正常工作，因此此类类的比例因子报告为零。
+     */
+    /**
      * Report the scale factor for addressing elements in the storage
      * allocation of a given array class.  However, arrays of "narrow" types
      * will generally not work properly with accessors like {@link
@@ -873,6 +877,7 @@ public final class Unsafe {
      * holding <tt>expected</tt>.
      * @return <tt>true</tt> if successful
      */
+    // 如果当前保持预期状态，则将Java变量原子更新为x。
     public final native boolean compareAndSwapObject(Object o, long offset,
                                                      Object expected,
                                                      Object x);
@@ -899,8 +904,13 @@ public final class Unsafe {
      * Fetches a reference value from a given Java variable, with volatile
      * load semantics. Otherwise identical to {@link #getObject(Object, long)}
      */
+    // 从给定的 Java 变量中获取引用值，具有易失性加载语义。 否则等同于 {@link #getObject(Object, long)}
     public native Object getObjectVolatile(Object o, long offset);
 
+    /**
+     * 20210619
+     * 使用volatile存储语义将引用值存储到给定的Java变量中。否则等同于{@link #putObject(Object, long, Object)}
+     */
     /**
      * Stores a reference value into a given Java variable, with
      * volatile store semantics. Otherwise identical to {@link #putObject(Object, long, Object)}

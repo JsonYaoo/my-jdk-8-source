@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.util;
@@ -2569,8 +2549,7 @@ public class Collections {
     /**
      * @serial include
      */
-    private static class SynchronizedMap<K,V>
-        implements Map<K,V>, Serializable {
+    private static class SynchronizedMap<K,V> implements Map<K,V>, Serializable {
         private static final long serialVersionUID = 1978198479659022715L;
 
         private final Map<K,V> m;     // Backing Map

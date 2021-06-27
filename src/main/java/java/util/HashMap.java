@@ -17,9 +17,30 @@ import java.util.function.Function;
 
 /**
  * 20201119
- * 基于哈希表的Map接口实现。这个实现提供了所有可选的映射操作，并允许空值和空键。它保证了类在hashronis上保持不同步，除非它保证这个类在时间上保持不变。
+ * A. Map接口的基于哈希表的实现。 此实现提供所有可选的映射操作，并允许空值和空键。（HashMap 类大致等同于 Hashtable，只是它是非同步的并且允许空值。）
+ *    该类不保证映射的顺序； 特别是，它不保证顺序会随着时间的推移保持不变。
+ * B. 此实现为基本操作（get 和 put）提供恒定时间性能O(1)，假设散列函数在存储桶中正确分散元素。 集合视图上的迭代所需的时间与HashMap实例的“容量”（存储桶数）
+ *    及其大小（键-值映射数）成正比。 因此，如果迭代性能很重要，则不要将初始容量设置得太高（或负载因子太低），这一点非常重要。
+ * C. HashMap 的实例有两个影响其性能的参数：初始容量和负载因子。 容量是哈希表中存储桶的数量，初始容量只是创建哈希表时的容量。 负载因子是在自动增加散列表容量之前
+ *    允许散列表获得的满度的度量。 当哈希表中的条目数超过负载因子和当前容量的乘积时，重新哈希表（即重建内部数据结构），使哈希表具有大约两倍的桶数。
+ * D. 作为一般规则，默认负载因子 (0.75) 在时间和空间成本之间提供了很好的权衡。 较高的值会减少空间开销，但会增加查找成本（反映在 HashMap 类的大多数操作中，
+ *    包括 get 和 put）。 在设置其初始容量时，应考虑映射中的预期条目数及其负载因子，以尽量减少重新哈希操作的次数。 如果初始容量大于最大条目数除以负载因子，
+ *    则不会发生重新哈希操作。
+ * E. 如果要在一个 HashMap 实例中存储许多映射，则创建具有足够大容量的映射将允许更有效地存储映射，而不是让它根据需要执行自动重新散列以增加表。 请注意，使用具有相同
+ *    {@code hashCode()} 的多个键是降低任何哈希表性能的可靠方法。 为了改善影响，当键是 {@link Comparable} 时，此类可以使用键之间的比较顺序来帮助打破联系。
+ * F. 请注意，此实现不是同步的。 如果多个线程并发访问一个散列映射，并且至少有一个线程在结构上修改了映射，则必须在外部进行同步。
+ *   （结构修改是添加或删除一个或多个映射的任何操作；仅更改与实例已包含的键关联的值不是结构修改。）这通常是通过同步一些自然封装映射的对象来完成的。
+ * G. 如果不存在此类对象，则应使用 {@link Collections#synchronizedMap Collections.synchronizedMap} 方法“包装”Map。 最好在创建时完成此操作，
+ *    以防止意外不同步地访问Map：
+ *      Map m = Collections.synchronizedMap(new HashMap(...));
+ * H. 由此类的所有“集合视图方法”返回的迭代器都是快速失败的：如果在创建迭代器后的任何时间对结构进行结构修改，则除了通过迭代器自己的remove方法之外，
+ *    该迭代器都将抛出{ @link ConcurrentModificationException}。 因此，面对并发修改，迭代器快速而干净地失败，而不是在未来不确定的时间冒着任意、非确定性行为的风险。
+ * I. 请注意，无法保证迭代器的快速失败行为，因为一般而言，在存在非同步并发修改的情况下不可能做出任何硬保证。 快速失败的迭代器会尽最大努力抛出
+ *    ConcurrentModificationException。 因此，编写一个依赖于这个异常来保证其正确性的程序是错误的：迭代器的快速失败行为应该只用于检测错误。
+ * J. {@docRoot}/../technotes/guides/collections/index.html
  */
 /**
+ * A.
  * Hash table based implementation of the <tt>Map</tt> interface.  This
  * implementation provides all of the optional map operations, and permits
  * <tt>null</tt> values and the <tt>null</tt> key.  (The <tt>HashMap</tt>
@@ -28,6 +49,7 @@ import java.util.function.Function;
  * the order of the map; in particular, it does not guarantee that the order
  * will remain constant over time.
  *
+ * B.
  * <p>This implementation provides constant-time performance for the basic
  * operations (<tt>get</tt> and <tt>put</tt>), assuming the hash function
  * disperses the elements properly among the buckets.  Iteration over
@@ -37,6 +59,7 @@ import java.util.function.Function;
  * capacity too high (or the load factor too low) if iteration performance is
  * important.
  *
+ * C.
  * <p>An instance of <tt>HashMap</tt> has two parameters that affect its
  * performance: <i>initial capacity</i> and <i>load factor</i>.  The
  * <i>capacity</i> is the number of buckets in the hash table, and the initial
@@ -48,6 +71,7 @@ import java.util.function.Function;
  * structures are rebuilt) so that the hash table has approximately twice the
  * number of buckets.
  *
+ * D.
  * <p>As a general rule, the default load factor (.75) offers a good
  * tradeoff between time and space costs.  Higher values decrease the
  * space overhead but increase the lookup cost (reflected in most of
@@ -59,6 +83,7 @@ import java.util.function.Function;
  * maximum number of entries divided by the load factor, no rehash
  * operations will ever occur.
  *
+ * E.
  * <p>If many mappings are to be stored in a <tt>HashMap</tt>
  * instance, creating it with a sufficiently large capacity will allow
  * the mappings to be stored more efficiently than letting it perform
@@ -68,6 +93,7 @@ import java.util.function.Function;
  * are {@link Comparable}, this class may use comparison order among
  * keys to help break ties.
  *
+ * F.
  * <p><strong>Note that this implementation is not synchronized.</strong>
  * If multiple threads access a hash map concurrently, and at least one of
  * the threads modifies the map structurally, it <i>must</i> be
@@ -77,12 +103,14 @@ import java.util.function.Function;
  * structural modification.)  This is typically accomplished by
  * synchronizing on some object that naturally encapsulates the map.
  *
+ * G.
  * If no such object exists, the map should be "wrapped" using the
  * {@link Collections#synchronizedMap Collections.synchronizedMap}
  * method.  This is best done at creation time, to prevent accidental
  * unsynchronized access to the map:<pre>
  *   Map m = Collections.synchronizedMap(new HashMap(...));</pre>
  *
+ * H.
  * <p>The iterators returned by all of this class's "collection view methods"
  * are <i>fail-fast</i>: if the map is structurally modified at any time after
  * the iterator is created, in any way except through the iterator's own
@@ -92,6 +120,7 @@ import java.util.function.Function;
  * arbitrary, non-deterministic behavior at an undetermined time in the
  * future.
  *
+ * I.
  * <p>Note that the fail-fast behavior of an iterator cannot be guaranteed
  * as it is, generally speaking, impossible to make any hard guarantees in the
  * presence of unsynchronized concurrent modification.  Fail-fast iterators
@@ -100,6 +129,7 @@ import java.util.function.Function;
  * exception for its correctness: <i>the fail-fast behavior of iterators
  * should be used only to detect bugs.</i>
  *
+ * J.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -125,14 +155,43 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
     /**
      * 20201119
-     * 这个映射通常充当一个bined（bucketed）哈希表，但是当bins变得太大时，它们会被转换成TreeNodes的bin，每个容器的结构与java.util.TreeMap.
-     * 大多数方法尝试使用普通的容器，但在适用的情况下，会中继到TreeNode方法（只需检查节点的instanceof）。
-     * TreeNodes的存储箱可以像任何其他的一样被遍历和使用，但是在人口过多的情况下还支持更快的查找。
-     * 然而，由于正常使用中的绝大多数箱子并不是过多的，所以在表格方法的过程中，检查是否存在树型容器可能会延迟。
+     * 实施说明:
+     * A. 该映射通常用作分箱（分桶）哈希表，但是当分箱变得太大时，它们会被转换为 TreeNode 的分箱，每个分箱的结构类似于 java.util.TreeMap 中的分箱。
+     *    大多数方法尝试使用普通的bin(箱)，但是在适用时转换到TreeNode方法（只需通过检查节点的instance）。 TreeNodes 的 bins 可以像任何其他 bins 一样被遍历和使用，
+     *    但另外支持在人口过多时更快的查找。 然而，由于绝大多数正常使用的 bin 并没有过度填充，因此在 table 方法的过程中检查树 bin 的存在可能会延迟。
+     * B. Tree bins（即元素都是 TreeNode 的箱）主要按 hashCode 排序，但在 tie 的情况下，如果两个元素是相同的“C 类实现 Comparable<C>”，则输入它们的
+     *    compareTo 方法排序。 （我们通过反射保守地检查泛型类型以验证这一点——请参阅方法 compareClassFor）。 当键具有不同的哈希值或可排序时，
+     *    树箱增加的复杂性值得在最坏的情况下提供O（log n）操作，因此，在偶然或恶意使用（其中hashCode（）方法返回的值很差）的情况下，性能会正常降低。
+     *    分布式的，以及其中许多键共享一个hashCode的键，只要它们也是可比较的。 （如果这些都不适用，与不采取预防措施相比，我们可能会在时间和空间上浪费大约两倍。
+     *    但唯一已知的情况源于糟糕的用户编程实践，这些实践已经很慢，这几乎没有什么区别。）
+     * C. 因为 TreeNode 的大小大约是常规节点的两倍，所以我们仅在 bin 包含足够多的节点以保证使用时才使用它们（请参阅 TREEIFY_THRESHOLD）。
+     *    当它们变得太小（由于移除或调整大小）时，它们会被转换回普通的bin。 在使用分布良好的用户哈希码的情况下，很少使用树箱。 理想情况下，在随机 hashCodes 下，
+     *    bin 中节点的频率遵循泊松分布 (http://en.wikipedia.org/wiki/Poisson_distribution)，对于 0.75 的默认调整大小阈值，平均参数约为 0.5，
+     *    尽管由于调整大小粒度而导致的大差异。 忽略方差，列表大小 k 的预期出现次数为 (exp(-0.5) * pow(0.5, k) / factorial(k))。 第一个值是：
+     *      0:    0.60653066
+     *      1:    0.30326533
+     *      2:    0.07581633
+     *      3:    0.01263606
+     *      4:    0.00157952
+     *      5:    0.00015795
+     *      6:    0.00001316
+     *      7:    0.00000094
+     *      8:    0.00000006
+     *    更多：不到千万分之一
+     * D. 树箱的根通常是它的第一个节点。 然而，有时（目前仅在 Iterator.remove 上），根可能在别处，但可以通过父链接（方法 TreeNode.root()）恢复。
+     * E. 所有适用的内部方法都接受一个哈希码作为参数（通常由公共方法提供），允许它们相互调用而无需重新计算用户哈希码。 大多数内部方法也接受一个“tab”参数，
+     *    它通常是当前表，但在调整大小或转换时可能是新的或旧的。
+     * F. 当 bin 列表被树化、拆分或未树化时，我们将它们保持在相同的相对访问/遍历顺序（即字段 Node.next）中，以更好地保留局部性，并稍微简化调用
+     *    iterator.remove 的拆分和遍历的处理。 在插入时使用比较器时，为了在重新平衡之间保持总排序（或尽可能接近此处的要求），我们将类和
+     *    identityHashCodes 作为决胜局进行比较。
+     * G. 由于子类 LinkedHashMap 的存在，普通模式与树模式之间的使用和转换变得复杂。 请参阅下文，了解定义为在插入、删除和访问时调用的钩子方法，
+     *    这些方法允许 LinkedHashMap 内部以其他方式保持独立于这些机制。 （这还要求将Map实例传递给一些可能创建新节点的实用程序方法。）
+     * H. 类似于并发编程的基于 SSA 的编码风格有助于避免在所有扭曲指针操作中出现混叠错误。
      */
     /*
      * Implementation notes.
      *
+     * A.
      * This map usually acts as a binned (bucketed) hash table, but
      * when bins get too large, they are transformed into bins of
      * TreeNodes, each structured similarly to those in
@@ -144,6 +203,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * normal use are not overpopulated, checking for existence of
      * tree bins may be delayed in the course of table methods.
      *
+     * B.
      * Tree bins (i.e., bins whose elements are all TreeNodes) are
      * ordered primarily by hashCode, but in the case of ties, if two
      * elements are of the same "class C implements Comparable<C>",
@@ -162,6 +222,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * programming practices that are already so slow that this makes
      * little difference.)
      *
+     * C.
      * Because TreeNodes are about twice the size of regular nodes, we
      * use them only when bins contain enough nodes to warrant use
      * (see TREEIFY_THRESHOLD). And when they become too small (due to
@@ -187,11 +248,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * 8:    0.00000006
      * more: less than 1 in ten million
      *
+     * D.
      * The root of a tree bin is normally its first node.  However,
      * sometimes (currently only upon Iterator.remove), the root might
      * be elsewhere, but can be recovered following parent links
      * (method TreeNode.root()).
      *
+     * E.
      * All applicable internal methods accept a hash code as an
      * argument (as normally supplied from a public method), allowing
      * them to call each other without recomputing user hashCodes.
@@ -199,6 +262,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * normally the current table, but may be a new or old one when
      * resizing or converting.
      *
+     * F.
      * When bin lists are treeified, split, or untreeified, we keep
      * them in the same relative access/traversal order (i.e., field
      * Node.next) to better preserve locality, and to slightly
@@ -208,6 +272,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * rebalancings, we compare classes and identityHashCodes as
      * tie-breakers.
      *
+     * G.
      * The use and transitions among plain vs tree modes is
      * complicated by the existence of subclass LinkedHashMap. See
      * below for hook methods defined to be invoked upon insertion,
@@ -216,6 +281,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * requires that a map instance be passed to some utility methods
      * that may create new nodes.)
      *
+     * H.
      * The concurrent-programming-like SSA-based coding style helps
      * avoid aliasing errors amid all of the twisty pointer operations.
      */
@@ -231,7 +297,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * by either of the constructors with arguments.
      * MUST be a power of two <= 1<<30.
      */
-    // 20201119 最大容量，如果某个具有参数的构造函数隐式指定了更高的值，则使用该值 => 最高容量2^30
+    // 最大容量，在两个带参数的构造函数隐式指定更高值时使用。 必须是 2 的幂 <= 1<<30。
     static final int MAXIMUM_CAPACITY = 1 << 30;
 
     /**
@@ -240,6 +306,11 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     // 20201119 构造函数中未指定时使用的负载因子 => 加载因子0.75
     static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
+    /**
+     * 20210601
+     * 使用树而不是列表的 bin 计数阈值。将元素添加到至少具有这么多节点的 bin 时，bin 会转换为树。
+     * 该值必须大于 2 且至少应为 8，以与树移除中关于在收缩时转换回普通 bin 的假设相匹配。
+     */
     /**
      * The bin count threshold for using a tree rather than list for a
      * bin.  Bins are converted to trees when adding an element to a
@@ -254,6 +325,10 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     static final int TREEIFY_THRESHOLD = 8;
 
     /**
+     * 20210601
+     * 在调整大小操作期间取消（拆分）bin 的 bin 计数阈值。 应小于 TREEIFY_THRESHOLD，最多为 6 以在移除下进行收缩检测。
+     */
+    /**
      * The bin count threshold for untreeifying a (split) bin during a
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
@@ -262,6 +337,10 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     // 20201119 取消红黑树的哈希桶阈值=6
     static final int UNTREEIFY_THRESHOLD = 6;
 
+    /**
+     * 20210601
+     * 可以将 bin 树化的最小表容量。 （否则，如果 bin 中的节点过多，则调整表的大小。）应至少为 4 * TREEIFY_THRESHOLD，以避免调整大小和树化阈值之间发生冲突。
+     */
     /**
      * The smallest table capacity for which bins may be treeified.
      * (Otherwise the table is resized if too many nodes in a bin.)
@@ -334,11 +413,10 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
     /**
      * 20201119
-     * 计算键.hashCode（）并将哈希的较高位扩展到较低的位。
-     * 因为该表使用两个掩蔽的幂次，所以仅在当前掩码上方以位为单位变化的散列集将始终发生冲突。
-     * （在已知的例子中，有一组在小表中保存连续整数的浮点键）因此我们应用了一种将高位的影响向下扩展的变换。在比特传播的速度、效用和质量之间存在一种折衷。
-     * 因为许多常见的散列集已经被合理地分布了（所以不能从传播中获益），而且我们使用树来处理容器中的大组冲突，
-     * 所以我们只需以最便宜的方式异或一些移位的比特来减少系统损失，以及合并最高位的影响，否则由于表边界的原因，这些位永远不会用于索引计算。
+     * 计算 key.hashCode() 并将散列的较高位（异或）传播到较低位。 由于该表使用二次幂掩码，因此仅在当前掩码之上位变化的散列集将始终发生冲突。
+     * （众所周知的例子是在小表中保存连续整数的浮点键集。）所以我们应用了一种向下传播高位影响的变换。 位扩展的速度、效用和质量之间存在权衡。
+     * 因为许多常见的散列集已经合理分布（因此不会从传播中受益），并且因为我们使用树来处理 bin 中的大量冲突，所以我们只是以最便宜的方式对一些移位的位
+     * 进行异或以减少系统损失， 以及合并最高位的影响，否则由于表边界而永远不会在索引计算中使用。
      */
     /**
      * Computes key.hashCode() and spreads (XORs) higher bits of hash
@@ -361,9 +439,9 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * 20201119 hash = key的hashCode ^ key的hashCode>>>16
          * 这是一种 速度、效用和质量 折衷的解决方案:
-         *      A. 使用简单的位移运算, 保证运算速度; 使用高位异或, 保证减少高位冲突的可能性, 保证存储速度
+         *      A. 使用简单的位移运算, 保证运算速度; 使用高位异或, 保证减少低位冲突的可能性, 保证存储速度
          *      B. hashCode右移16位异或, 使得高位能被利用起来, 保证效用性
-         *      C. 使用高位异或, 保证减少高位冲突的可能性, 保证散列表的质量
+         *      C. 使用高位异或, 保证减少低位冲突的可能性, 保证散列表的质量
          */
         int h;
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
@@ -640,14 +718,25 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     /**
+     * 20210605
+     * A. 返回指定键映射到的值，如果此映射不包含键的映射，则返回 {@code null}。
+     * B. 更正式地说，如果此映射包含从键 {@code k} 到值 {@code v} 的映射，使得 {@code (key==null ? k==null : key.equals(k))}，
+     *    然后这个方法返回 {@code v}; 否则返回 {@code null}。 （最多可以有一个这样的映射。）
+     * C. {@code null} 的返回值不一定表示映射不包含键的映射； Map也有可能将键显式映射到 {@code null}。 {@link #containsKey containsKey}
+     *    操作可用于区分这两种情况。
+     */
+    /**
+     * A.
      * Returns the value to which the specified key is mapped,
      * or {@code null} if this map contains no mapping for the key.
      *
+     * B.
      * <p>More formally, if this map contains a mapping from a key
      * {@code k} to a value {@code v} such that {@code (key==null ? k==null :
      * key.equals(k))}, then this method returns {@code v}; otherwise
      * it returns {@code null}.  (There can be at most one such mapping.)
      *
+     * C.
      * <p>A return value of {@code null} does not <i>necessarily</i>
      * indicate that the map contains no mapping for the key; it's also
      * possible that the map explicitly maps the key to {@code null}.
@@ -656,6 +745,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *
      * @see #put(Object, Object)
      */
+    // 返回指定键映射到的值，如果此映射不包含键的映射，则返回 {@code null}。
     public V get(Object key) {
         Node<K,V> e;
         return (e = getNode(hash(key), key)) == null ? null : e.value;
@@ -708,6 +798,10 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return getNode(hash(key), key) != null;
     }
 
+    /**
+     * 20210605
+     * 将指定值与此映射中的指定键相关联。 如果映射先前包含键的映射，则旧值将被替换。
+     */
     /**
      * Associates the specified value with the specified key in this map.
      * If the map previously contained a mapping for the key, the old
@@ -766,7 +860,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
                     // 20201120 如果下一个结点e不为空
                     if ((e = p.next) == null) {
                         // 20201120 则创建hash桶的普通结点
-                        p.next = newNode(hash, key, value, null);
+                        p.next = newNode(hash, key, value, null);// 尾插
 
                         // 20201120 如果桶链表长度达到了红黑树转换的阈值8时
                         if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st // 20201120 -1是因为当前比较的binCount是索引不是个数
@@ -816,8 +910,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
     /**
      * 20201119
-     * 初始化或加倍表大小。如果为空，则根据字段阈值中保留的初始容量目标进行分配。
-     * 否则，因为我们使用的是二次展开的幂，每个bin中的元素必须保持在相同的索引中，或者在新表中以2的幂次偏移量移动。
+     * 初始化或加倍表大小。 如果为空，则根据字段阈值中持有的初始容量目标进行分配。 否则，因为我们使用的是 2 的幂扩展，所以每个 bin 中的元素必须保持相同的索引，
+     * 或者在新表中以 2 的幂的偏移量移动。
      */
     /**
      * Initializes or doubles table size.  If null, allocates in
@@ -967,10 +1061,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     /**
+     * 20210605
+     * 除非表太小，否则替换给定哈希索引处 bin 中的所有链接节点，在这种情况下改为调整大小。
+     */
+    /**
      * Replaces all linked nodes in bin at index for given hash unless
      * table is too small, in which case resizes instead.
      */
-    // 20201120 替换给定哈希的索引处bin中的所有链接节点，除非表太小，在这种情况下会调整大小 => 红黑树化hash对应桶的普通结点
+    // 红黑树化hash对应桶中的普通链表
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
 
@@ -1030,7 +1128,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      *         (A <tt>null</tt> return can also indicate that the map
      *         previously associated <tt>null</tt> with <tt>key</tt>.)
      */
-    // 20201120 从该映射中删除指定键的映射（如果存在）。
+    // 如果存在，则从此映射中删除指定键的映射。
     public V remove(Object key) {
         Node<K,V> e;
 
@@ -1042,11 +1140,11 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     /**
      * Implements Map.remove and related methods
      *
-     * @param hash hash for key
-     * @param key the key
-     * @param value the value to match if matchValue, else ignored
-     * @param matchValue if true only remove if value is equal // 20201119 如果为true，则仅在值相等时删除
-     * @param movable if false do not move other nodes while removing // 20201119 如果为false，则在删除时不要移动根节点
+     * @param hash hash for key // key的hash值
+     * @param key the key // key值
+     * @param value the value to match if matchValue, else ignored  // 如果matchValue为true则匹配的value值，否则忽略value值
+     * @param matchValue if true only remove if value is equal // 20201119 如果为true，则仅在值相等时才删除
+     * @param movable if false do not move other nodes while removing // 20201119 如果为false，则在删除时不移动其他节点
      * @return the node, or null if none
      */
     // 20201119 根据key的hash、key值、value值删除结点
@@ -1380,7 +1478,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         return putVal(hash(key), key, value, true, true);
     }
 
-    // 20201120 根据key-value删除结点
+    // 删除key和value都equals的键值对
     @Override
     public boolean remove(Object key, Object value) {
         return removeNode(hash(key), key, value, true, true) != null;
@@ -2075,8 +2173,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
     /**
      * 20201120
-     * 以下受包保护的方法被设计为由LinkedHashMap重写，而不是由任何其他子类重写。
-     * 几乎所有其他内部方法也受到包保护，但声明为final，因此可以由LinkedHashMap、视图类和HashSet使用。
+     * 以下包保护的方法设计为被 LinkedHashMap 覆盖，但不能被任何其他子类覆盖。 几乎所有其他内部方法也是包保护的，但被声明为 final，因此可以被
+     * LinkedHashMap、视图类和 HashSet 使用。
      */
     /*
      * The following package-protected methods are designed to be
@@ -2085,31 +2183,35 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
      * but are declared final, so can be used by LinkedHashMap, view
      * classes, and HashSet.
      */
-    // 20201120 根据hash、key、value、netx结点创建普通结点
+    // 创建一个常规（非树）节点
     // Create a regular (non-tree) node
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> next) {
         return new Node<>(hash, key, value, next);
     }
 
     // For conversion from TreeNodes to plain nodes
-    // 20201119 用于从TreeNodes转换为纯节点
+    // 用于从 TreeNodes 到普通节点的转换
     Node<K,V> replacementNode(Node<K,V> p, Node<K,V> next) {
         // 20201119 使用当前结点p, 下一结点next, 构造普通结点
         return new Node<>(p.hash, p.key, p.value, next);
     }
 
     // Create a tree bin node
-    // 20201120 创建红黑树结点
+    // 创建红黑树结点
     TreeNode<K,V> newTreeNode(int hash, K key, V value, Node<K,V> next) {
         return new TreeNode<>(hash, key, value, next);
     }
 
     // For treeifyBin
-    // 20201120 创建新红黑树结点-用于替换结点
+    // 创建新红黑树结点-用于替换结点
     TreeNode<K,V> replacementTreeNode(Node<K,V> p, Node<K,V> next) {
         return new TreeNode<>(p.hash, p.key, p.value, next);
     }
 
+    /**
+     * 20210608
+     * 重置为初始默认状态。 由 clone 和 readObject 调用。
+     */
     /**
      * Reset to initial default state.  Called by clone and readObject.
      */
@@ -2124,11 +2226,13 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 
     // Callbacks to allow LinkedHashMap post-actions
+    // 回调以允许 LinkedHashMap 后操作
     void afterNodeAccess(Node<K,V> p) { }
     void afterNodeInsertion(boolean evict) { }
     void afterNodeRemoval(Node<K,V> p) { }
 
     // Called only from writeObject, to ensure compatible ordering.
+    // 仅从 writeObject 调用，以确保兼容排序。
     void internalWriteEntries(java.io.ObjectOutputStream s) throws IOException {
         Node<K,V>[] tab;
         if (size > 0 && (tab = table) != null) {
@@ -2165,7 +2269,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * Returns root of tree containing this node.
          */
-        // 20201119 返回根结点
+        // 20201119 返回包含此节点的树的根。
         final TreeNode<K,V> root() {
             // 20201119 从当前结点向上遍历, 找到根结点(没有父结点的结点)则返回
             for (TreeNode<K,V> r = this, p;;) {
@@ -2178,7 +2282,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * Ensures that the given root is the first node of its bin.
          */
-        // 20201119 确保给定的根是其桶的第一个节点 => 移动指定的root结点到散列表桶中
+        // 20201119 确保给定的根是其 bin 的第一个节点。 => 移动指定的root结点到散列表桶中
         static <K,V> void moveRootToFront(Node<K,V>[] tab, TreeNode<K,V> root) {
             int n;
 
@@ -2228,11 +2332,15 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
 
         /**
+         * 20210605
+         * 使用给定的散列和键查找从根 p 开始的节点。 kc 参数在第一次使用比较键时缓存可比较ClassFor(key)。
+         */
+        /**
          * Finds the node starting at root p with the given hash and key.
          * The kc argument caches comparableClassFor(key) upon first use
          * comparing keys.
          */
-        // 20201119 查找具有给定哈希值和键的从根p开始的节点。 kc参数在首次使用比较键时会缓存可比较的ClassFor（key）
+        // 根据hash值和key，从根结点开始查找
         final TreeNode<K,V> find(int h, Object k, Class<?> kc) {
             // 20201119 初始化结点P结点
             TreeNode<K,V> p = this;// 20201119 this代表调用find()的实例结点
@@ -2272,7 +2380,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         /**
          * Calls find for root node.
          */
-        // 20201119 查找根结点
+        // 20201119 调用 find 根节点。
         final TreeNode<K,V> getTreeNode(int h, Object k) {
             // 20201119 如果父节点为空, 则该结点就是根结点, 如果父节点不为空, 则使用hash和key值去遍历查找根结点
             return ((parent != null) ? root() : this).find(h, k, null);
@@ -2280,9 +2388,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
         /**
          * 20201119
-         * 破译实用程序，用于在hashCodes相等且不可比较时对插入进行排序。
-         * 我们不需要顺序，只需一个一个的插入规则即可在再平衡中保持相等。
-         * 打破平局比必要的要多，从而简化了测试。
+         * 当 hashCode 相等且不可比较时，用于对插入进行排序的打破平局实用程序。 我们不需要总顺序，只需要一致的插入规则来保持重新平衡之间的等效性。
+         * 超出必要的打破平局会稍微简化测试。
          */
         /**
          * Tie-breaking utility for ordering insertions when equal
@@ -2291,7 +2398,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * equivalence across rebalancings. Tie-breaking further than
          * necessary simplifies testing a bit.
          */
-        // 20201119 比较a和b两个对象, Class相等, 再比较hashCode
+        // 当hashCode相等且不可比较时, 用于打破比较平局的情况 => 比较a和b两个对象的ClassName相等以及原始hashCode
         static int tieBreakOrder(Object a, Object b) {
             int d;
             if (a == null || b == null || (d = a.getClass().getName().compareTo(b.getClass().getName())) == 0)
@@ -2300,10 +2407,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
 
         /**
+         * 20210605
+         * 形成从此节点链接的节点的树。
+         */
+        /**
          * Forms tree of the nodes linked from this node.
          * @return root of tree
          */
-        // 20201119 红黑树化散列表 -> 实例调用时遍历当前桶的链表
+        // 20201119 红黑树化实例结点链表
         final void treeify(Node<K,V>[] tab) {
             // 20201119 初始化红黑树根结点
             TreeNode<K,V> root = null;
@@ -2371,10 +2482,14 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
 
         /**
+         * 20210605
+         * 返回替换从该节点链接的非 TreeNode 的列表。
+         */
+        /**
          * Returns a list of non-TreeNodes replacing those linked from
          * this node.
          */
-        // 20201119 返回非TreeNode列表，该列表替换从该节点链接的非TreeNode => 拆除Map中实例结点所在链的红黑树
+        // 普通化红黑树结点链表
         final Node<K,V> untreeify(HashMap<K,V> map) {
             // 20201119 初始化hd、tl普通结点
             Node<K,V> hd = null, tl = null;
@@ -2476,9 +2591,8 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 
         /**
          * 20201119
-         * 删除在此调用之前必须存在的给定节点。
-         * 这比典型的红黑删除代码更为混乱，因为我们无法将内部节点的内容与由“ next”指针固定的叶子后继者交换，该叶子后继者在访问期间可以独立访问遍历。
-         * 因此，我们交换树链接。 如果当前树的节点似乎太少，则将bin转换回普通bin。 （该测试触发2到6个节点之间的某个位置，具体取决于树的结构）。
+         * 删除给定节点，该节点必须在此调用之前存在。这比典型的红黑删除代码更混乱，因为我们无法将内部节点的内容与由“next”指针固定的叶后继节点交换遍历。
+         * 因此，我们交换树链接。 如果当前树的节点似乎太少，则将 bin 转换回普通 bin。 （测试会在 2 到 6 个节点之间触发，具体取决于树结构）。
          */
         /**
          * Removes the given node, that must be present before this call.
@@ -2490,7 +2604,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * the bin is converted back to a plain bin. (The test triggers
          * somewhere between 2 and 6 nodes, depending on tree structure).
          */
-        // 20201119 使用红黑树方法删除结点
+        // 20201119 红黑树结点的删除方法
         final void removeTreeNode(HashMap<K,V> map, Node<K,V>[] tab, boolean movable) {
             int n;
             if (tab == null || (n = tab.length) == 0)
@@ -2698,6 +2812,10 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
         }
 
         /**
+         * 20210605
+         * 将树箱中的节点拆分为下树箱和上树箱，或者如果现在太小则取消树化。 仅从调整大小调用； 见上面关于分割位和索引的讨论。
+         */
+        /**
          * Splits nodes in a tree bin into lower and upper tree bins,
          * or untreeifies if now too small. Called only from resize;
          * see above discussion about split bits and indices.
@@ -2707,8 +2825,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
          * @param index the index of the table being split  // 20201119 要分割的旧散列表桶的位置
          * @param bit the bit of hash to split on       // 20201119 旧的散列表容量
          */
-        // 20201119 将树容器中的节点拆分为较低和较高的树容器，如果现在太小，则取消搜索。仅从resize调用；请参阅上面关于拆分位和索引的讨论。
-        // 20201120 根据新容量拆分当前桶链表, 会有两种结果 newIndex = oldIndex; newIndex = oldIndex + oldCap
+        // 20201120 根据新容量拆分当前桶链表, 会有两种结果newIndex = oldIndex; newIndex = oldIndex + oldCap, HashMap#resize()方法中调用
         final void split(HashMap<K,V> map, Node<K,V>[] tab, int index, int bit) {
             // 20201119 初始化红黑树结点
             TreeNode<K,V> b = this;// 20201119 this指引用该方法的对象, 因为这是他本身的方法, 所以才叫this
@@ -3002,7 +3119,7 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
             }
         }
 
-        // 20201122 删除后调整红黑树, 对x结点进行调整
+        // 20201122 删除前调整红黑树, 对x结点进行调整
         /**
          * 20201122
          * 删除红黑树结点思路:(先不考虑调整) => 替代的意思是把替代结点和原删除结点的内容互换, 相当于原删除结点交换到了替代结点位置, 替代结点交换到了原删除结点的位置

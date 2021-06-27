@@ -1,33 +1,9 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
+
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -37,9 +13,17 @@ package java.util.concurrent;
 import java.util.*;
 
 /**
+ * 20210624
+ * A. 一个 {@link ConcurrentMap} 支持 {@link NavigableMap} 操作，并且可递归地用于其navigable子视图。
+ * B. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * A {@link ConcurrentMap} supporting {@link NavigableMap} operations,
  * and recursively so for its navigable sub-maps.
  *
+ * B.
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -49,8 +33,7 @@ import java.util.*;
  * @param <V> the type of mapped values
  * @since 1.6
  */
-public interface ConcurrentNavigableMap<K,V>
-    extends ConcurrentMap<K,V>, NavigableMap<K,V>
+public interface ConcurrentNavigableMap<K,V> extends ConcurrentMap<K,V>, NavigableMap<K,V>
 {
     /**
      * @throws ClassCastException       {@inheritDoc}

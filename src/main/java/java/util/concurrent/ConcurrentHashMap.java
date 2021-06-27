@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -73,6 +48,59 @@ import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
 
 /**
+ * 20210618
+ * A. 一个哈希表，支持检索的完全并发和更新的高预期并发。 此类遵循与{@link java.util.Hashtable}相同的功能规范，并包含与{@code Hashtable}的每个方法对应的方法版本。
+ *    但是，即使所有操作都是线程安全的，检索操作不需要也不支持锁，以防止所有访问的方式锁定整个表。在依赖其线程安全而不关注其同步细节的程序时，
+ *    可完全视此类操作等同于{@code Hashtable}。
+ * B. 检索操作（包括{@code get}）一般不会阻塞，可能与更新操作（包括{@code put} 和{@code remove}）同时执行，反映的是最近完成更新操作的结果。
+ *   （更正式地说，给定键的更新操作与报告更新值的该键的任何（非null）检索具有先发生关系。）对于诸如 {@code putAll} 和 {@code clear} 之类的聚合操作，
+ *    并发检索可能只反映出插入或删除某些条目。类似地，迭代器、拆分器和枚举返回反映哈希表在迭代器/枚举创建时或创建后的某个时刻的状态的元素。
+ *    它们不会抛出 {@link java.util.ConcurrentModificationException ConcurrentModificationException}。但是，迭代器被设计为一次仅由一个线程使用。
+ *    请记住，包括 {@code size}、{@code isEmpty} 和 {@code containsValue} 在内的聚合状态方法的结果通常仅在Map未在其他线程中进行并发更新时才有用。
+ *    否则，这些方法的结果反映的瞬态状态可能足以用于监测或估计目的，但不适用于程序控制。
+ * C. 当有太多冲突（即具有不同哈希码但落入同一个槽模表大小的键）时，该表动态扩容，预期平均效果是每个映射保持大约两倍容量、（对应于 0.75 负载）调整大小的因子阈值。
+ *    随着映射的添加和删除，这个平均值可能会有很大差异，但总的来说，这保持了哈希表的普遍接受的时间/空间权衡。然而，调整这个或任何其他类型的哈希表的大小可能是一个相对较慢的操作。
+ *    如果可能，最好将大小估计作为可选的 {@code initialCapacity} 构造函数参数提供。额外的可选 {@code loadFactor} 构造函数参数通过指定用于计算为给定数量元素分配的空间量的表密度，
+ *    提供了一种自定义初始表容量的进一步方法。此外，为了与此类的先前版本兼容，构造函数可以选择指定预期的 {@code concurrencyLevel} 作为内部大小调整的附加提示。
+ *    请注意，使用许多具有完全相同 {@code hashCode()} 的键是降低任何哈希表性能的可靠方法。为了改善影响，当键是 {@link Comparable} 时，
+ *    此类可以使用键之间的比较顺序来帮助打破联系。
+ * D. ConcurrentHashMap的{@link Set}视图可以创建（使用{@link #newKeySet()}或{@link #newKeySet(int)}），或查看（使用{@link #keySet(Object)}键很重要，
+ *    并且映射的值（可能暂时）不使用或都采用相同的映射值。
+ * E. 通过使用 {@link java.util.concurrent.atomic.LongAdder}值并通过{@link #computeIfAbsent computeIfAbsent} 初始化，
+ *    ConcurrentHashMap可以用作可扩展的频率图（直方图或多重集的形式）。例如，要将计数添加 {@code ConcurrentHashMap<String,LongAdder> freqs}，
+ *    您可以使用{@code freqs.computeIfAbsent(k -> new LongAdder()).increment();}
+ * F. 此类及其视图和迭代器实现了{@link Map}和{@link Iterator} 接口的所有可选方法。
+ * G. 与{@link Hashtable} 类似但与 {@link HashMap} 不同的是，此类不允许将 {@code null} 用作键或值。
+ * H. ConcurrentHashMaps支持一组顺序和并行的批量操作，与大多数 {@link Stream} 方法不同，这些操作旨在安全且通常明智地应用，即使是其他线程并发更新的映射；
+ *    例如，在计算共享注册表中值的快照摘要时。 共有三种操作，每种有四种形式，接受带有键、值、条目和（键，值）参数和/或返回值的函数。
+ *    因为ConcurrentHashMap的元素没有以任何特定的方式排序，并且可能在不同的并行执行中以不同的顺序进行处理，所提供函数的正确性不应该依赖于任何排序，
+ *    也不依赖于任何其他对象或值，这些对象或值可能会暂时改变计算正在进行中； 除了forEach操作，理想情况下应该是无副作用的。
+ *    {@link java.util.Map.Entry}对象上的批量操作不支持方法{@code setValue}:
+ *    a. forEach：对每个元素执行给定的操作。 变体形式在执行操作之前对每个元素应用给定的转换。
+ *    b. search：返回在每个元素上应用给定函数的第一个可用非null结果； 找到结果时跳过进一步搜索。
+ *    c. reduce：累加每个元素。提供的归约函数不能依赖于排序（更正式地说，它应该是结合的和可交换的）。有五种变体：
+ *          1) 普通减价, （因为没有相应的返回类型，所以 (key, value) 函数参数没有这种方法的形式。）
+ *          2) 累积应用于每个元素的给定函数的结果的映射归约。
+ *          3) 使用给定的基值减少到双精度、长整数和整数的标量。
+ * I. 这些批量操作接受一个{@code parallelismThreshold} 参数。如果估计当前Map大小小于给定阈值，则方法按顺序进行。使用{@code Long.MAX_VALUE}值会抑制所有并行性。
+ *    使用 {@code 1} 值通过划分为足够多的子任务以充分利用用于所有并行计算的{@link ForkJoinPool#commonPool()}来实现最大并行度。通常，您最初会选择这些极值之一，
+ *    然后测量使用在开销与吞吐量之间进行权衡的中间值的性能。
+ * J. 批量操作的并发属性遵循ConcurrentHashMap的并发属性：从{@code get(key)}和相关访问方法返回的任何非null结果, 都与相关的插入或更新具有先发生关系。
+ *    任何批量操作的结果都反映了这些每个元素关系的组成（但对于整个映射而言，不一定是原子的，除非以某种方式知道它是静止的）。相反，由于映射中的键和值永远不会为null，
+ *    因此null作为当前缺少任何结果的可靠原子指示符。为了保持这个属性，null 作为所有非标量归约操作的隐式基础。对于double、long和int版本，基础应该是与任何其他值组合时
+ *    返回该其他值的基础（更正式地说，它应该是归约的标识元素）。最常见的还原具有这些特性；例如，计算以0为基础的总和或以MAX_VALUE为基础的最小值。
+ * K. 作为参数提供的搜索和转换函数应该类似地返回null以指示缺少任何结果（在这种情况下不使用它）。在映射归约的情况下，这也使转换能够充当过滤器，如果元素不应该被组合，
+ *    则返回 null（或者，在原始特化的情况下，身份基础）。在将它们用于搜索或归约操作之前，您可以通过在此“null"(意味着现在没有任何东西)规则下自己组合它们来创建复合转换和过滤。
+ * L. 接受和/或返回Entry参数的方法维护键值关联。例如，当找到最大值的键时，它们可能很有用。请注意，可以使用{@code new AbstractMap.SimpleEntry(k,v)}提供“普通”条目参数。
+ * M. 批量操作可能会突然完成，从而引发在所提供函数的应用程序中遇到的异常。 请记住，在处理此类异常时，其他并发执行的函数也可能抛出异常，或者如果第一个异常没有发生就会抛出异常。
+ * N. 与顺序形式相比，并行的加速是常见的，但不能保证。如果并行化计算的基础工作比计算本身更昂贵，则涉及小映射上的简短函数的并行操作可能比顺序形式执行得更慢。
+ *    类似地，如果所有处理器都忙于执行不相关的任务，则并行化可能不会带来太多实际的并行性。
+ * O. 所有任务方法的所有参数都必须为非null。
+ * P. {@docRoot}/../technotes/guides/collections/index.html
+ */
+
+/**
+ * A.
  * A hash table supporting full concurrency of retrievals and
  * high expected concurrency for updates. This class obeys the
  * same functional specification as {@link java.util.Hashtable}, and
@@ -84,6 +112,7 @@ import java.util.stream.Stream;
  * interoperable with {@code Hashtable} in programs that rely on its
  * thread safety but not on its synchronization details.
  *
+ * B.
  * <p>Retrieval operations (including {@code get}) generally do not
  * block, so may overlap with update operations (including {@code put}
  * and {@code remove}). Retrievals reflect the results of the most
@@ -105,6 +134,7 @@ import java.util.stream.Stream;
  * that may be adequate for monitoring or estimation purposes, but not
  * for program control.
  *
+ * C.
  * <p>The table is dynamically expanded when there are too many
  * collisions (i.e., keys that have distinct hash codes but fall into
  * the same slot modulo the table size), with the expected average
@@ -127,12 +157,14 @@ import java.util.stream.Stream;
  * hash table. To ameliorate impact, when keys are {@link Comparable},
  * this class may use comparison order among keys to help break ties.
  *
+ * D.
  * <p>A {@link Set} projection of a ConcurrentHashMap may be created
  * (using {@link #newKeySet()} or {@link #newKeySet(int)}), or viewed
  * (using {@link #keySet(Object)} when only keys are of interest, and the
  * mapped values are (perhaps transiently) not used or all take the
  * same mapping value.
  *
+ * E.
  * <p>A ConcurrentHashMap can be used as scalable frequency map (a
  * form of histogram or multiset) by using {@link
  * java.util.concurrent.atomic.LongAdder} values and initializing via
@@ -140,13 +172,16 @@ import java.util.stream.Stream;
  * to a {@code ConcurrentHashMap<String,LongAdder> freqs}, you can use
  * {@code freqs.computeIfAbsent(k -> new LongAdder()).increment();}
  *
+ * F.
  * <p>This class and its views and iterators implement all of the
  * <em>optional</em> methods of the {@link Map} and {@link Iterator}
  * interfaces.
  *
+ * G.
  * <p>Like {@link Hashtable} but unlike {@link HashMap}, this class
  * does <em>not</em> allow {@code null} to be used as a key or value.
  *
+ * H.
  * <p>ConcurrentHashMaps support a set of sequential and parallel bulk
  * operations that, unlike most {@link Stream} methods, are designed
  * to be safely, and often sensibly, applied even with maps that are
@@ -192,6 +227,7 @@ import java.util.stream.Stream;
  * </li>
  * </ul>
  *
+ * I.
  * <p>These bulk operations accept a {@code parallelismThreshold}
  * argument. Methods proceed sequentially if the current map size is
  * estimated to be less than the given threshold. Using a value of
@@ -203,6 +239,7 @@ import java.util.stream.Stream;
  * extreme values, and then measure performance of using in-between
  * values that trade off overhead versus throughput.
  *
+ * J.
  * <p>The concurrency properties of bulk operations follow
  * from those of ConcurrentHashMap: Any non-null result returned
  * from {@code get(key)} and related access methods bears a
@@ -221,6 +258,7 @@ import java.util.stream.Stream;
  * reductions have these properties; for example, computing a sum
  * with basis 0 or a minimum with basis MAX_VALUE.
  *
+ * K.
  * <p>Search and transformation functions provided as arguments
  * should similarly return null to indicate the lack of any result
  * (in which case it is not used). In the case of mapped
@@ -232,12 +270,14 @@ import java.util.stream.Stream;
  * there is nothing there now" rule before using them in search or
  * reduce operations.
  *
+ * L.
  * <p>Methods accepting and/or returning Entry arguments maintain
  * key-value associations. They may be useful for example when
  * finding the key for the greatest value. Note that "plain" Entry
  * arguments can be supplied using {@code new
  * AbstractMap.SimpleEntry(k,v)}.
  *
+ * M.
  * <p>Bulk operations may complete abruptly, throwing an
  * exception encountered in the application of a supplied
  * function. Bear in mind when handling such exceptions that other
@@ -245,6 +285,7 @@ import java.util.stream.Stream;
  * exceptions, or would have done so if the first exception had
  * not occurred.
  *
+ * N.
  * <p>Speedups for parallel compared to sequential forms are common
  * but not guaranteed.  Parallel operations involving brief functions
  * on small maps may execute more slowly than sequential forms if the
@@ -253,8 +294,10 @@ import java.util.stream.Stream;
  * lead to much actual parallelism if all processors are busy
  * performing unrelated tasks.
  *
+ * O.
  * <p>All arguments to all task methods must be non-null.
  *
+ * P.
  * <p>This class is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
@@ -264,13 +307,88 @@ import java.util.stream.Stream;
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
  */
-public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
-    implements ConcurrentMap<K,V>, Serializable {
+public class ConcurrentHashMap<K,V> extends AbstractMap<K,V> implements ConcurrentMap<K,V>, Serializable {
+
     private static final long serialVersionUID = 7249069246763182397L;
 
+    /**
+     * 20210618
+     * 概述:
+     * A. 这个哈希表的主要设计目标是保持并发可读性（通常是方法get()，还有迭代器和相关方法），同时最小化更新争用。
+     *    次要目标是保持与java.util.HashMap相同或更好的空间消耗，并支持许多线程对空表的高初始插入率。
+     * B. 该映射通常用作分箱（分桶）哈希表。每个键值映射都保存在一个节点中。大多数节点是具有散列、键、值和下一个字段的基本Node类的实例。
+     *    但是，存在各种子类：TreeNode排列在平衡树中，而不是列表中。TreeBins持有TreeNode集合的根。ForwardingNodes在调整大小期间放置在bin的头部。
+     *    ReservationNodes用作占位符，同时在computeIfAbsent和相关方法中建立值。类型TreeBin、ForwardingNode和ReservationNode不保存普通的用户键、值或散列，
+     *    并且在搜索等过程中很容易区分，因为它们具有负散列字段和null键和值字段。 （这些特殊节点要么不常见，要么是暂时的，所以携带一些未使用的字段的影响是微不足道的。）
+     * C. 该表在第一次插入时被延迟初始化为2的幂大小。表中的每个bin通常包含一个节点列表（大多数情况下，该列表只有零个或一个节点）。表访问需要易失性/原子读取、写入
+     *    和CAS。因为没有其他方法可以在不添加更多间接方法的情况下进行安排，所以我们使用内部函数 (sun.misc.Unsafe) 操作。
+     * D. 我们使用节点哈希字段的顶部（符号）位进行控制——由于寻址限制，它无论如何都可用。具有负散列字段的节点在map方法中被特殊处理或忽略。
+     * E. 将第一个节点插入（通过put或其变体）到空bin中，只需将其CASing到bin中即可。这是迄今为止大多数键/哈希分布下放置操作的最常见情况。
+     *    其他更新操作（插入、删除和替换）需要锁定。我们不想浪费将不同的锁对象与每个 bin 相关联所需的空间，而是使用 bin 链表本身的第一个节点作为锁。
+     *    对这些锁的锁定支持依赖于内置的“同步”监视器。
+     * F. 但是，使用链表的第一个节点作为锁本身是不够的：当一个节点被锁定时，任何更新都必须首先验证它在锁定后仍然是第一个节点，如果不是，则重试。
+     *    因为新节点总是附加到链表中，一旦一个节点首先出现在一个bin中，它就会保持在第一个位置，直到被删除或 bin 失效（调整大小时）。
+     * G. per-bin锁的主要缺点是受同一锁保护的bin列表中其他节点上的其他更新操作可能会停止，例如当用户equals()或映射函数需要很长时间时。然而，统计上，在随机哈希码下，
+     *    这不是一个普遍的问题。理想情况下，考虑到0.75的大小调整阈值，bin中节点的频率遵循泊松分布，参数平均约为0.5，尽管由于调整粒度。
+     *    忽略方差，列表大小k的预期出现次数为 (exp(-0.5) * pow(0.5, k) / factorial(k))。 第一个值是：
+     *      0:    0.60653066
+     *      1:    0.30326533
+     *      2:    0.07581633
+     *      3:    0.01263606
+     *      4:    0.00157952
+     *      5:    0.00015795
+     *      6:    0.00001316
+     *      7:    0.00000094
+     *      8:    0.00000006
+     *    更多：不到千万分之一
+     * H. 在随机散列下，两个线程访问不同元素的锁争用概率大约为 1 / (8 * #elements)。
+     * I. 实践中遇到的实际散列码分布有时会明显偏离均匀随机性。这包括 N > (1<<30) 的情况，因此某些键必须发生冲突。类似的愚蠢或敌对用途，
+     *    其中多个密钥被设计为具有相同的哈希码或仅在屏蔽高位上不同的哈希码。因此，当bin中的节点数量超过阈值时，我们使用了一种辅助策略。
+     *    这些TreeBins使用平衡树来保存节点（红黑树的一种特殊形式），将搜索时间限制为O(log N)。 TreeBin中的每个搜索步骤至少比常规列表慢两倍，
+     *    但鉴于N不能超过(1<<64)（在地址用完之前），这将搜索步骤、锁定保持时间等限制为合理常量（每个操作最坏的情况下检查大约 100 个节点），
+     *    只要键是可比较的（这很常见——字符串、长整数等）。TreeBin 节点（TreeNodes）也和普通节点一样维护着同样的“next”遍历指针，
+     *    因此可以在迭代器中以同样的方式进行遍历。
+     * J. 当占用率超过百分比阈值（名义上为 0.75，但见下文）时，将调整表格大小。在启动线程分配和设置替换数组之后，任何注意到垃圾箱过满的线程都可以帮助调整大小。
+     *    然而，这些其他线程可能会继续进行插入等操作，而不是停顿。TreeBins的使用使我们免受在调整大小进行时过度填充的最坏情况影响。
+     *    通过将bins一个个地转移到下一个bin来调整大小。但是，线程在这样做之前要求传输小块索引（通过字段 transferIndex），从而减少争用。
+     *    字段sizeCtl中的生成戳可确保调整大小不会重叠。因为我们使用的是二次幂扩展，所以每个 bin 中的元素必须保持相同的索引，或者以二次幂的偏移量移动。
+     *    我们通过捕获可以重用旧节点的情况来消除不必要的节点创建，因为它们的下一个字段不会改变。平均而言，当一个bin移动时，其中只有大约六分之一需要克隆。
+     *    一旦它们不再被可能处于并发遍历表中的任何读取器线程引用，它们替换的节点将是可垃圾回收的。传输时，旧表 bin 仅包含一个特殊的转发节点（具有哈希字段“MOVED”），
+     *    该节点包含下一个表作为其键。遇到转发节点时，访问和更新操作将使用新表重新启动。
+     * K. 每个bin传输都需要其bin锁，这可能会在调整大小时停止等待锁。但是，因为其他线程可以加入并帮助调整大小而不是争用锁，所以随着调整大小的进行，
+     *    平均聚合等待时间变得更短。传输操作还必须确保旧表和新表中所有可访问的bin均可用于任何遍历。这部分是通过从最后一个bin(table.length - 1)到第一个bin来安排的。
+     *    在看到转发节点时，遍历（参见 Traverser 类）安排移动到新表，而无需重新访问节点。为了确保即使在无序移动时也不会跳过中间节点，
+     *    在遍历期间第一次遇到转发节点时会创建一个堆栈（参见类 TableStack），以在以后处理当前表时保持其位置。这些保存/恢复机制的需求相对较少，
+     *    但是当遇到一个转发节点时，通常会有更多。所以Traversers使用简单的缓存方案来避免创建这么多新的TableStack节点。 （感谢 Peter Levart 在这里建议使用堆栈。）
+     * L. 遍历方案也适用于bin范围的部分遍历（通过备用 Traverser 构造函数）以支持分区聚合操作。此外，如果转发到空表，只读操作就会放弃，
+     *    这提供了对关闭式清除的支持，目前也没有实现。
+     * M. 延迟表初始化在第一次使用之前最大限度地减少了占用空间，并且还避免了在第一次操作来自putAll、带有映射参数的构造函数或反序列化时调整大小。
+     *    这些情况试图覆盖初始容量设置，但在竞争情况下无害地无法生效。
+     * N. 元素计数是使用LongAdder的特殊化来维护的。为了访问导致创建多个CounterCell的隐式争用感知，我们需要合并一个专门化，而不仅仅是使用 LongAdder。
+     *    计数器机制避免了更新争用，但如果在并发访问期间读取过于频繁，可能会遇到缓存抖动。 为了避免频繁读取，只有在添加到已经包含两个或更多节点的bin时，
+     *    才尝试在争用情况下调整大小。在均匀散列分布下，这种情况发生在阈值的概率约为13%，这意味着只有大约八分之一的put检查阈值（并且在调整大小后，
+     *    这样做的可能性要小得多）。
+     * O. TreeBins使用一种特殊形式的比较来进行搜索和相关操作（这是我们不能使用现有集合（例如 TreeMap）的主要原因）。TreeBins 包含 Comparable 元素，
+     *    但可能包含其他元素，以及对于同一个T具有Comparable但不一定Comparable的元素，因此我们不能在它们之间调用compareTo。为了处理这个问题，树主要按哈希值排序，
+     *    然后按Comparable.compareTo排序（如果适用）。在查找节点时，如果元素不可比较或比较为0，则在绑定散列值的情况下，可能需要搜索左右孩子。
+     *    （这对应于如果所有元素都是不可比较的并且绑定了散列，则需要进行完整的列表搜索。）在插入时，为了在重新平衡之间保持总排序（或尽可能接近），我们比较类和
+     *    identityHashCodes作为决胜局。红黑平衡代码由 pre-jdk-collections (http://gee.cs.oswego.edu/dl/classes/collections/RBCell.java) 更新而来，
+     *    依次基于 Cormen、Leiserson 和 Rivest “Introduction to算法”（CLR）。
+     * P. TreeBins还需要一个额外的锁定机制。尽管即使在更新期间读者也始终可以进行列表遍历，但树遍历却不是，这主要是因为树旋转可能会改变根节点和/或其链接。
+     *    TreeBins包含一个简单的读写锁机制，寄生在主bin同步策略上：与插入或移除相关的结构调整已经被bin锁定（因此不会与其他写入器冲突），
+     *    但必须等待正在进行的读取器完成。由于只能有一个这样的服务员，我们使用一个简单的方案，使用单个“服务员”字段来阻止写入者。但是，读者永远不需要阻止。
+     *    如果根锁被持有，它们会沿着缓慢的遍历路径（通过下一个指针）继续，直到锁可用或列表耗尽，以先到者为准。 这些情况并不快，但可以最大限度地提高预期总吞吐量。
+     * Q. 保持与此类以前版本的API和序列化兼容性会引入一些奇怪的问题。主要是：我们保留未触及但未使用的构造函数参数，引用concurrencyLevel。
+     *    我们接受一个loadFactor构造函数参数，但仅将其应用于初始表容量（这是我们可以保证遵守它的唯一时间。）我们还声明了一个未使用的“Segment”类，
+     *    该类仅在序列化时以最小形式实例化。
+     * R. 另外，仅仅为了兼容这个类的以前版本，它扩展了 AbstractMap，即使它的所有方法都被覆盖了，所以它只是无用的包袱。
+     * S. 该文件的组织方式使阅读时比其他方式更容易理解：首先是主要的静态声明和实用程序，然后是字段，然后是主要的公共方法（将多个公共方法的一些因素分解为内部方法），
+     *    然后调整大小 方法、树、遍历器和批量操作。
+     */
     /*
      * Overview:
      *
+     * A.
      * The primary design goal of this hash table is to maintain
      * concurrent readability (typically method get(), but also
      * iterators and related methods) while minimizing update
@@ -278,6 +396,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * the same or better than java.util.HashMap, and to support high
      * initial insertion rates on an empty table by many threads.
      *
+     * B.
      * This map usually acts as a binned (bucketed) hash table.  Each
      * key-value mapping is held in a Node.  Most nodes are instances
      * of the basic Node class with hash, key, value, and next
@@ -294,6 +413,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * so the impact of carrying around some unused fields is
      * insignificant.)
      *
+     * C.
      * The table is lazily initialized to a power-of-two size upon the
      * first insertion.  Each bin in the table normally contains a
      * list of Nodes (most often, the list has only zero or one Node).
@@ -302,11 +422,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * adding further indirections, we use intrinsics
      * (sun.misc.Unsafe) operations.
      *
+     * D.
      * We use the top (sign) bit of Node hash fields for control
      * purposes -- it is available anyway because of addressing
      * constraints.  Nodes with negative hash fields are specially
      * handled or ignored in map methods.
      *
+     * E.
      * Insertion (via put or its variants) of the first node in an
      * empty bin is performed by just CASing it to the bin.  This is
      * by far the most common case for put operations under most
@@ -317,6 +439,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * a lock. Locking support for these locks relies on builtin
      * "synchronized" monitors.
      *
+     * F.
      * Using the first node of a list as a lock does not by itself
      * suffice though: When a node is locked, any update must first
      * validate that it is still the first node after locking it, and
@@ -324,6 +447,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * once a node is first in a bin, it remains first until deleted
      * or the bin becomes invalidated (upon resizing).
      *
+     * G.
      * The main disadvantage of per-bin locks is that other update
      * operations on other nodes in a bin list protected by the same
      * lock can stall, for example when user equals() or mapping
@@ -348,9 +472,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * 8:    0.00000006
      * more: less than 1 in ten million
      *
+     * H.
      * Lock contention probability for two threads accessing distinct
      * elements is roughly 1 / (8 * #elements) under random hashes.
      *
+     * I.
      * Actual hash code distributions encountered in practice
      * sometimes deviate significantly from uniform randomness.  This
      * includes the case when N > (1<<30), so some keys MUST collide.
@@ -370,6 +496,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * traversal pointers as regular nodes, so can be traversed in
      * iterators in the same way.
      *
+     * J.
      * The table is resized when occupancy exceeds a percentage
      * threshold (nominally, 0.75, but see below).  Any thread
      * noticing an overfull bin may assist in resizing after the
@@ -396,6 +523,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * forwarding node, access and update operations restart, using
      * the new table.
      *
+     * K.
      * Each bin transfer requires its bin lock, which can stall
      * waiting for locks while resizing. However, because other
      * threads can join in and help resize rather than contend for
@@ -416,6 +544,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * many new TableStack nodes. (Thanks to Peter Levart for
      * suggesting use of a stack here.)
      *
+     * L.
      * The traversal scheme also applies to partial traversals of
      * ranges of bins (via an alternate Traverser constructor)
      * to support partitioned aggregate operations.  Also, read-only
@@ -423,12 +552,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * provides support for shutdown-style clearing, which is also not
      * currently implemented.
      *
+     * M.
      * Lazy table initialization minimizes footprint until first use,
      * and also avoids resizings when the first operation is from a
      * putAll, constructor with map argument, or deserialization.
      * These cases attempt to override the initial capacity settings,
      * but harmlessly fail to take effect in cases of races.
      *
+     * N.
      * The element count is maintained using a specialization of
      * LongAdder. We need to incorporate a specialization rather than
      * just use a LongAdder in order to access implicit
@@ -442,6 +573,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * is around 13%, meaning that only about 1 in 8 puts check
      * threshold (and after resizing, many fewer do so).
      *
+     * O.
      * TreeBins use a special form of comparison for search and
      * related operations (which is the main reason we cannot use
      * existing collections such as TreeMaps). TreeBins contain
@@ -462,6 +594,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * based in turn on Cormen, Leiserson, and Rivest "Introduction to
      * Algorithms" (CLR).
      *
+     * P.
      * TreeBins also require an additional locking mechanism.  While
      * list traversal is always possible by readers even during
      * updates, tree traversal is not, mainly because of tree-rotations
@@ -478,6 +611,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * exhausted, whichever comes first. These cases are not fast, but
      * maximize aggregate expected throughput.
      *
+     * Q.
      * Maintaining API and serialization compatibility with previous
      * versions of this class introduces several oddities. Mainly: We
      * leave untouched but unused constructor arguments refering to
@@ -487,10 +621,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * unused "Segment" class that is instantiated in minimal form
      * only when serializing.
      *
+     * R.
      * Also, solely for compatibility with previous versions of this
      * class, it extends AbstractMap, even though all of its methods
      * are overridden, so it is just useless baggage.
      *
+     * S.
      * This file is organized to make things a little easier to follow
      * while reading than they might otherwise: First the main static
      * declarations and utilities, then fields, then main public
@@ -501,6 +637,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /* ---------------- Constants -------------- */
 
+    /**
+     * 20210619
+     * 最大可能的表容量。该值必须恰好为1<<30以保持在Java数组分配和两个表大小的幂的索引范围内，并且进一步需要，因为32位哈希字段的前两位用于控制目的。
+     */
     /**
      * The largest possible table capacity.  This value must be
      * exactly 1<<30 to stay within Java array allocation and indexing
@@ -514,20 +654,27 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * The default initial table capacity.  Must be a power of 2
      * (i.e., at least 1) and at most MAXIMUM_CAPACITY.
      */
+    // 默认的初始表容量。 必须是 2 的幂（即至少为 1）且最多为 MAXIMUM_CAPACITY。
     private static final int DEFAULT_CAPACITY = 16;
 
     /**
      * The largest possible (non-power of two) array size.
      * Needed by toArray and related methods.
      */
+    // 可能的最大（非 2 的幂）数组大小。 toArray 和相关方法需要。
     static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     /**
      * The default concurrency level for this table. Unused but
      * defined for compatibility with previous versions of this class.
      */
+    // 此表的默认并发级别。 未使用但定义为与此类的先前版本兼容。
     private static final int DEFAULT_CONCURRENCY_LEVEL = 16;
 
+    /**
+     * 20210619
+     * 此表的负载因子。在构造函数中覆盖此值仅影响初始表容量。通常不使用实际的浮点值——使用 {@code n - (n >>> 2)} 之类的表达式来表示相关的调整大小阈值会更简单。
+     */
     /**
      * The load factor for this table. Overrides of this value in
      * constructors affect only the initial table capacity.  The
@@ -537,6 +684,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     private static final float LOAD_FACTOR = 0.75f;
 
+    /**
+     * 20210619
+     * 使用树而不是列表的bin计数阈值。将元素添加到至少具有这么多节点的bin时，bin会转换为树。该值必须大于 2，并且应至少为 8，
+     * 以与树移除中关于在收缩时转换回普通bin的假设相匹配。
+     */
     /**
      * The bin count threshold for using a tree rather than list for a
      * bin.  Bins are converted to trees when adding an element to a
@@ -552,8 +704,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * resize operation. Should be less than TREEIFY_THRESHOLD, and at
      * most 6 to mesh with shrinkage detection under removal.
      */
+    // 在调整大小操作期间取消（拆分）bin 的 bin 计数阈值。 应小于 TREEIFY_THRESHOLD，最多为 6 以在移除下进行收缩检测。
     static final int UNTREEIFY_THRESHOLD = 6;
 
+    /**
+     * 20210619
+     * 可以将 bin 树化的最小散列表容量。（否则，如果 bin 中的节点过多，则调整表的大小。）该值应至少为 4 * TREEIFY_THRESHOLD，以避免调整大小和树化阈值之间发生冲突。
+     */
     /**
      * The smallest table capacity for which bins may be treeified.
      * (Otherwise the table is resized if too many nodes in a bin.)
@@ -562,6 +719,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
 
+    /**
+     * 20210619
+     * 每个转移步骤的最小重新组合次数。 范围被细分以允许多个调整器线程。 此值用作下限，以避免调整器遇到过多的内存争用。 该值应至少为 DEFAULT_CAPACITY。
+     */
     /**
      * Minimum number of rebinnings per transfer step. Ranges are
      * subdivided to allow multiple resizer threads.  This value
@@ -575,31 +736,40 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * The number of bits used for generation stamp in sizeCtl.
      * Must be at least 6 for 32bit arrays.
      */
+    // sizeCtl中用于生成标记的位数。 对于 32 位数组，必须至少为 6。
     private static int RESIZE_STAMP_BITS = 16;
 
     /**
      * The maximum number of threads that can help resize.
      * Must fit in 32 - RESIZE_STAMP_BITS bits.
      */
+    // 可以帮助调整大小的最大线程数。 必须适合 32 - RESIZE_STAMP_BITS 位。
     private static final int MAX_RESIZERS = (1 << (32 - RESIZE_STAMP_BITS)) - 1;
 
     /**
      * The bit shift for recording size stamp in sizeCtl.
      */
+    // sizeCtl 中记录大小标记的位移位。
     private static final int RESIZE_STAMP_SHIFT = 32 - RESIZE_STAMP_BITS;
 
+    /**
+     * 20210619
+     * 节点哈希字段的编码。 见上文解释。
+     */
     /*
      * Encodings for Node hash fields. See above for explanation.
      */
-    static final int MOVED     = -1; // hash for forwarding nodes
-    static final int TREEBIN   = -2; // hash for roots of trees
-    static final int RESERVED  = -3; // hash for transient reservations
-    static final int HASH_BITS = 0x7fffffff; // usable bits of normal node hash
+    static final int MOVED     = -1; // hash for forwarding nodes // 转发节点的哈希
+    static final int TREEBIN   = -2; // hash for roots of trees // 树根的散列
+    static final int RESERVED  = -3; // hash for transient reservations // 临时保留的哈希
+    static final int HASH_BITS = 0x7fffffff; // usable bits of normal node hash // 正常节点哈希的可用位
 
     /** Number of CPUS, to place bounds on some sizings */
+    // CPUS 数量，用于限制某些尺寸
     static final int NCPU = Runtime.getRuntime().availableProcessors();
 
     /** For serialization compatibility. */
+    // 为了序列化兼容性
     private static final ObjectStreamField[] serialPersistentFields = {
         new ObjectStreamField("segments", Segment[].class),
         new ObjectStreamField("segmentMask", Integer.TYPE),
@@ -608,6 +778,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /* ---------------- Nodes -------------- */
 
+    /**
+     * 20210619
+     * 键值输入。此类永远不会作为用户可变的Map.Entry（即一个支持 setValue；参见下面的 MapEntry）导出，但可用于批量任务中使用的只读遍历。
+     * 具有负散列字段的Node子类是特殊的，包含空键和值（但从不导出）。否则，键和值永远不会为null。
+     */
     /**
      * Key-value entry.  This class is never exported out as a
      * user-mutable Map.Entry (i.e., one supporting setValue; see
@@ -649,6 +824,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         /**
          * Virtualized support for map.get(); overridden in subclasses.
          */
+        // 对 map.get() 的虚拟化支持； 在子类中被覆盖。
         Node<K,V> find(int h, Object k) {
             Node<K,V> e = this;
             if (k != null) {
@@ -664,7 +840,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /* ---------------- Static utilities -------------- */
+    // 静态实用程序
 
+    /**
+     * 20210619
+     * 将散列的较高位传播 (XOR) 到较低位，并强制将最高位设为0。由于该表使用二次幂掩码，因此仅在当前掩码上方位不同的散列集将始终冲突。
+     * （众所周知的例子是在小表中保存连续整数的浮点键集。）所以我们应用了一种向下传播高位影响的变换。 位扩展的速度、效用和质量之间存在权衡。
+     * 因为许多常见的哈希集已经合理分布（因此不会从传播中受益），并且因为我们使用树来处理 bin 中的大量冲突，所以我们只是以最便宜的方式对
+     * 一些移位的位进行异或以减少系统损失， 以及合并最高位的影响，否则由于表边界而永远不会在索引计算中使用。
+     */
     /**
      * Spreads (XORs) higher bits of hash to lower and also forces top
      * bit to 0. Because the table uses power-of-two masking, sets of
@@ -681,6 +865,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * to incorporate impact of the highest bits that would otherwise
      * never be used in index calculations because of table bounds.
      */
+    // 将散列的较高位传播 (XOR) 到较低位，并强制将最高位设为0
     static final int spread(int h) {
         return (h ^ (h >>> 16)) & HASH_BITS;
     }
@@ -689,6 +874,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Returns a power of two table size for the given desired capacity.
      * See Hackers Delight, sec 3.2
      */
+    // 为给定的所需容量返回表大小的 2 次幂。 参见 Hackers Delight，第 3.2 节
     private static final int tableSizeFor(int c) {
         int n = c - 1;
         n |= n >>> 1;
@@ -703,6 +889,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Returns x's Class if it is of the form "class C implements
      * Comparable<C>", else null.
      */
+    // 如果 x 的类的形式为“类 C 实现 Comparable<C>”，则返回 x 的类，否则返回 null。
     static Class<?> comparableClassFor(Object x) {
         if (x instanceof Comparable) {
             Class<?> c; Type[] ts, as; Type t; ParameterizedType p;
@@ -726,6 +913,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Returns k.compareTo(x) if x matches kc (k's screened comparable
      * class), else 0.
      */
+    // 如果 x 匹配 kc（k 的筛选可比类），则返回 k.compareTo(x)，否则返回 0。
     @SuppressWarnings({"rawtypes","unchecked"}) // for cast to Comparable
     static int compareComparables(Class<?> kc, Object k, Object x) {
         return (x == null || x.getClass() != kc ? 0 :
@@ -733,7 +921,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /* ---------------- Table element access -------------- */
+    // 表元素访问
 
+    /**
+     * 20210619
+     * 可变访问方法用于表元素以及调整大小时正在进行的下一个表的元素。 调用者必须对 tab 参数的所有使用进行空检查。
+     * 所有调用者还偏执地预检查选项卡的长度不为零（或等效检查），从而确保采用散列值形式并带有 (length - 1) 的任何索引参数都是有效索引。
+     * 请注意，为了纠正用户的任意并发错误，这些检查必须对局部变量进行操作，这说明了下面一些看起来很奇怪的内联分配。 请注意，对 setTabAt 的调用总是发生在锁定区域内，
+     * 因此原则上只需要发布顺序，而不是完全 volatile 语义，但目前被编码为 volatile 写入是保守的。
+     */
     /*
      * Volatile access methods are used for table elements as well as
      * elements of in-progress next table while resizing.  All uses of
@@ -750,16 +946,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * writes to be conservative.
      */
 
+    // volatile方式获取散列表tab中i位置的Node节点
     @SuppressWarnings("unchecked")
     static final <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
         return (Node<K,V>)U.getObjectVolatile(tab, ((long)i << ASHIFT) + ABASE);
     }
 
+    // CAS方式更新散列表tab中i位置的Node节点为v(原值必须为c才更新)
     static final <K,V> boolean casTabAt(Node<K,V>[] tab, int i,
                                         Node<K,V> c, Node<K,V> v) {
         return U.compareAndSwapObject(tab, ((long)i << ASHIFT) + ABASE, c, v);
     }
 
+    // volatile方式添加v到散列表tab中i位置
     static final <K,V> void setTabAt(Node<K,V>[] tab, int i, Node<K,V> v) {
         U.putObjectVolatile(tab, ((long)i << ASHIFT) + ABASE, v);
     }
@@ -770,11 +969,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * The array of bins. Lazily initialized upon first insertion.
      * Size is always a power of two. Accessed directly by iterators.
      */
+    // bin数组。第一次插入时延迟初始化。大小始终是2的幂。由迭代器直接访问。
     transient volatile Node<K,V>[] table;
 
     /**
      * The next table to use; non-null only while resizing.
      */
+    // 下一个要使用的表；仅在调整大小时非null。
     private transient volatile Node<K,V>[] nextTable;
 
     /**
@@ -782,8 +983,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * but also as a fallback during table initialization
      * races. Updated via CAS.
      */
+    // 基本计数器值，主要在没有争用时使用，但也可作为表初始化竞争期间的后备。 通过 CAS 更新。
     private transient volatile long baseCount;
 
+    /**
+     * 20210619
+     * 表初始化和调整大小控制。如果为负，则表正在初始化或调整大小：-1 表示初始化，否则 -（1 + 活动调整大小线程的数量）。
+     * 否则，当 table 为 null 时，保存创建时使用的初始表大小，或默认为0。初始化后，保存下一个要调整表格大小的元素计数值。
+     */
     /**
      * Table initialization and resizing control.  When negative, the
      * table is being initialized or resized: -1 for initialization,
@@ -792,24 +999,28 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * creation, or 0 for default. After initialization, holds the
      * next element count value upon which to resize the table.
      */
+    // 并发阈值：通常等于0.75 * 容量, 但在构造函数中等于初始容量, 散列表正在初始化时为-1
     private transient volatile int sizeCtl;
 
     /**
      * The next table index (plus one) to split while resizing.
      */
+    // 调整大小时要拆分的下一个表索引（加一）。
     private transient volatile int transferIndex;
 
     /**
      * Spinlock (locked via CAS) used when resizing and/or creating CounterCells.
      */
+    // 调整大小或创建 CounterCell 时使用的自旋锁（通过 CAS 锁定）。
     private transient volatile int cellsBusy;
 
     /**
      * Table of counter cells. When non-null, size is a power of 2.
      */
+    // 计数器单元格表。 当非null时，大小是 2 的幂。
     private transient volatile CounterCell[] counterCells;
 
-    // views
+    // views 视图
     private transient KeySetView<K,V> keySet;
     private transient ValuesView<K,V> values;
     private transient EntrySetView<K,V> entrySet;
@@ -820,6 +1031,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * Creates a new, empty map with the default initial table size (16).
      */
+    // 使用默认的初始表大小 (16) 创建一个新的空映射。
     public ConcurrentHashMap() {
     }
 
@@ -833,6 +1045,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * @throws IllegalArgumentException if the initial capacity of
      * elements is negative
      */
+    // 创建一个新的空Map，其初始表大小可容纳指定数量的元素，而无需动态调整大小。
     public ConcurrentHashMap(int initialCapacity) {
         if (initialCapacity < 0)
             throw new IllegalArgumentException();
@@ -847,6 +1060,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      *
      * @param m the map
      */
+    // 创建一个与给定Map具有相同映射的新Map。
     public ConcurrentHashMap(Map<? extends K, ? extends V> m) {
         this.sizeCtl = DEFAULT_CAPACITY;
         putAll(m);
@@ -867,6 +1081,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      *
      * @since 1.6
      */
+    // 根据给定的元素数量 ({@code initialCapacity}) 和初始表密度 ({@code loadFactor}) 创建一个具有初始表大小的新空映射。
     public ConcurrentHashMap(int initialCapacity, float loadFactor) {
         this(initialCapacity, loadFactor, 1);
     }
@@ -877,22 +1092,31 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * density ({@code loadFactor}), and number of concurrently
      * updating threads ({@code concurrencyLevel}).
      *
+     * // 初始容量。 给定指定的负载因子，实现会执行内部大小调整以容纳这么多元素。
      * @param initialCapacity the initial capacity. The implementation
      * performs internal sizing to accommodate this many elements,
      * given the specified load factor.
+     *
+     * // 用于建立初始表大小的加载因子（表密度）
      * @param loadFactor the load factor (table density) for
      * establishing the initial table size
+     *
+     * // 估计的并发更新线程数。 实现可以使用这个值作为调整大小的提示。
      * @param concurrencyLevel the estimated number of concurrently
      * updating threads. The implementation may use this value as
      * a sizing hint.
+     *
+     * // 如果初始容量为负或负载因子或 concurrencyLevel 为负数
      * @throws IllegalArgumentException if the initial capacity is
      * negative or the load factor or concurrencyLevel are
      * nonpositive
      */
+    // 根据给定的元素数 ({@code initialCapacity})、表密度 ({@code loadFactor}) 和并发更新线程数 ({@code concurrencyLevel}) 创建一个具有初始表大小的新空映射。
     public ConcurrentHashMap(int initialCapacity,
                              float loadFactor, int concurrencyLevel) {
         if (!(loadFactor > 0.0f) || initialCapacity < 0 || concurrencyLevel <= 0)
             throw new IllegalArgumentException();
+        // 使用至少与估计线程一样多的 bin
         if (initialCapacity < concurrencyLevel)   // Use at least as many bins
             initialCapacity = concurrencyLevel;   // as estimated threads
         long size = (long)(1.0 + (long)initialCapacity / loadFactor);
@@ -921,9 +1145,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 20210623
+     * A. 返回指定键映射到的值，如果此映射不包含键的映射，则返回 {@code null}。
+     * B. 更正式地说，如果此映射包含从键 {@code k} 到值 {@code v} 的映射，使得 {@code key.equals(k)}，则此方法返回 {@code v}； 否则返回 {@code null}。
+     *   （最多可以有一个这样的映射。）
+     */
+    /**
+     * A.
      * Returns the value to which the specified key is mapped,
      * or {@code null} if this map contains no mapping for the key.
      *
+     * B.
      * <p>More formally, if this map contains a mapping from a key
      * {@code k} to a value {@code v} such that {@code key.equals(k)},
      * then this method returns {@code v}; otherwise it returns
@@ -931,23 +1163,37 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      *
      * @throws NullPointerException if the specified key is null
      */
+    // 获取指定键映射到的值，如果此映射不包含键的映射，则返回 {@code null}: 需要判断桶头结点e是否为转发结点、红黑树结点、computeIfAbsent临时结点
     public V get(Object key) {
         Node<K,V>[] tab; Node<K,V> e, p; int n, eh; K ek;
+
+        // 将散列的较高位传播 (XOR) 到较低位，并强制将最高位设为0
         int h = spread(key.hashCode());
-        if ((tab = table) != null && (n = tab.length) > 0 &&
-            (e = tabAt(tab, (n - 1) & h)) != null) {
+
+        // 当前散列表tab, Key的hash值h, tab容量n, h取模n后的桶e, e的hash值eh, e的键ek
+        if ((tab = table) != null && (n = tab.length) > 0 && (e = tabAt(tab, (n - 1) & h)) != null) {
+
+            // 如果e的hash值相等, 且Key相等或者Key equals, 说明桶头结点e就是要找到的结点, 此时返回e的value
             if ((eh = e.hash) == h) {
                 if ((ek = e.key) == key || (ek != null && key.equals(ek)))
                     return e.val;
             }
+
+            // 如果e的hash小于0, 说明e可能为转发结点、红黑树结点、computeIfAbsent临时结点
             else if (eh < 0)
+                // 1. 如果e为转发结点, 则以转发结点方式根据hash以及key对象查找结点: hash相等, 且Key相等或者equals
+                // 2. 如果e为红黑树结点, 则根据hash值和key值，从根结点开始查找红黑树结点 => 同HashMap#getTreeNode（int，Object）
+                // 3. 如果e为computeIfAbsent临时结点, 则返回null
                 return (p = e.find(h, key)) != null ? p.val : null;
+
+            // 如果桶头没找e结点, 则继续遍历e链表, 找到hash值相等, 且Key相等或者equals结点并返回
             while ((e = e.next) != null) {
-                if (e.hash == h &&
-                    ((ek = e.key) == key || (ek != null && key.equals(ek))))
+                if (e.hash == h && ((ek = e.key) == key || (ek != null && key.equals(ek))))
                     return e.val;
             }
         }
+
+        // 如果实在找不到, 则返回null
         return null;
     }
 
@@ -990,9 +1236,16 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 20210619
+     * A. 将指定的键映射到此表中的指定值。 键和值都不能为null。
+     * B. 可以通过使用与原始键相同的键调用 {@code get} 方法来检索该值。
+     */
+    /**
+     * A.
      * Maps the specified key to the specified value in this table.
      * Neither the key nor the value can be null.
      *
+     * B.
      * <p>The value can be retrieved by calling the {@code get} method
      * with a key that is equal to the original key.
      *
@@ -1006,51 +1259,74 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return putVal(key, value, false);
     }
 
+    // put 和 putIfAbsent 的实现
     /** Implementation for put and putIfAbsent */
+    // 将指定值和指定键相关联，形成key-value键值对，如果包含相同的键且onlyIfAbsent为false，则会替换旧值。
     final V putVal(K key, V value, boolean onlyIfAbsent) {
         if (key == null || value == null) throw new NullPointerException();
+
+        // 将散列的较高位传播 (XOR) 到较低位，并强制将最高位设为0
         int hash = spread(key.hashCode());
+
+        // 开始自旋, 散列表tab, 桶头结点f, 当前散列表容量n, Key的hash值索引i, 桶头结点f的hash值fh, f桶链上结点数量binCount
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
             Node<K,V> f; int n, i, fh;
+
+            // 如果tab为null或者tab容量n为0, 说明散列表还没被创建, 则创建散列表
             if (tab == null || (n = tab.length) == 0)
+                // 使用并发阈值初始化散列表
                 tab = initTable();
+
+            // 如果tab已被初始化, 且桶头结点f为null, 则CAS方式更新散列表tab中i位置的Node节点为v, 设置成功则结束自旋, 否则继续下轮自旋
             else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
-                if (casTabAt(tab, i, null,
-                             new Node<K,V>(hash, key, value, null)))
-                    break;                   // no lock when adding to empty bin
+                if (casTabAt(tab, i, null, new Node<K,V>(hash, key, value, null)))
+                    break;                   // no lock when adding to empty bin 添加到空箱时没有锁定
             }
+
+            // 如果tab已被初始化, 且桶头结点f不为null, 但f为转发结点, 说明当前散列表已经是旧的散列表了, 则当前线程协助转移tab元素到新的散列表中
             else if ((fh = f.hash) == MOVED)
+                // 如果旧tab正在被其他线程扩容转移中, 则当前线程加入一起转移结点, 协助完成后返回新tab, 则基于新tab进行下一轮自旋(会把结点插入到新tab中)
                 tab = helpTransfer(tab, f);
+
+            // 如果tab已被初始化, 且桶头结点f不为null, 且f也不为转发结点, 说明f为正常结点, 可以在桶链上追加元素
             else {
                 V oldVal = null;
+
+                // 此时对桶头结点f进行加锁, 只有抢到锁的线程才能进行追加结点
                 synchronized (f) {
+                    // 再次检查当前桶头结点是否还为f, 如果是才继续追加, 否则说明桶头结点已被其他线程更新了, 则释放f锁, 继续自旋
                     if (tabAt(tab, i) == f) {
+                        // 如果f的hash值fh大于等于0, 说明f为普通Node结点, 则更新binCount为1(1个Node), 然后按普通链表方式添加结点
                         if (fh >= 0) {
                             binCount = 1;
                             for (Node<K,V> e = f;; ++binCount) {
                                 K ek;
-                                if (e.hash == hash &&
-                                    ((ek = e.key) == key ||
-                                     (ek != null && key.equals(ek)))) {
+
+                                // 如果已经存在该元素, 如果只允许在不存在时才添加则什么也不做, 否则替换旧值, 结束遍历
+                                if (e.hash == hash && ((ek = e.key) == key || (ek != null && key.equals(ek)))) {
                                     oldVal = e.val;
                                     if (!onlyIfAbsent)
                                         e.val = value;
                                     break;
                                 }
+
+                                // 如果不存在该元素, 则直接添加到链尾, 结束遍历
                                 Node<K,V> pred = e;
                                 if ((e = e.next) == null) {
-                                    pred.next = new Node<K,V>(hash, key,
-                                                              value, null);
+                                    pred.next = new Node<K,V>(hash, key, value, null);
                                     break;
                                 }
                             }
                         }
+
+                        // 如果f的hash值fh小于0, 且为TreeBin类型, 说明f链为红黑树, 则更新binCount为2(1个TreeBin + 1个TreeNode), 然后按照红黑树结点的添加方法添加该结点
                         else if (f instanceof TreeBin) {
                             Node<K,V> p;
                             binCount = 2;
-                            if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
-                                                           value)) != null) {
+                            // 红黑树结点的添加方法（插入成功则返回null，插入失败则返回已经存在的结点）=> 类似HashMap#putTreeVal（HashMap，Node，int，K，V）, 但这里还需要竞争TreeBin桶头结点的写锁
+                            if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key, value)) != null) {
+                                // 如果插入失败, 说明已经存在该元素, 此时p.val为旧值, 如果只允许在不存在时才添加则什么也不做, 否则替换旧值
                                 oldVal = p.val;
                                 if (!onlyIfAbsent)
                                     p.val = value;
@@ -1058,19 +1334,35 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         }
                     }
                 }
+
+                // 释放桶头结点f的锁, 如果binCount不为0, 说明结点已经添加成功
                 if (binCount != 0) {
+
+                    // 如果f链上结点个数是否大于红黑树化阈值8, 则需要红黑树化f链
                     if (binCount >= TREEIFY_THRESHOLD)
                         treeifyBin(tab, i);
+
+                    // 否则说明还不需要红黑树化, 如果存在旧值, 则说明发生的不是结点添加, 而是结点值替换, 此时只需要返回旧值即可, 无需更新实际大小和扩容
                     if (oldVal != null)
                         return oldVal;
+
+                    // 否则说明为结点添加, 则结束自旋, 开始更新实际大小和扩容
                     break;
                 }
             }
         }
+
+        // 到这里说明发生了结点添加, 则baseCount或者CounterCell叠加x, 叠加后检查是否需要扩容, 如果需要则启动扩容并转移结点; 如果判断到其他线程正在扩容转移结点, 则当前线程进行协助扩容转移结点
         addCount(1L, binCount);
+
+        // 结点添加成功, 返回null作为标志位
         return null;
     }
 
+    /**
+     * 20210623
+     * 将所有映射从指定映射复制到此映射。 这些映射替换了此映射对当前在指定映射中的任何键所具有的任何映射。
+     */
     /**
      * Copies all of the mappings from the specified map to this one.
      * These mappings replace any mappings that this map had for any of the
@@ -1079,11 +1371,18 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * @param m mappings to be stored in this map
      */
     public void putAll(Map<? extends K, ? extends V> m) {
+        // 初始化或者扩容当前散列表tab容量, 到最接近m.size的2次幂次容量, 可能会初始化tab、无需扩容tab、协助转移tab结点、扩容tab并转移结点
         tryPresize(m.size());
+
+        // 遍历复制集合m, 将指定值和指定键相关联, 形成key-value键值对, 如果包含相同的键会替换旧值
         for (Map.Entry<? extends K, ? extends V> e : m.entrySet())
             putVal(e.getKey(), e.getValue(), false);
     }
 
+    /**
+     * 20210623
+     * 从此映射中删除键（及其相应的值）。 如果键不在Map中，则此方法不执行任何操作。
+     */
     /**
      * Removes the key (and its corresponding value) from this map.
      * This method does nothing if the key is not in the map.
@@ -1093,76 +1392,120 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      *         {@code null} if there was no mapping for {@code key}
      * @throws NullPointerException if the specified key is null
      */
+    // 根据key删除结点, 删除成功会返回旧值, key可以为null
     public V remove(Object key) {
+        // 根据key和cv删除结点, 删除成功会返回旧值
         return replaceNode(key, null, null);
     }
 
+    /**
+     * 20210623
+     * 四个公共删除/替换方法的实现： 用v替换节点值，条件是cv匹配（如果非null）。如果结果值为null，则删除。
+     */
     /**
      * Implementation for the four public remove/replace methods:
      * Replaces node value with v, conditional upon match of cv if
      * non-null.  If resulting value is null, delete.
      */
+    // 根据key和cv删除/替换结点核心逻辑, 如果指定了value说明为替换模式, 此时会替换目标结点的value值为指定的value并返回null, 否则删除成功会返回旧值
     final V replaceNode(Object key, V value, Object cv) {
+        // 将散列的较高位传播 (XOR) 到较低位，并强制将最高位设为0
         int hash = spread(key.hashCode());
+
+        // 开始自旋, 当前散列表tab, tab容量n, hash值索引i, hash值索引对应的桶头结点f, f的hash值fh
         for (Node<K,V>[] tab = table;;) {
             Node<K,V> f; int n, i, fh;
-            if (tab == null || (n = tab.length) == 0 ||
-                (f = tabAt(tab, i = (n - 1) & hash)) == null)
+
+            // 如果tab不存在, 或者n为0, 或者f为null, 则直接结束自旋, 返回null
+            if (tab == null || (n = tab.length) == 0 || (f = tabAt(tab, i = (n - 1) & hash)) == null)
                 break;
+
+            // 如果tab已被初始化, 且桶头结点f不为null, 但f为转发结点, 说明当前散列表已经是旧的散列表了, 则当前线程协助转移tab元素到新的散列表中
             else if ((fh = f.hash) == MOVED)
+                // 如果旧tab正在被其他线程扩容转移中, 则当前线程加入一起转移结点, 协助完成后返回新tab, 则基于新tab进行下一轮自旋(会新tab中删除对应的结点)
                 tab = helpTransfer(tab, f);
+
+            // 如果tab已被初始化, 且桶头结点f不为null, 且f也不为转发结点, 说明f为正常结点, 可以在tab上删除结点
             else {
                 V oldVal = null;
-                boolean validated = false;
+                boolean validated = false;// 是否有真正做了结点删除, 有的话为true, 代表需要更新散列表实际大小并返回旧值
+
+                // 此时对桶头结点f进行加锁, 只有抢到锁的线程才能进行删除结点
                 synchronized (f) {
+                    // 再次检查当前桶头结点是否还为f, 如果是才继续删除, 否则说明桶头结点已被其他线程更新了, 则释放f锁, 继续自旋
                     if (tabAt(tab, i) == f) {
+                        // 如果f的hash值fh大于等于0, 说明f为普通Node结点, 则普通链表方式删除结点
                         if (fh >= 0) {
                             validated = true;
+
+                            // 以链表方式遍历f链表, 当前遍历结点e, e键ek, 根据e重新构造的结点p
                             for (Node<K,V> e = f, pred = null;;) {
                                 K ek;
-                                if (e.hash == hash &&
-                                    ((ek = e.key) == key ||
-                                     (ek != null && key.equals(ek)))) {
+
+                                // 如果找到e的hash值相等, 且e键相等的或者e键equals的结点, 则继续比较e值与cv是否相等或者e值e与cv是否quals
+                                if (e.hash == hash && ((ek = e.key) == key || (ek != null && key.equals(ek)))) {
                                     V ev = e.val;
-                                    if (cv == null || cv == ev ||
-                                        (ev != null && cv.equals(ev))) {
+
+                                    // 如果k和cv都相等或者equals, 则说明找到了对应的结点
+                                    if (cv == null || cv == ev || (ev != null && cv.equals(ev))) {
                                         oldVal = ev;
+
+                                        // 如果指定了不为null的value, 则替换e结点的value
                                         if (value != null)
                                             e.val = value;
+                                        // 如果没指定value, 且e结点还有前驱, 则链接e的前驱和后继, 脱钩e结点
                                         else if (pred != null)
                                             pred.next = e.next;
+                                        // 如果没指定value, 但e结点没有了前驱, 说明e为头结点, 则volatile方式添加后继为头结点的链表到散列表tab的i桶中
                                         else
                                             setTabAt(tab, i, e.next);
                                     }
+
+                                    // 结束链表遍历, 返回null, 再去更新散列表实际大小并返回旧值
                                     break;
                                 }
                                 pred = e;
+
+                                // 如果连k匹配的结点都找不到, 则结束链表遍历, 返回null, 再去更新散列表实际大小并返回旧值
                                 if ((e = e.next) == null)
                                     break;
                             }
                         }
+
+                        // 如果f的hash值fh小于0, 且为TreeBin类型, 说明f链为红黑树, 则按照红黑树结点方式删除结点
                         else if (f instanceof TreeBin) {
                             validated = true;
                             TreeBin<K,V> t = (TreeBin<K,V>)f;
                             TreeNode<K,V> r, p;
-                            if ((r = t.root) != null &&
-                                (p = r.findTreeNode(hash, key, null)) != null) {
+
+                            // 根据hash值和key值, 从根结点r开始查找红黑树结点p, 如果找到继续匹配cv, 否则释放f锁, 再去散列表实际大小并返回旧值
+                            if ((r = t.root) != null && (p = r.findTreeNode(hash, key, null)) != null) {
                                 V pv = p.val;
-                                if (cv == null || cv == pv ||
-                                    (pv != null && cv.equals(pv))) {
+
+                                // 如果k和cv都相等或者equals, 则说明找到了对应的结点
+                                if (cv == null || cv == pv || (pv != null && cv.equals(pv))) {
                                     oldVal = pv;
+
+                                    // 如果指定了不为null的value, 则替换e结点的value, 再去散列表实际大小并返回旧值
                                     if (value != null)
                                         p.val = value;
+
+                                    // 如果没指定value, 则调用红黑树结点的删除方法, 返回false, 说明正常插入结点到红黑树了, 不需要拆除当前红黑树退化成普通链表
                                     else if (t.removeTreeNode(p))
+                                        // 如果返回true, 则普通化t.first链表, 并volatile方式添加到散列表tab中i位置, 再去散列表实际大小并返回旧值
                                         setTabAt(tab, i, untreeify(t.first));
                                 }
                             }
                         }
                     }
                 }
+
+                // 为true说明真正做了结点删除, 需要更新散列表实际大小并返回旧值
                 if (validated) {
                     if (oldVal != null) {
+                        // 如果没指定value, 说明不是替换模式, 则返回旧值
                         if (value == null)
+                            // baseCount或者CounterCell叠加x, 删除操作时这里无需协助扩容
                             addCount(-1L, -1);
                         return oldVal;
                     }
@@ -1170,6 +1513,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
+
+        // 没有做到结点删除, 返回null即可(比如替换操作或者没找要删除的结点时)
         return null;
     }
 
@@ -1540,9 +1885,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      *
      * @throws NullPointerException if the specified key is null
      */
+    // 根据key和value删除结点, 删除成功会返回旧值, key不可以为null
     public boolean remove(Object key, Object value) {
-        if (key == null)
-            throw new NullPointerException();
+        // 根据key和cv删除结点, 删除成功会返回旧值
+        if (key == null) throw new NullPointerException();
         return value != null && replaceNode(key, null, value) != null;
     }
 
@@ -1583,6 +1929,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * @return the mapping for the key, if present; else the default value
      * @throws NullPointerException if the specified key is null
      */
+    // 带默认值的获取, 如果获取不到key的元素, 则返回默认值，底层依赖于get（Object）方法: 需要判断桶头结点e是否为转发结点、红黑树结点、computeIfAbsent临时结点
     public V getOrDefault(Object key, V defaultValue) {
         V v;
         return (v = get(key)) == null ? defaultValue : v;
@@ -2160,33 +2507,48 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * A node inserted at head of bins during transfer operations.
      */
+    // 在传输操作期间插入到bin头部的节点。
     static final class ForwardingNode<K,V> extends Node<K,V> {
+
         final Node<K,V>[] nextTable;
+
+        // 创建转发结点, hash为MOVED(-1), 没有键和值, nextTab指向新散列表
         ForwardingNode(Node<K,V>[] tab) {
             super(MOVED, null, null, null);
             this.nextTable = tab;
         }
 
+        // 以转发结点方式根据hash以及key对象查找结点: hash相等, 且Key相等或者equals
         Node<K,V> find(int h, Object k) {
-            // loop to avoid arbitrarily deep recursion on forwarding nodes
+            // loop to avoid arbitrarily deep recursion on forwarding nodes 循环以避免在转发节点上任意深度递归
             outer: for (Node<K,V>[] tab = nextTable;;) {
                 Node<K,V> e; int n;
-                if (k == null || tab == null || (n = tab.length) == 0 ||
-                    (e = tabAt(tab, (n - 1) & h)) == null)
+
+                // 键k, 键hash值h, 新散列表tab, tab容量n, h取模n对应的结点e, 如果任意为null, 则返回null, 代表以转发结点方式没找到对应的桶头结点
+                if (k == null || tab == null || (n = tab.length) == 0 || (e = tabAt(tab, (n - 1) & h)) == null)
                     return null;
+
+                // 如果找到对应的桶头结点, 则开始自旋, e的hash值eh, e的键ek
                 for (;;) {
                     int eh; K ek;
-                    if ((eh = e.hash) == h &&
-                        ((ek = e.key) == k || (ek != null && k.equals(ek))))
+
+                    // 如果e的hash值相等, e的Key相等或者e的Key equals, 说明在新tab中的e链表上找到了对应结点, 此时返回e结点即可
+                    if ((eh = e.hash) == h && ((ek = e.key) == k || (ek != null && k.equals(ek))))
                         return e;
+
+                    // 如果e的hash值还小于0, 说明e可能为转发结点、红黑树结点、computeIfAbsent临时结点
                     if (eh < 0) {
+                        // 如果e仍为转发结点, 说明新表tab又被扩容转移了, 此时更新tab指针, 继续自旋
                         if (e instanceof ForwardingNode) {
                             tab = ((ForwardingNode<K,V>)e).nextTable;
                             continue outer;
                         }
+                        // 如果e为红黑树结点, 则按根据hash值和key值，从根结点开始查找红黑树结点; 如果e为computeIfAbsent临时结点, 则返回null
                         else
                             return e.find(h, k);
                     }
+
+                    // 桶头没找到e结点, 则继续遍历e链表, 如果找到链尾还没找到对应的结点, 则返回null
                     if ((e = e.next) == null)
                         return null;
                 }
@@ -2197,6 +2559,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * A place-holder node used in computeIfAbsent and compute
      */
+    // 在 computeIfAbsent 和计算中使用的占位符节点
     static final class ReservationNode<K,V> extends Node<K,V> {
         ReservationNode() {
             super(RESERVED, null, null, null);
@@ -2208,25 +2571,43 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /* ---------------- Table Initialization and Resizing -------------- */
+    // 表初始化和调整大小
 
+    /**
+     * 20210620
+     * 返回用于调整大小为 n 的表的标记位。 向左移动 RESIZE_STAMP_SHIFT 时必须为负。
+     */
     /**
      * Returns the stamp bits for resizing a table of size n.
      * Must be negative when shifted left by RESIZE_STAMP_SHIFT.
      */
+    // 获取容量n的扩容标记位, 用于更新并发阈值为: 高16为扩容标记, 第16位为并发扩容线程数(从2开始, 步长+1), 结果肯定为负数
     static final int resizeStamp(int n) {
+        // n的二进制补码最高位前的为零的位数 | 1 << 15
+        // eg: n = 10: 0000 0000 0000 0000 0000 0000 0000 1010
+        // => 0000 0000 0000 0000, 0000 0000 0001 1100 | 0000 0000 0000 0000, 1000 0000 0000 0000
+        // => 0000 0000 0000 0000, 1000 0000 0001 1100
         return Integer.numberOfLeadingZeros(n) | (1 << (RESIZE_STAMP_BITS - 1));
     }
 
     /**
      * Initializes table, using the size recorded in sizeCtl.
      */
+    // 使用并发阈值初始化散列表
     private final Node<K,V>[] initTable() {
+
+        // 开始自旋, 散列表tab, 当前时刻阈值sc, 如果该轮自旋检测到tab已经有容量了, 说明tab被其他线程初始化了, 则当前线程结束自旋, 返回tab
         Node<K,V>[] tab; int sc;
         while ((tab = table) == null || tab.length == 0) {
+
+            // 如果sc小于0, 说明tab正在被其他线程初始化, 则当前线程让步时间片给CPU, 自己进入阻塞状态, 等待下一轮自旋
             if ((sc = sizeCtl) < 0)
-                Thread.yield(); // lost initialization race; just spin
+                Thread.yield(); // lost initialization race; just spin // 失去初始化竞赛； 只是旋转
+
+            // 如果sc不小于0, 说明tab没在初始化, 则CAS设置sizeCtl为-1(表示tab正在初始化)
             else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                 try {
+                    // CAS成功, 再次检查tab是否还没被创建, 如果确实没创建, 则创建sc长或者默认容量16的散列表, 且更新并发阈值为0.75 * n, 结束自旋返回tab
                     if ((tab = table) == null || tab.length == 0) {
                         int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
                         @SuppressWarnings("unchecked")
@@ -2240,9 +2621,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 break;
             }
         }
+
         return tab;
     }
 
+    /**
+     * 20210620
+     * 添加计数，如果表太小且尚未调整大小，则启动传输。 如果已经调整大小，则在工作可用时帮助执行转移。
+     * 传输后重新检查占用情况，以查看是否已经需要再次调整大小，因为调整大小是滞后添加的。
+     */
     /**
      * Adds to count, and if table is too small and not already
      * resizing, initiates transfer. If already resizing, helps
@@ -2251,84 +2638,138 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * because resizings are lagging additions.
      *
      * @param x the count to add
+     *
+     * // 如果 <0，不检查调整大小，如果 <= 1 只检查是否无竞争
      * @param check if <0, don't check resize, if <= 1 only check if uncontended
      */
+    // baseCount或者CounterCell叠加x, 叠加后检查是否需要扩容, 如果需要则启动扩容并转移结点; 如果判断到其他线程正在扩容转移结点, 则当前线程进行协助扩容转移结点
     private final void addCount(long x, int check) {
+        // 要添加的数量x, 分布计数填充单元格数组as, ConcurrentHashMap实例字段上的元素个数b, 叠加b后的元素个数s
         CounterCell[] as; long b, s;
-        if ((as = counterCells) != null ||
-            !U.compareAndSwapLong(this, BASECOUNT, b = baseCount, s = b + x)) {
+
+        // 如果CAS更新baseCount为s失败, 说明当前线程竞争b失败, 此时需要竞争as单元格a, 从而叠加x
+        if ((as = counterCells) != null || !U.compareAndSwapLong(this, BASECOUNT, b = baseCount, s = b + x)) {
             CounterCell a; long v; int m;
             boolean uncontended = true;
-            if (as == null || (m = as.length - 1) < 0 ||
-                (a = as[ThreadLocalRandom.getProbe() & m]) == null ||
-                !(uncontended =
-                  U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) {
+
+            // 如果as还没被初始化, 或者对as掩码m取模后获得的a单元格没被初始化, 或者a有被初始化但CAS叠加x值到a单元格失败, 则在as上并发叠加x
+            if (as == null || (m = as.length - 1) < 0 || (a = as[ThreadLocalRandom.getProbe() & m]) == null || !(uncontended = U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) {
+                // 在baseCount或者counterCells上叠加或者存放x: 单元格为空 -> 竞争初始化as -> 竞争初始化as失败则叠加到baseCount -> || 单元格不为空 -> 竞争叠加到单元格a -> 竞争叠加a失败则重新哈希再次确认叠加, 还失败则扩容as
                 fullAddCount(x, uncontended);
                 return;
             }
+
+            // 如果CAS叠加x到a单元格成功, 且只需要检查有无竞争, 则直接可以返回无需扩容了, 这种情况发生在删除、替换结点中, 因为操作后肯定不需要扩容
             if (check <= 1)
                 return;
+
+            // 如果需要扩容, 则s等于叠加ConcurrentHashMap实例字段上的元素个数baseCount, 与计数填充单元格数组CounterCell[]的所有数值
             s = sumCount();
         }
+
+        // 到这里, 说明CAS更新baseCount为s成功, 或者竞争as成功了, 即x已经被成功叠加了, 此时需要进行扩容判断和扩容
         if (check >= 0) {
+            // 旧散列表tab, 新散列表nt, tab容量n, 并发阈值sc
             Node<K,V>[] tab, nt; int n, sc;
-            while (s >= (long)(sc = sizeCtl) && (tab = table) != null &&
-                   (n = tab.length) < MAXIMUM_CAPACITY) {
+
+            // 如果叠加后的s大于sc, 且旧散列表容量n还没到最大容量, 说明需要扩容
+            while (s >= (long)(sc = sizeCtl) && (tab = table) != null && (n = tab.length) < MAXIMUM_CAPACITY) {
+                // 获取容量n的扩容标记位rs, 用于更新并发阈值为: 高16为扩容标记, 第16位为并发扩容线程数(从2开始, 步长+1), 结果肯定为负数
                 int rs = resizeStamp(n);
+
+                // 如果并发阈值sc小于0, 说明散列表正在被其他线程扩容, 则当前线程加入一起转移结点
                 if (sc < 0) {
-                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
-                        sc == rs + MAX_RESIZERS || (nt = nextTable) == null ||
-                        transferIndex <= 0)
+                    // 如果sc高16位扩容标记已经改变(说明不是本次扩容了), 或者并发阈值为非法状态(并发扩容线程数从+2开始), 或者并发线程数超过了最大值2^16-1, 或者nextTable不存在, 或者transferIndex到头了, 代表非法条件或者终止条件, 则退出自旋
+                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0)
                         break;
+
+                    // 如果sc合法, 且当前处于非终止条件, 则CAS更新sc+1, 也就是低16位并发扩容线程数+1(从2开始, 步长+1)
                     if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1))
+                        // 如果CAS更新成功, 说明当前线程争抢到协助转移结点的机会, 则转移旧散列表tab中的结点到新散列表nextTab中
                         transfer(tab, nt);
+                    // 如果CAS更新失败, 说明同一时刻协助转移结点的机会被其他线程抢占了, 则当前线程继续自旋, 争抢协助机会
                 }
-                else if (U.compareAndSwapInt(this, SIZECTL, sc,
-                                             (rs << RESIZE_STAMP_SHIFT) + 2))
+                // 如果散列表没有在被其他线程扩容, 说明当前线程为扩容的第一个线程, 则CAS更新并发阈值为1000 0000 0001 1100, 0000, 0000, 0000, 0010(eg: n=16)
+                else if (U.compareAndSwapInt(this, SIZECTL, sc, (rs << RESIZE_STAMP_SHIFT) + 2))
+                    // 如果CAS更新成功, 说明当前线程争抢到扩容转移结点的机会, 则转移旧散列表tab中的结点到新散列表nextTab中, 如果nextTab还没创建则先扩容(创建nextTab)
                     transfer(tab, null);
+                // 如果CAS更新失败, 说明同一时刻扩容转移结点的机会被其他线程抢占了, 则当前线程继续自旋, 争抢扩容转移机会
+
+                // 每轮自旋都重新计算s, s等于叠加ConcurrentHashMap实例字段上的元素个数baseCount, 与计数填充单元格数组CounterCell[]的所有数值, 准备下一次自旋, 看当前nt是否还需要扩容
                 s = sumCount();
             }
         }
     }
 
     /**
+     * 20210622
+     * 如果正在调整大小，则有助于传输。
+     */
+    /**
      * Helps transfer if a resize is in progress.
      */
+    // 如果旧tab正在被其他线程扩容转移中, 则当前线程加入一起转移结点, 协助完成后返回新tab
     final Node<K,V>[] helpTransfer(Node<K,V>[] tab, Node<K,V> f) {
+        // 旧散列表tab, i桶头结点f, 新散列表nextTab, 并发阈值sc
         Node<K,V>[] nextTab; int sc;
-        if (tab != null && (f instanceof ForwardingNode) &&
-            (nextTab = ((ForwardingNode<K,V>)f).nextTable) != null) {
+
+        // 如果在tab碰到ForwardingNode结点, 且该结点指向的新散列表不为null, 说明确实有线程正在扩容转移tab上的结点(理论上都是成立), 则当前线程也加入结点转移工作中
+        if (tab != null && (f instanceof ForwardingNode) && (nextTab = ((ForwardingNode<K,V>)f).nextTable) != null) {
+            // 获取容量n的扩容标记位, 用于更新并发阈值为: 高16为扩容标记, 第16位为并发扩容线程数(从2开始, 步长+1), 结果肯定为负数
             int rs = resizeStamp(tab.length);
-            while (nextTab == nextTable && table == tab &&
-                   (sc = sizeCtl) < 0) {
-                if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
-                    sc == rs + MAX_RESIZERS || transferIndex <= 0)
+
+            // 如果nextTable指针没变, 且table指针没变, 并发阈值sc小于0, 说明tab正在被其他线程扩容转移中, 则当前线程加入一起转移结点
+            while (nextTab == nextTable && table == tab && (sc = sizeCtl) < 0) {
+                // 如果sc高16位扩容标记已经改变(说明不是本次扩容了), 或者并发阈值为非法状态(并发扩容线程数从+2开始), 或者并发线程数超过了最大值2^16-1, 或者transferIndex到头了, 代表非法条件或者终止条件, 则退出自旋
+                if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || transferIndex <= 0)
                     break;
+
+                // 如果sc合法, 且当前处于非终止条件, 则CAS更新sc+1, 也就是低16位并发扩容线程数+1(从2开始, 步长+1)
                 if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) {
+                    // 如果CAS更新成功, 说明当前线程争抢到协助转移结点的机会, 则转移旧散列表tab中的结点到新散列表nextTab中
                     transfer(tab, nextTab);
+
+                    // 当前线程转移完毕, 则结束自旋
                     break;
                 }
+                // 如果CAS更新失败, 说明同一时刻协助转移结点的机会被其他线程抢占了, 则当前线程继续自旋, 争抢协助机会
             }
+
+            // 自旋结束, 返回新散列表nextTab
             return nextTab;
         }
+
+        // 一般来说永远不会走到这里
         return table;
     }
 
+    /**
+     * 20210623
+     * 尝试预先调整表格以容纳给定数量的元素。
+     */
     /**
      * Tries to presize table to accommodate the given number of elements.
      *
      * @param size number of elements (doesn't need to be perfectly accurate)
      */
+    // 初始化或者扩容当前散列表tab容量, 到最接近指定容量的2次幂次容量, 可能会初始化tab、无需扩容tab、协助转移tab结点、扩容tab并转移结点
     private final void tryPresize(int size) {
-        int c = (size >= (MAXIMUM_CAPACITY >>> 1)) ? MAXIMUM_CAPACITY :
-            tableSizeFor(size + (size >>> 1) + 1);
+        // 获取最接近指定容量的2次幂次容量c
+        int c = (size >= (MAXIMUM_CAPACITY >>> 1)) ? MAXIMUM_CAPACITY : tableSizeFor(size + (size >>> 1) + 1);
+
+        // 开始自旋, 如果并发阈值sc大于等于0, 说明散列表没有在做扩容或者初始化, 当前散列表tab, tab容量n
         int sc;
         while ((sc = sizeCtl) >= 0) {
             Node<K,V>[] tab = table; int n;
+
+            // 如果散列表还没初始化, 则判断并发阈值sc与新容量c, 取两者的大者来创建散列表tab的长度
             if (tab == null || (n = tab.length) == 0) {
                 n = (sc > c) ? sc : c;
+
+                // 如果CAS成功更新sc为-1, 说明当前线程争抢到创建散列表tab的机会
                 if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                     try {
+                        // CAS成功则再次检查, 如果table指针没有被改变, 则创建n长的散列表为table, 且更新并发阈值为0.75 * n
                         if (table == tab) {
                             @SuppressWarnings("unchecked")
                             Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
@@ -2340,95 +2781,157 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     }
                 }
             }
+
+            // 如果散列表已存在, 且c小于等于sc, 说明并不需要扩容这么快, 或者容量n已经超出了最大容量, 则直接返回即可, 无需扩容
             else if (c <= sc || n >= MAXIMUM_CAPACITY)
                 break;
+
+            // 如果散列表已存在, 且c大于sc, 且n还没达到最大容量,
             else if (tab == table) {
+                // 获取容量n的扩容标记位, 用于更新并发阈值为: 高16为扩容标记, 第16位为并发扩容线程数(从2开始, 步长+1), 结果肯定为负数
                 int rs = resizeStamp(n);
+
+                // 如果并发阈值sc小于0, 说明散列表正在被其他线程扩容, 则当前线程加入一起转移结点
                 if (sc < 0) {
                     Node<K,V>[] nt;
-                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
-                        sc == rs + MAX_RESIZERS || (nt = nextTable) == null ||
-                        transferIndex <= 0)
+
+                    // 如果sc高16位扩容标记已经改变(说明不是本次扩容了), 或者并发阈值为非法状态(并发扩容线程数从+2开始), 或者并发线程数超过了最大值2^16-1, 或者nextTable不存在, 或者transferIndex到头了, 代表非法条件或者终止条件, 则退出自旋
+                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || sc == rs + MAX_RESIZERS || (nt = nextTable) == null || transferIndex <= 0)
                         break;
+
+                    // 如果sc合法, 且当前处于非终止条件, 则CAS更新sc+1, 也就是低16位并发扩容线程数+1(从2开始, 步长+1)
                     if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1))
+                        // 如果CAS更新成功, 说明当前线程争抢到协助转移结点的机会, 则转移旧散列表tab中的结点到新散列表nextTab中
                         transfer(tab, nt);
+                    // 如果CAS更新失败, 说明同一时刻协助转移结点的机会被其他线程抢占了, 则当前线程继续自旋, 争抢协助机会
                 }
-                else if (U.compareAndSwapInt(this, SIZECTL, sc,
-                                             (rs << RESIZE_STAMP_SHIFT) + 2))
+
+                // 如果散列表没有在被其他线程扩容, 说明当前线程为扩容的第一个线程, 则CAS更新并发阈值为1000 0000 0001 1100, 0000, 0000, 0000, 0010(eg: n=16)
+                else if (U.compareAndSwapInt(this, SIZECTL, sc, (rs << RESIZE_STAMP_SHIFT) + 2))
+                    // 如果CAS更新成功, 说明当前线程争抢到扩容转移结点的机会, 则转移旧散列表tab中的结点到新散列表nextTab中, 如果nextTab还没创建则先扩容(创建nextTab)
                     transfer(tab, null);
+                // 如果CAS更新失败, 说明同一时刻扩容转移结点的机会被其他线程抢占了, 则当前线程继续自旋, 争抢扩容转移机会
             }
         }
     }
 
     /**
+     * 20210620
+     * 将每个bin中的节点移动和/或复制到新表。见上文解释。
+     */
+    /**
      * Moves and/or copies the nodes in each bin to new table. See
      * above for explanation.
      */
+    // 转移旧散列表tab中的结点到新散列表nextTab中, 如果nextTab还没创建则先扩容(创建nextTab)
     private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
+        // 旧散列表tab, 新散列表nextTab, tab容量n, 步长stride
         int n = tab.length, stride;
+
+        // 步长计算公式(多核) = n/8 / cores, 步长计算公式(单核) = 1, 如果步长小于16, 则默认为16
         if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE)
-            stride = MIN_TRANSFER_STRIDE; // subdivide range
-        if (nextTab == null) {            // initiating
+            stride = MIN_TRANSFER_STRIDE; // subdivide range 细分范围
+
+        // 如果nextTab还没被创建, 说明当前线程为扩容发起的线程(由于经过了CAS才进入的, 所以nextTab为null的只有一个线程), 则创建2倍容量的散列表数组, 更新为nextTable开始扩容, 且更新转移索引为n(即从n开始转移)
+        if (nextTab == null) {            // initiating 发起
             try {
                 @SuppressWarnings("unchecked")
                 Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n << 1];
                 nextTab = nt;
-            } catch (Throwable ex) {      // try to cope with OOME
+            } catch (Throwable ex) {      // try to cope with OOME 尝试应对OOM Error
                 sizeCtl = Integer.MAX_VALUE;
                 return;
             }
             nextTable = nextTab;
             transferIndex = n;
         }
+
+        // 到这里nextTab已经被创建, nextTab容量nextn, 创建转发结点fwd(hash为MOVED(-1), 没有键和值, nextTab指向新散列表, 下面转移完结点都会复用这个转发结点) => put时会判断, 判断到则会协助转移结点
         int nextn = nextTab.length;
         ForwardingNode<K,V> fwd = new ForwardingNode<K,V>(nextTab);
+
+        // 当前线程是否还需要前进划分转移区间advance, 当成线程转移工作是否已经完成finishing
         boolean advance = true;
-        boolean finishing = false; // to ensure sweep before committing nextTab
+        boolean finishing = false; // to ensure sweep before committing nextTab 在提交 nextTab 之前确保扫描
+
+        // 当前线程开始转移结点, 当前索引i, 左边界bound, i桶的头结点f, f的hash值fh
         for (int i = 0, bound = 0;;) {
             Node<K,V> f; int fh;
+
+            // 如果当前线程还需要前进划分转移区间, 则继续前进, 当前转移索引nextIndex, 下一个转移边界nextBound
             while (advance) {
                 int nextIndex, nextBound;
+
+                // 索引i前移1, 如果超过了左边界bound, 或者转移已经完成了, 则更新advance为false, 代表不需要前进划分转移区间了
                 if (--i >= bound || finishing)
                     advance = false;
+                // 如果i还没超出左边界bound, 且nextIndex小于等于0了, 说明所有转移区间都被其他线程划分完毕了, 则更新advance为false, 代表不需要前进划分转移区间了
                 else if ((nextIndex = transferIndex) <= 0) {
                     i = -1;
                     advance = false;
                 }
-                else if (U.compareAndSwapInt
-                         (this, TRANSFERINDEX, nextIndex,
-                          nextBound = (nextIndex > stride ?
-                                       nextIndex - stride : 0))) {
+                // 如果i还没超出左边界bound, 且nextIndex也还没小于等于0, 说明当前线程存在转移区间, 则transferIndex前移一个步长, 并使用CAS更新, 新的左边界nextBound
+                else if (U.compareAndSwapInt(this, TRANSFERINDEX, nextIndex, nextBound = (nextIndex > stride ? nextIndex - stride : 0))) {
+                    // 如果CAS成功, 说明当前线程抢到转移区间, 则更新左边界bound为nextBound, 更新i为nextIndex-1, 更新advance为false, 代表当前转移区间已经确定(为bound~i), 不需要前进划分转移区间了
                     bound = nextBound;
                     i = nextIndex - 1;
                     advance = false;
                 }
+
+                // 如果CAS失败, 说明当前线程没抢到转移区间, 则需要重新advance自旋: 前移i、判断transferIndex是否合法、CAS更新transferIndex...
             }
+
+            // 到这里, 说明当前线程的转移区间(bound~i)已经确定好了
+            // 如果i小于0, 或者i大于tab容量n, 或者i+n新的索引大于nextn, 说明i转移起来不合法了(i"越界"了), 也就是当前转移工作已经完成了
             if (i < 0 || i >= n || i + n >= nextn) {
                 int sc;
+
+                // 如果当前线程转移工作已经完成了, 且通过了最后一次的校验(遍历完旧表tab), 则发起最后的扩容提交, 正式更新table为新散列表nextTab, 清空nextTable, 更新并发阈值sizeCtl为(0.75 * 新表容量), 结束扩容转移操作并返回
                 if (finishing) {
                     nextTable = null;
                     table = nextTab;
                     sizeCtl = (n << 1) - (n >>> 1);
                     return;
                 }
+
+                // 如果当前线程转移工作已经完成了, 则CAS更新并发阈值sizeCtl-1, 代表扩容/转移并发线程数-1, 如果CAS成功, 说明当前线程抢到了提交工作的名额
                 if (U.compareAndSwapInt(this, SIZECTL, sc = sizeCtl, sc - 1)) {
+                    // 如果容量n的扩容标记位rs不一致, 说明sc低位还有别的线程在工作, 此时直接返回即可, 把nextTab的赋值操作留给最后一个提交线程来实现
                     if ((sc - 2) != resizeStamp(n) << RESIZE_STAMP_SHIFT)
                         return;
+
+                    // 如果容量n的扩容标记位rs一致, 说明当前线程为最后一个提交工作的线程, 此时置finishing=advance为true, 进行提交前最后的校验
                     finishing = advance = true;
-                    i = n; // recheck before commit
+                    i = n; // recheck before commit 提交前重新检查
                 }
+
+                // 如果CAS失败, 说明当前线程没抢到了提交工作的名额, 需要自旋等待下一轮名额的竞争
             }
+
+            // i没有"越界", 当前线程适合转移结点, 则volatile方式获取散列表tab中i位置的Node节点, 如果为null, 则CAS标记为ForwardingNode结点, 代表已经转移过了(其他线程看到会跳过的)
             else if ((f = tabAt(tab, i)) == null)
+                // 如果CAS标记成功, 说明当前线程成功转移了i结点, 则置advance为true, 当前线程可以继续前进划分区间(为了保持stride不长的区间); 如果CAS失败, 则保持i位置不动进行下一轮自旋(一定是进入MOVED的判断分支)
                 advance = casTabAt(tab, i, null, fwd);
+
+            // 如果当前线程转移i结点碰到ForwardingNode结点, 说明该结点已经被其他线程转移了, 则置advance为true, 当前线程可以继续前进划分区间(为了保持stride不长的区间)
             else if ((fh = f.hash) == MOVED)
-                advance = true; // already processed
+                advance = true; // already processed 已经处理
+
+            // 如果当前线程转移i结点碰到非ForwardingNode结点, 说明该结点是个有效的业务结点, 则对结点加锁老老实实地转移, 如果获取不到f锁, 则阻塞等待其他线程释放f锁, 保证再判断一次f结点是否转移完毕
             else {
                 synchronized (f) {
+                    // 拿到f锁后, 判断如果f结点确实没有改变, 说明f结点适合转移; 如果不是即说明f结点被改变了(也就是被f转移了), 则释放f锁, 保持i位置不动进行下一轮自旋(一定是进入MOVED的判断分支)
                     if (tabAt(tab, i) == f) {
+                        // 新散列表nextTab[0, n-1]低区间链表ln, nextTab[n-1, 2n-1]高区间链表hn
                         Node<K,V> ln, hn;
+
+                        // 如果f的hash值fh(在上面赋值了)大于等于0, 说明f为普通结点, 则以普通链表方式转移结点
                         if (fh >= 0) {
+                            // 旧散列表tab容量n, 通过fh & n计算f结点位标记runBit, lastRun对应该位标记的结点
                             int runBit = fh & n;
                             Node<K,V> lastRun = f;
+
+                            // f后继p, 遍历f链表, 位标记runBit取最后结点的位标记(如果不同的话), lastRun对应该位标记的结点
                             for (Node<K,V> p = f.next; p != null; p = p.next) {
                                 int b = p.hash & n;
                                 if (b != runBit) {
@@ -2436,14 +2939,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     lastRun = p;
                                 }
                             }
+
+                            // 如果最后位标记runBit为0, 说明lastRun结点的hash值"不变", 即lastRun结点转移后需要在新散列表nextTab[0, n-1]低区间链表ln内
                             if (runBit == 0) {
                                 ln = lastRun;
                                 hn = null;
                             }
+                            // 如果最后位标记runBit不为0, 说明lastRun结点的hash值"变了", 即lastRun结点转移后需要在新散列表nextTab[n-1, 2n-1]高区间链表hn
                             else {
                                 hn = lastRun;
                                 ln = null;
                             }
+
+                            // 再次遍历f链表, 切割f~lastRun之间的结点为ln链表, lastRun到剩余结点为hn链表
                             for (Node<K,V> p = f; p != lastRun; p = p.next) {
                                 int ph = p.hash; K pk = p.key; V pv = p.val;
                                 if ((ph & n) == 0)
@@ -2451,20 +2959,34 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 else
                                     hn = new Node<K,V>(ph, pk, pv, hn);
                             }
+
+                            // 划分ln和hn链表后, volatile方式添加ln链表到新散列表nextTab的i桶中
                             setTabAt(nextTab, i, ln);
+
+                            // volatile方式添加hn链表到新散列表nextTab的i+n桶中
                             setTabAt(nextTab, i + n, hn);
+
+                            // volatile方式添加ForwardingNode结点到旧散列表tab中i位置, 代表i桶结点已经转移完毕
                             setTabAt(tab, i, fwd);
+
+                            // 置advance为true, 当前线程可以继续前进划分区间(为了保持stride不长的区间)
                             advance = true;
                         }
+
+                        // 如果fh小于0, 且f为TreeBin类型, 说明f链为红黑树, f.root为红黑树的根结点, 则以"红黑树方式"转移结点
                         else if (f instanceof TreeBin) {
+                            // f结点备份指针t, 低区间链表lo, 高区间链表hi, lo尾指针loTail, hi尾指针hiTail, lo链表容量lc, hi链表容量hc
                             TreeBin<K,V> t = (TreeBin<K,V>)f;
                             TreeNode<K,V> lo = null, loTail = null;
                             TreeNode<K,V> hi = null, hiTail = null;
                             int lc = 0, hc = 0;
+
+                            // 以链表方式遍历t链表, 当前遍历结点e, e的hash值h, 根据e重新构造的结点p
                             for (Node<K,V> e = t.first; e != null; e = e.next) {
                                 int h = e.hash;
-                                TreeNode<K,V> p = new TreeNode<K,V>
-                                    (h, e.key, e.val, null, null);
+                                TreeNode<K,V> p = new TreeNode<K,V>(h, e.key, e.val, null, null);
+
+                                // 通过h & n计算结点位标记, 如果为0, 说明结点的hash值"不变", 即结点转移后需要在新散列表nextTab[0, n-1]低区间链表lo内, 则维护lo链表结点的前驱和后继
                                 if ((h & n) == 0) {
                                     if ((p.prev = loTail) == null)
                                         lo = p;
@@ -2473,6 +2995,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     loTail = p;
                                     ++lc;
                                 }
+                                // 通过h & n计算结点位标记, 如果不为0, 说明结点的hash值"变了", 即结点转移后需要在新散列表nextTab[n-1, 2n-1]高区间链表hi内, 则维护hi链表结点的前驱和后继
                                 else {
                                     if ((p.prev = hiTail) == null)
                                         hi = p;
@@ -2482,13 +3005,23 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     ++hc;
                                 }
                             }
-                            ln = (lc <= UNTREEIFY_THRESHOLD) ? untreeify(lo) :
-                                (hc != 0) ? new TreeBin<K,V>(lo) : t;
-                            hn = (hc <= UNTREEIFY_THRESHOLD) ? untreeify(hi) :
-                                (lc != 0) ? new TreeBin<K,V>(hi) : t;
+
+                            // lo链表维护完毕后, 如果lc小于6, 则普通化lo链表; 否则lc大于等于6, 如果hi链表存在, 说明有必要红黑树化lo链表, 如果hi链表不存在, 说明红黑树保持不变为t即可
+                            ln = (lc <= UNTREEIFY_THRESHOLD) ? untreeify(lo) : (hc != 0) ? new TreeBin<K,V>(lo) : t;
+
+                            // hi链表维护完毕后, 如果hc小于6, 则普通化hi链表; 否则hc大于等于6, 如果lo链表存在, 说明有必要红黑树化hi链表, 如果lo链表不存在, 说明红黑树保持不变为t即可
+                            hn = (hc <= UNTREEIFY_THRESHOLD) ? untreeify(hi) : (lc != 0) ? new TreeBin<K,V>(hi) : t;
+
+                            // 红黑树化/普通化完毕后, volatile方式添加ln链表到新散列表nextTab的i桶中
                             setTabAt(nextTab, i, ln);
+
+                            // volatile方式添加hn链表到新散列表nextTab的i+n桶中
                             setTabAt(nextTab, i + n, hn);
+
+                            // volatile方式添加ForwardingNode结点到旧散列表tab中i位置, 代表i桶结点已经转移完毕
                             setTabAt(tab, i, fwd);
+
+                            // 置advance为true, 当前线程可以继续前进划分区间(为了保持stride不长的区间)
                             advance = true;
                         }
                     }
@@ -2503,11 +3036,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * A padded cell for distributing counts.  Adapted from LongAdder
      * and Striped64.  See their internal docs for explanation.
      */
-    @sun.misc.Contended static final class CounterCell {
+    // 用于分布计数的填充单元格。 改编自 LongAdder 和 Striped64。 有关解释，请参阅他们的内部文档。
+    @sun.misc.Contended
+    static final class CounterCell {
         volatile long value;
         CounterCell(long x) { value = x; }
     }
 
+    // 分布计数核心逻辑: 叠加ConcurrentHashMap实例字段上的元素个数baseCount, 与计数填充单元格数组CounterCell[]的所有数值
     final long sumCount() {
         CounterCell[] as = counterCells; CounterCell a;
         long sum = baseCount;
@@ -2520,71 +3056,115 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return sum;
     }
 
-    // See LongAdder version for explanation
+    // See LongAdder version for explanation 有关解释，请参阅 LongAdder 版本
+    // 在baseCount或者counterCells上叠加或者存放x: 单元格为空 -> 竞争初始化as -> 竞争初始化as失败则叠加到baseCount -> || 单元格不为空 -> 竞争叠加到单元格a -> 竞争叠加a失败则重新哈希再次确认叠加, 还失败则扩容as
     private final void fullAddCount(long x, boolean wasUncontended) {
+
+        // 获取当前线程哈希值h(同一个线程的h相同)
         int h;
         if ((h = ThreadLocalRandom.getProbe()) == 0) {
-            ThreadLocalRandom.localInit();      // force initialization
+            ThreadLocalRandom.localInit();      // force initialization 强制初始化
             h = ThreadLocalRandom.getProbe();
             wasUncontended = true;
         }
-        boolean collide = false;                // True if last slot nonempty
+
+        // 开始自旋, 是否已冲突collide(fasle代表已冲突), 分布计算单元格数组as, 当前计算单元格a, as长度n, 单元格a的值或者baseCount的值v
+        boolean collide = false;                // True if last slot nonempty 如果最后一个插槽非空，则为真
         for (;;) {
             CounterCell[] as; CounterCell a; int n; long v;
+
+            // 如果分布计算单元格数组as已经创建, 且长度n大于0, 说明as有效, 则需要争抢counterCells数组来叠加x
             if ((as = counterCells) != null && (n = as.length) > 0) {
+
+                // 如果h取模n-1得到的单元格a为null, 说明当前位置可以直接存放x, 如果这里h变化了, a可能会变化, 相当于随机得到新的索引位置去判断
                 if ((a = as[(n - 1) & h]) == null) {
-                    if (cellsBusy == 0) {            // Try to attach new Cell
-                        CounterCell r = new CounterCell(x); // Optimistic create
-                        if (cellsBusy == 0 &&
-                            U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+
+                    // 如果cellsBusy标记为0, 说明as数组空闲, 可以操作as, 则构造值为x的CounterCell单元格r
+                    if (cellsBusy == 0) {            // Try to attach new Cell 尝试附加新单元格
+                        CounterCell r = new CounterCell(x); // Optimistic create 乐观创造
+
+                        // 再次检查as数组是否空闲, 如果空闲则CAS更新cellsBusy标记位为1
+                        if (cellsBusy == 0 && U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+
+                            // 如果CAS成功, 说明当前线程竞争到操作as的机会, counterCells数组rs, rs长度m, h取模m-1索引j, 单元格a是否创建成功created
                             boolean created = false;
-                            try {               // Recheck under lock
+                            try {               // Recheck under lock 在锁定状态下重新检查
+                                // 再次检查rs不为空, 长度m大于0, 且j位置单元格为空, 说明a单元格没有被其他线程抢占, 则当前线程直接把新建的单元格r添加到数组as中
                                 CounterCell[] rs; int m, j;
-                                if ((rs = counterCells) != null &&
-                                    (m = rs.length) > 0 &&
-                                    rs[j = (m - 1) & h] == null) {
+                                if ((rs = counterCells) != null && (m = rs.length) > 0 && rs[j = (m - 1) & h] == null) {
                                     rs[j] = r;
                                     created = true;
                                 }
                             } finally {
+                                // as操作完成后, 则更新cellsBusy为0, 代表counterCells数组已经空闲了
                                 cellsBusy = 0;
                             }
+
+                            // 如果a单元格被当前线程成功创建, 则结束自旋并返回, 代表x已经存放成功了
                             if (created)
                                 break;
-                            continue;           // Slot is now non-empty
+
+                            // 如果a单元格没有被当前线程创建, 则当前线程还需要继续自旋
+                            continue;           // Slot is now non-empty 插槽现在非空
                         }
                     }
+
+                    // 如果cellsBusy标记为1, 说明as数组在忙, 不可以操作as, 则标记a单元格已冲突, 获取新的h和as再自旋去竞争
                     collide = false;
                 }
-                else if (!wasUncontended)       // CAS already known to fail
-                    wasUncontended = true;      // Continue after rehash
+
+                // 如果h取模n-1得到的单元格a不为null, 说明a单元格需要竞争, 如果wasUncontended为false, 说明当前线程调用方法前已经CAS竞争a单元格失败过了, 则标记wasUncontended为true, 获取新的h和as再自旋去竞争(应该是为了缓一缓, 减少竞争)
+                else if (!wasUncontended)       // CAS already known to fail CAS 已知失败
+                    wasUncontended = true;      // Continue after rehash 重刷后继续
+
+                // 如果h取模n-1得到的单元格a不为null, 说明a单元格需要竞争, 如果当前线程已经置true了wasUncontended, 说明已经至少重刷了一遍, 则CAS叠加x到单元格a中
                 else if (U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))
+                    // 如果CAS成功, 说明当前线程争抢叠加x到了a单元格, 此时可以结束自旋并返回了
                     break;
+
+                // CAS叠加x到a单元格失败, 如果as有变化或者长度n超出CPU核心数, 则更新collide为已冲突, 获取新的h和as再自旋去竞争
                 else if (counterCells != as || n >= NCPU)
-                    collide = false;            // At max size or stale
+                    // 对于长度n超出CPU核心数, 说明as已经达到最长了, collide只能一直为false, 一直获取新的h再自旋去竞争, 此时是永远不会走collide = true分支的
+                    // 而对于as有变化的情况, 说明当前as已经落后了, 不能再叠加x了, 必须重新自旋获取新的as来叠加, 获取新的as后如果还冲突, 是会走collide = true分支的
+                    collide = false;            // At max size or stale 最大尺寸或过时
+
+                // 如果collide为已冲突且长度还没达到最大, 则更新collide为true, 代表即将无冲突了, 扩容前先让当前线程再去获取h, 确认一下as是否有空格子, 或者是否能够竞争格子成功, 或者as是否有发生变化
                 else if (!collide)
                     collide = true;
-                else if (cellsBusy == 0 &&
-                         U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+
+                // 当前线程最后一次已经确认完毕, 说明当前as大概率没有空格子(碰到两次格子都不为空), 且as大概率冲突很严重(竞争格子失败至少2次 或者 数组繁忙时至少竞争3次 或者as变化时至少竞争3次)
+                // 如果cellsBusy为0, 说明as数组空闲, 可以被操作, 则CAS更新cellsBusy为1, 代表as在忙
+                else if (cellsBusy == 0 && U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
                     try {
-                        if (counterCells == as) {// Expand table unless stale
+                        // 再次检查as是否为counterCells, 如果as不变, 则对as数组扩容2倍, 并转移旧的as数据到新的数组, 转移完成后更新as为新的数组, 完成as扩容
+                        if (counterCells == as) {// Expand table unless stale 展开表格，除非过时
                             CounterCell[] rs = new CounterCell[n << 1];
                             for (int i = 0; i < n; ++i)
                                 rs[i] = as[i];
                             counterCells = rs;
                         }
                     } finally {
+                        // as操作完毕后, 更新cellsBusy为0, 说明as空闲了, 可以被操作了
                         cellsBusy = 0;
                     }
+
+                    // 重新置collide为已冲突, 让当前线程继续去竞争, 当识别到as冲突严重且可以扩容时, 则再次扩容as
                     collide = false;
-                    continue;                   // Retry with expanded table
+
+                    // 以当前h, 并获取新的as再自旋去竞争
+                    continue;                   // Retry with expanded table 使用扩展表重试
                 }
+
+                // 如果竞争a冲突, 或者方法调用前CAS单元格a失败, 则重新获取当前线程哈希值h(更新同一个线程的h, 与之前的h不一样了)
                 h = ThreadLocalRandom.advanceProbe(h);
             }
-            else if (cellsBusy == 0 && counterCells == as &&
-                     U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+
+            // 如果as还没创建, 或者长度n为0了, 说明as无效需要创建, 且cellsBusy标志位为0, 说明as空闲, 即数组没有其他线程在使用, 则CAS更新cellsBusy标志为1, 代表as在忙
+            else if (cellsBusy == 0 && counterCells == as && U.compareAndSwapInt(this, CELLSBUSY, 0, 1)) {
+                // 如果CAS成功, 说明当前线程竞争到操作as的机会
                 boolean init = false;
-                try {                           // Initialize table
+                try {                           // Initialize table // 初始化表
+                    // 重新检查as指针, 如果仍然指向counterCells, 说明还没被更新, 则构造长度为2的CounterCell[], h取模n-1得到单元格并存放往里面x, 此后init为true, 代表as已经被初始化了
                     if (counterCells == as) {
                         CounterCell[] rs = new CounterCell[2];
                         rs[h & 1] = new CounterCell(x);
@@ -2592,41 +3172,60 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         init = true;
                     }
                 } finally {
+                    // as操作完成后, 则更新cellsBusy为0, 代表counterCells数组已经空闲了
                     cellsBusy = 0;
                 }
+
+                // 如果as被当前线程初始化成功, 则结束自旋并返回, 代表x已经存放成功了; 如果as指针已经改变, 说明as并没有被当前线程初始化, 此时当前线程继续自旋
                 if (init)
                     break;
             }
+
+            // 如果as为空, 且在初始化as时如果CAS更新cellsBusy标志为1失败, 说明初始化as操作被别的线程抢占了, 则当前线程CAS更新baseCount叠加x, 即叠加到baseCount
             else if (U.compareAndSwapLong(this, BASECOUNT, v = baseCount, v + x))
-                break;                          // Fall back on using base
+                // 如果CAS成功, 此时结束并返回, 代表x已经叠加成功了; 如果CAS失败, 则还需继续自旋找机会叠加x
+                break;                          // Fall back on using base 重新使用基础
         }
     }
 
     /* ---------------- Conversion from/to TreeBins -------------- */
 
     /**
+     * 20210623
+     * 在给定索引处替换 bin 中的所有链接节点，除非表太小，在这种情况下改为调整大小。
+     */
+    /**
      * Replaces all linked nodes in bin at given index unless table is
      * too small, in which case resizes instead.
      */
+    // 红黑树化index对应桶中的普通链表
     private final void treeifyBin(Node<K,V>[] tab, int index) {
         Node<K,V> b; int n, sc;
+
+        // 当前散列表tab, 待红黑树化的桶索引index, 桶结点b, tab容量n, 并发阈值sc
         if (tab != null) {
+            // 如果容量n小于最小树化容量64, 则停止红黑树化链表, 转而初始化或者扩容当前散列表tab容量到n的2倍, 可能会初始化tab、无需扩容tab、协助转移tab结点、扩容tab并转移结点
             if ((n = tab.length) < MIN_TREEIFY_CAPACITY)
                 tryPresize(n << 1);
+
+            // 如果容量n满足最小树化容量64, 说明可以进行红黑树化b桶链表, 则对b结点加锁进行红黑树化
             else if ((b = tabAt(tab, index)) != null && b.hash >= 0) {
                 synchronized (b) {
+                    // 再次检查, 如果b结点还是为index桶的头结点, 说明b没有变化, 则对b结点加锁进行红黑树化
                     if (tabAt(tab, index) == b) {
                         TreeNode<K,V> hd = null, tl = null;
+
+                        // 以链表方式遍历b链表, 当前遍历结点e, 根据e重新构造的结点p, 维护hd链表结点的前驱和后继
                         for (Node<K,V> e = b; e != null; e = e.next) {
-                            TreeNode<K,V> p =
-                                new TreeNode<K,V>(e.hash, e.key, e.val,
-                                                  null, null);
+                            TreeNode<K,V> p = new TreeNode<K,V>(e.hash, e.key, e.val, null, null);
                             if ((p.prev = tl) == null)
                                 hd = p;
                             else
                                 tl.next = p;
                             tl = p;
                         }
+
+                        // volatile方式添加hd链表到散列表tab的index桶中
                         setTabAt(tab, index, new TreeBin<K,V>(hd));
                     }
                 }
@@ -2635,10 +3234,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 20210623
+     * 返回非TreeNode上的列表，替换给定列表中的列表。
+     */
+    /**
      * Returns a list on non-TreeNodes replacing those in given list.
      */
+    // 普通化红黑树结点链表
     static <K,V> Node<K,V> untreeify(Node<K,V> b) {
         Node<K,V> hd = null, tl = null;
+
+        // 以链表方式遍历b链表, 当前遍历结点q, 根据q重新构造的结点p, 删除hd链表结点的前驱, 只维护hd链表结点的后继
         for (Node<K,V> q = b; q != null; q = q.next) {
             Node<K,V> p = new Node<K,V>(q.hash, q.key, q.val, null);
             if (tl == null)
@@ -2647,6 +3253,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 tl.next = p;
             tl = p;
         }
+
+        // 返回普通结点hd链表
         return hd;
     }
 
@@ -2655,11 +3263,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * Nodes for use in TreeBins
      */
+    // 用于 TreeBins 的节点
     static final class TreeNode<K,V> extends Node<K,V> {
-        TreeNode<K,V> parent;  // red-black tree links
+        TreeNode<K,V> parent;  // red-black tree links  红黑树链接
         TreeNode<K,V> left;
         TreeNode<K,V> right;
-        TreeNode<K,V> prev;    // needed to unlink next upon deletion
+        TreeNode<K,V> prev;    // needed to unlink next upon deletion 删除后需要取消链接
         boolean red;
 
         TreeNode(int hash, K key, V val, Node<K,V> next,
@@ -2668,46 +3277,76 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             this.parent = parent;
         }
 
+        // 根据hash值和key值，从根结点开始查找红黑树结点 => 同HashMap#getTreeNode（int，Object）
         Node<K,V> find(int h, Object k) {
             return findTreeNode(h, k, null);
         }
 
         /**
+         * 20210620
+         * 返回从给定根开始的给定键的 TreeNode（如果未找到，则返回 null）。
+         */
+        /**
          * Returns the TreeNode (or null if not found) for the given key
          * starting at given root.
          */
+        // 根据hash值、key值和比较对象kc，从根结点开始查找查找红黑树结点 => 同HashMap#find（int，Object，Class）
         final TreeNode<K,V> findTreeNode(int h, Object k, Class<?> kc) {
             if (k != null) {
                 TreeNode<K,V> p = this;
                 do  {
+                    // 实例结点p，p的hash值ph，比较结果dir，p的key值pk，p的左孩子pl，p的右孩子pr，要查找的结点q（null）
                     int ph, dir; K pk; TreeNode<K,V> q;
                     TreeNode<K,V> pl = p.left, pr = p.right;
+
+                    // 如果ph大于h，说明要查找的结点在左子树
                     if ((ph = p.hash) > h)
                         p = pl;
+
+                    // 如果ph小于h，说明要查找的结点在右子树
                     else if (ph < h)
                         p = pr;
+
+                    // 如果ph等于h，且pk相等或者equals，说明p就是要找的结点
                     else if ((pk = p.key) == k || (pk != null && k.equals(pk)))
                         return p;
+
+                    // 如果ph等于h，但pk不相等且不equals，说明哈希冲突了，需要往后继续遍历；如果pl为null，说明还没有左孩子，则往右子树继续遍历
                     else if (pl == null)
                         p = pr;
+
+                    // 如果ph等于h，但pk不相等且不equals，说明哈希冲突了，需要往后继续遍历；如果pl不为null但pr为null，说明还没有右孩子，则往左子树继续遍历
                     else if (pr == null)
                         p = pl;
+
+                    // 如果ph等于h，但pk不相等且不equals，说明哈希冲突了，需要往后继续遍历，但pl和pr都不为null，此时就需要判断x是否还实现了Comparable接口，如果是则继续比较是否相等，dir取其比较结果；如果dir<0，则p取左子树，否则取右子树
                     else if ((kc != null ||
                               (kc = comparableClassFor(k)) != null) &&
                              (dir = compareComparables(kc, k, pk)) != 0)
                         p = (dir < 0) ? pl : pr;
+
+                    // 如果ph等于h，但pk不相等且不equals，说明哈希冲突了，需要往后继续遍历，但pl和pr都不为null，且比较对象也为null，则递归查找右孩子，如果找到则返回
                     else if ((q = pr.findTreeNode(h, k, kc)) != null)
                         return q;
+
+                    // 如果ph等于h，但pk不相等且不equals，说明哈希冲突了，需要往后继续遍历，但pl和pr都不为null，且比较对象也为null，则递归查找右孩子，如果没找到则p设置为左子树，继续循环查找
                     else
                         p = pl;
                 } while (p != null);
             }
+
+            // 如果确实找不到则返回null
             return null;
         }
     }
 
     /* ---------------- TreeBins -------------- */
 
+    /**
+     * 20210620
+     * 在 bin 的头部使用的 TreeNodes。 TreeBins 不保存用户键或值，而是指向 TreeNode 列表及其根。
+     * 他们还维护一个寄生读写锁，迫使写者（持有 bin 锁）在树重组操作之前等待读者（没有）完成。
+     */
     /**
      * TreeNodes used at the heads of bins. TreeBins do not hold user
      * keys or values, but instead point to list of TreeNodes and
@@ -2716,15 +3355,20 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * not) to complete before tree restructuring operations.
      */
     static final class TreeBin<K,V> extends Node<K,V> {
-        TreeNode<K,V> root;
-        volatile TreeNode<K,V> first;
-        volatile Thread waiter;
-        volatile int lockState;
+        TreeNode<K,V> root;// 红黑树根结点
+        volatile TreeNode<K,V> first;// 链表形式的头结点(等于红黑树根结点)
+        volatile Thread waiter;// 等待写锁的线程
+        volatile int lockState;// 红儿黑锁状态
         // values for lockState
-        static final int WRITER = 1; // set while holding write lock
-        static final int WAITER = 2; // set when waiting for write lock
-        static final int READER = 4; // increment value for setting read lock
+        static final int WRITER = 1; // set while holding write lock 持有写锁时设置
+        static final int WAITER = 2; // set when waiting for write lock 等待写锁时设置
+        static final int READER = 4; // increment value for setting read lock 设置读锁的增量值
 
+        /**
+         * 20210620
+         * 当 hashCode 相等且不可比较时，用于对插入进行排序的打破平局实用程序。 我们不需要总顺序，只需要一致的插入规则来保持重新平衡之间的等效性。
+         * 超出必要的打破平局会稍微简化测试。
+         */
         /**
          * Tie-breaking utility for ordering insertions when equal
          * hashCodes and non-comparable. We don't require a total
@@ -2732,6 +3376,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
          * equivalence across rebalancings. Tie-breaking further than
          * necessary simplifies testing a bit.
          */
+        // 当 hashCode 相等且不可比较时，用于对插入进行排序的打破平局实用程序
         static int tieBreakOrder(Object a, Object b) {
             int d;
             if (a == null || b == null ||
@@ -2743,122 +3388,198 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
 
         /**
+         * 20210620
+         * 创建带有以 b 为首的初始节点集的 bin。
+         */
+        /**
          * Creates bin with initial set of nodes headed by b.
          */
+        // 根据b链表构建TreeBin结点 => 类似于HashMap#treeify(Node)
         TreeBin(TreeNode<K,V> b) {
+            // 创建null键、null值、next指针也为null、hash值为TREEBIN(-2)的Node结点
             super(TREEBIN, null, null, null);
+
+            // b链表头结点设置为first结点
             this.first = b;
+
+            // First结点b, 当前遍历结点x, x后继next, 根结点r, 直到遍历到b链尾
             TreeNode<K,V> r = null;
             for (TreeNode<K,V> x = b, next; x != null; x = next) {
                 next = (TreeNode<K,V>)x.next;
+
+                // 置空x的左右孩子
                 x.left = x.right = null;
+
+                // 如果r为null, 说明根结点还没设置, 则设置x为根结点, 更新r指针指向x
                 if (r == null) {
                     x.parent = null;
                     x.red = false;
                     r = x;
                 }
+
+                // 如果r不为null, 说明根结点已经设置了, 此时x不再为根结点, 则获取x的键k, x的hash值h, kc为x的Class对象
                 else {
                     K k = x.key;
                     int h = x.hash;
                     Class<?> kc = null;
+
+                    // 从根结点r开始遍历, 当前遍历结点p, 比较结果dir, p的hash值ph, p的键pk
                     for (TreeNode<K,V> p = r;;) {
                         int dir, ph;
                         K pk = p.key;
+
+                        // 如果ph大于x的hash值h, 说明x应该往左子树方向插入, 则dir为-1
                         if ((ph = p.hash) > h)
                             dir = -1;
+
+                        // 如果ph小于x的hash值h, 说明x应该往右子树方向插入, 则dir为1
                         else if (ph < h)
                             dir = 1;
+
+                        // 如果ph等于x的hash值h, 则还需要比较键的Class, 此时dir为其比较结果
                         else if ((kc == null &&
                                   (kc = comparableClassFor(k)) == null) ||
                                  (dir = compareComparables(kc, k, pk)) == 0)
+                            // 当 hashCode 相等且不可比较时，用于对插入进行排序的打破平局实用程序
                             dir = tieBreakOrder(k, pk);
-                            TreeNode<K,V> xp = p;
+
+                        // 到这里, x与p的比较结果dir已经知道了, 如果dir小于等于0, 则x作为p左孩子, 否则x作为p右孩子, 并插入结点后平衡红黑树
+                        TreeNode<K,V> xp = p;
                         if ((p = (dir <= 0) ? p.left : p.right) == null) {
                             x.parent = xp;
                             if (dir <= 0)
                                 xp.left = x;
                             else
                                 xp.right = x;
+                            // 插入结点后平衡红黑树
                             r = balanceInsertion(r, x);
                             break;
                         }
                     }
                 }
             }
+
+            // b链表遍历完毕, 说明r结点上的红黑树已经构建完毕, 则设置r为TreeBin桶的root指针
             this.root = r;
+
+            // 递归检查指定结点是否为红黑树
             assert checkInvariants(root);
         }
 
         /**
+         * 20210620
+         * 获取用于树重组的写锁。
+         */
+        /**
          * Acquires write lock for tree restructuring.
          */
+        // CAS方式设置lockState为1(持有写锁), 如果CAS设置成功, 说明当前线程获取到写锁, 此时直接返回即可; 如果CAS设置失败, 说明当前线程获取不到写锁, 此时需要继续争抢写锁
         private final void lockRoot() {
+            // CAS方式设置lockState为1(持有写锁时设置), 如果CAS设置成功, 说明当前线程获取到写锁, 此时直接返回即可
             if (!U.compareAndSwapInt(this, LOCKSTATE, 0, WRITER))
-                contendedLock(); // offload to separate method
+                // 如果CAS设置失败, 说明当前线程获取不到写锁, 此时需要继续争抢写锁
+                contendedLock(); // offload to separate method 卸载到分离方法
         }
 
         /**
+         * 20210620
+         * 为树重组释放写锁。
+         */
+        /**
          * Releases write lock for tree restructuring.
          */
+        // 重置锁状态, 释放读锁/写锁
         private final void unlockRoot() {
             lockState = 0;
         }
 
         /**
+         * 20210620
+         * 可能阻塞等待根锁定。
+         */
+        /**
          * Possibly blocks awaiting root lock.
+         */
+        /**
+         * 争抢写锁，争抢不到写锁的会进入阻塞状态，直到所有调用TreeBin#find（int，Object）的线程调用完毕后唤醒，从而重新争抢写锁。
+         * a. 如果当前红黑树不存在写或者读线程, 则当前线程去竞争写锁, 如果竞争成功则返回;
+         * b. 如果当前红黑树写锁或者读锁正在被持有, 且不存在等待写锁的线程，则当前线程去竞争成为等待锁的线程, 竞争成功则成为等待锁的线程;
+         * c. 如果当前线程成为等待锁的线程, 但竞争读/写锁失败, 则进入阻塞状态;
+         * d. 而那些争抢不到写锁, 也进入不了阻塞状态成为等待写锁的线程, 会一直自旋等待锁状态变更;
          */
         private final void contendedLock() {
             boolean waiting = false;
+
+            // 开始自旋
             for (int s;;) {
+                // 如果锁状态非101, 说明当前红黑树不存在写或者读线程, 此时允许当前线程去竞争锁
                 if (((s = lockState) & ~WAITER) == 0) {
+                    // CAS设置lockState为1(持有写锁), 如果CAS成功, 说明当前线程成功获取到写锁, 此时置空等待线程waiter, 然后返回即可
                     if (U.compareAndSwapInt(this, LOCKSTATE, s, WRITER)) {
                         if (waiting)
                             waiter = null;
                         return;
                     }
                 }
+
+                // 如果锁状态非010, 说明当前红黑树不存在等待锁的线程, 此时允许当前线程成功为等待锁的线程
                 else if ((s & WAITER) == 0) {
+                    // CAS设置lockState为011或者110(等待读锁或者等待写锁的状态), 如果CAS成功说明当前线程成功成为等待锁的线程, 此时设置waiter为当前线程
                     if (U.compareAndSwapInt(this, LOCKSTATE, s, s | WAITER)) {
                         waiting = true;
                         waiter = Thread.currentThread();
                     }
                 }
+
+                // 如果当前线程成为等待写锁的线程, 但竞争写锁失败, 则进入阻塞状态
                 else if (waiting)
                     LockSupport.park(this);
             }
         }
 
         /**
+         * 20210620
+         * 如果没有，则返回匹配的节点或 null。 尝试使用来自根的树比较进行搜索，但在锁不可用时继续线性搜索。
+         */
+        /**
          * Returns matching node or null if none. Tries to search
          * using tree comparisons from root, but continues linear
          * search when lock not available.
          */
+        // 根据hash值和key值，从根结点开始查找红黑树结点: 如果当前红黑树存在写线程或者等待写锁线程, 则以链表的方式去遍历出红黑树结点并返回; 如果当前红黑树没有写线程或者等待写锁线程, 则叠加读锁状态后以红黑树方式去遍历红黑树结点并返回
         final Node<K,V> find(int h, Object k) {
             if (k != null) {
+                // 从根结点开始遍历, 当前遍历结点e, 锁状态s, e键ek,
                 for (Node<K,V> e = first; e != null; ) {
                     int s; K ek;
+
+                    // 如果锁状态为011, 说明当前红黑树存在写线程或者等待写锁线程, 为了减少锁竞争以便写操作尽快完成, 则以遍历链表的方式去遍历出红黑树结点并返回
                     if (((s = lockState) & (WAITER|WRITER)) != 0) {
                         if (e.hash == h &&
                             ((ek = e.key) == k || (ek != null && k.equals(ek))))
                             return e;
                         e = e.next;
                     }
-                    else if (U.compareAndSwapInt(this, LOCKSTATE, s,
-                                                 s + READER)) {
+
+                    // 否则, 说明当前红黑树没有写线程或者等待写锁线程, 则CAS叠加lockState读锁状态(每个读线程叠加一次), 然后再以红黑树方式去遍历红黑树结点并返回
+                    else if (U.compareAndSwapInt(this, LOCKSTATE, s, s + READER)) {
                         TreeNode<K,V> r, p;
                         try {
+                            // 根据hash值、key值和比较对象kc，从根结点开始查找查找红黑树结点
                             p = ((r = root) == null ? null :
                                  r.findTreeNode(h, k, null));
                         } finally {
+                            // 最后释放当前读锁状态, 如果释放读锁前的状态为读状态, 或者为等待写锁状态且存在等待写锁线程, 说明当前线程为最后一个读线程, 需要唤醒因调用contendedLock（）争抢不到写锁而进入阻塞等待的线程，使其重新争抢写锁
                             Thread w;
-                            if (U.getAndAddInt(this, LOCKSTATE, -READER) ==
-                                (READER|WAITER) && (w = waiter) != null)
+                            if (U.getAndAddInt(this, LOCKSTATE, -READER) == (READER|WAITER) && (w = waiter) != null)
                                 LockSupport.unpark(w);
                         }
                         return p;
                     }
                 }
             }
+
+            // 如果确实找不到则返回null
             return null;
         }
 
@@ -2866,24 +3587,39 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
          * Finds or adds a node.
          * @return null if added
          */
+        // 红黑树结点的添加方法（插入成功则返回null，插入失败则返回已经存在的结点）=> 类似HashMap#putTreeVal（HashMap，Node，int，K，V）, 但这里还需要竞争TreeBin桶头结点的写锁
         final TreeNode<K,V> putTreeVal(int h, K k, V v) {
+            // 比较键的Class对象kc，是否已经找过了searched，根节点root
             Class<?> kc = null;
             boolean searched = false;
+
+            // 从根结点root开始查找，比较结果dir， 比较结点hash值ph，比较结点key值pk，当前遍历结点p
             for (TreeNode<K,V> p = root;;) {
                 int dir, ph; K pk;
+
+                // 如果p为null且p不为叶子结点的孩子结点, 说明红黑树根结点还没被初始化, 则把k和v当做根结点插入
                 if (p == null) {
                     first = root = new TreeNode<K,V>(h, k, v, null, null);
                     break;
                 }
+
+                // 如果ph大于h，说明插入结点应该在p的左边，dir为-1
                 else if ((ph = p.hash) > h)
                     dir = -1;
+
+                // 如果ph小于h，说明插入结点应该在p的右边，dir为1
                 else if (ph < h)
                     dir = 1;
+
+                // 如果ph等于h，且pk为插入结点的key值，或者equals，则说明p就是要插入的位置，此时返回p结点
                 else if ((pk = p.key) == k || (pk != null && k.equals(pk)))
                     return p;
+
+                // 如果ph等于h，且pk不为插入结点的key值，也不equals，则判断x是否还实现了Comparable接口，如果是则继续比较是否相等
                 else if ((kc == null &&
                           (kc = comparableClassFor(k)) == null) ||
                          (dir = compareComparables(kc, k, pk)) == 0) {
+                    // 如果还没找过，则递归查找左右子树, 直到找到指定hash和key匹配的结点q返回即可
                     if (!searched) {
                         TreeNode<K,V> q, ch;
                         searched = true;
@@ -2893,36 +3629,59 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                              (q = ch.findTreeNode(h, k, kc)) != null))
                             return q;
                     }
+
+                    // 如果已经递归找过了，当hashCode相等且不可比较时, 用于打破比较平局的情况 => 比较a和b两个对象的ClassName相等以及原始hashCode
                     dir = tieBreakOrder(k, pk);
                 }
 
+                // 到这里，比较结果dir已经确定，如果dir<=0, 则从p的左子树开始找，否则从p的右子树开始找，p结点备份为xp, p继续作为左孩子或者右孩子，链表头结点f，如果p为null，说明到了叶子结点，则构建TreeNode结点，next指向链表头结点f
                 TreeNode<K,V> xp = p;
                 if ((p = (dir <= 0) ? p.left : p.right) == null) {
                     TreeNode<K,V> x, f = first;
                     first = x = new TreeNode<K,V>(h, k, v, f, xp);
+
+                    // 如果f不为null, 则关联x与f的关系
                     if (f != null)
                         f.prev = x;
+
+                    // 如果dir<=0，说明x应该在xp的左边，则设置x为xp的左孩子
                     if (dir <= 0)
                         xp.left = x;
+                    // 如果dir>0，说明x应该在xp的右边，则设置x为xp的右孩子
                     else
                         xp.right = x;
+
+                    // 如果父结点不为红结点, 则插入x结点并标记为红结点即可退出遍历
                     if (!xp.red)
                         x.red = true;
+                    // 如果父结点为红结点, 此时如果插入会出现红红情况, 不符合红黑树性质, 因此需要对root结点加锁平衡, 平衡后释放锁结束遍历
                     else {
+                        // CAS方式设置lockState为1(持有写锁时设置), 如果CAS设置成功, 说明当前线程获取到写锁, 此时直接返回即可; 如果CAS设置失败, 说明当前线程获取不到写锁, 此时需要继续争抢写锁
                         lockRoot();
                         try {
+                            // 如果当前线程成功争抢到写锁后, 则进行插入后平衡红黑树
                             root = balanceInsertion(root, x);
                         } finally {
+                            // 重置锁状态, 释放读锁/写锁
                             unlockRoot();
                         }
                     }
                     break;
                 }
             }
+
+            // 递归检查指定结点是否为红黑树
             assert checkInvariants(root);
+
+            // 插入成功则返回null
             return null;
         }
 
+        /**
+         * 20210620
+         * 删除给定节点，该节点必须在此调用之前存在。 这比典型的红黑删除代码更混乱，
+         * 因为我们无法将内部节点的内容与叶后继交换，该后继由可独立于锁访问的“next”指针固定。 因此，我们交换树链接。
+         */
         /**
          * Removes the given node, that must be present before this
          * call.  This is messier than typical red-black deletion code
@@ -2933,39 +3692,69 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
          *
          * @return true if now too small, so should be untreeified
          */
+        /**
+         * removeTreeNode（HashMap，Node，boolean）：
+         *
+         * - 替代结点：红黑树是一种自平衡的二叉搜索树，而二叉搜索树删除，本质上是找前驱或者后继结点来替代删除（这里是replacement替代p然后删除p）。
+         * - A. 如果要删除的结点是叶子结点：则直接删除即可（肯定为黑色）。
+         * - B. 如果要删除的结点只有一个孩子结点：则使用孩子结点进行替代，然后删除"替代结点"。
+         * - C. 如果要删除的结点有两个孩子结点：则需要找到前驱或者后继进行替代，然后删除"替代结点"。
+         *   - C.1. 如果替代结点没有孩子结点：此时所在的结点为2-3-4树的2结点，则直接要"替代结点"即可。
+         *   - C.2. 如果替代结点有孩子结点且孩子结点为替代方向：此时所在的结点为2-3-4树的3结点或者4结点，则继续使用孩子结点进行替代，然后“替代结点”即可（二次替代）。
+         * - 无论是哪种情况，红黑树结点的删除方法，都要调用平衡红黑树的方法，在删除结点前/后平衡红黑树。
+         */
+        // 红黑树结点的删除方法 => 类似HashMap#removeTreeNode（HashMap，Node，boolean）, 但这里还需要竞争TreeBin桶头结点的写锁
         final boolean removeTreeNode(TreeNode<K,V> p) {
+            // p的后继next, p的前驱pred, 根结点r, 根结点的左孩子rl
             TreeNode<K,V> next = (TreeNode<K,V>)p.next;
-            TreeNode<K,V> pred = p.prev;  // unlink traversal pointers
+            TreeNode<K,V> pred = p.prev;  // unlink traversal pointers 取消链接遍历指针
             TreeNode<K,V> r, rl;
+
+            // 如果pred为null, 说明p为桶头结点，则更新后继succ作为新的桶头
             if (pred == null)
                 first = next;
+            // 如果pred不为null，说明p不为桶头结点，则链接前驱和后继，跳过p结点
             else
                 pred.next = next;
             if (next != null)
                 next.prev = pred;
+
+            // 链接pred、succ后，如果桶头结点为null，说明桶内已经没有数据了，所以不用再处理了，直接返回true, 说明可以拆除当前红黑树，将其退化成普通链表
             if (first == null) {
                 root = null;
                 return true;
             }
+
+            // 如果root为null或者没有孩子时，说明红黑树结点太少了，则返回true, 说明可以拆除当前红黑树，将其退化成普通链表
             if ((r = root) == null || r.right == null || // too small
                 (rl = r.left) == null || rl.left == null)
                 return true;
+
+            // 到这里, 说明真的是要添加p到红黑树中, 则CAS方式设置lockState为1(持有写锁时设置), 如果CAS设置成功, 说明当前线程获取到写锁, 此时直接返回即可; 如果CAS设置失败, 说明当前线程获取不到写锁, 此时需要继续争抢写锁
             lockRoot();
             try {
+                // p左孩子pl，p右孩子pr，替代结点replacement（null）
                 TreeNode<K,V> replacement;
                 TreeNode<K,V> pl = p.left;
                 TreeNode<K,V> pr = p.right;
+
+                // 如果p有两个孩子结点，则一路遍历右孩子pr的左孩子sl，直到sl为叶子结点，即查找p的后继s，并交换p和s的颜色
                 if (pl != null && pr != null) {
                     TreeNode<K,V> s = pr, sl;
                     while ((sl = s.left) != null) // find successor
                         s = sl;
                     boolean c = s.red; s.red = p.red; p.red = c; // swap colors
+
+                    // 后继s的右孩子sr, p的父结点pp
                     TreeNode<K,V> sr = s.right;
                     TreeNode<K,V> pp = p.parent;
+
+                    // 如果后继s为p的右孩子，说明s是p的直接后继，直接反转两者的父子关系即可，即s作为父亲，p作为右孩子，使得p交换到了后继s的位置
                     if (s == pr) { // p was s's direct parent
                         p.parent = s;
                         s.right = p;
                     }
+                    // 如果后继s不是p的右孩子，说明s是p的间接后继，则维护s、p、sp、pr的指针关系，使得p交换到了后继s的位置
                     else {
                         TreeNode<K,V> sp = s.parent;
                         if ((p.parent = sp) != null) {
@@ -2977,6 +3766,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         if ((s.right = pr) != null)
                             pr.parent = s;
                     }
+
+                    // 交换了p与后继s的位置后，继续更新s、p、sr、sl、pl、pp的关系
                     p.left = null;
                     if ((p.right = sr) != null)
                         sr.parent = p;
@@ -2988,17 +3779,28 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         pp.left = s;
                     else
                         pp.right = s;
+
+                    // 到这里，p与s交换了位置，并完成了所有父结点、孩子节点的指针关系维护。如果sr不为null，说明s有右孩子（这里由于原s是通过遍历原p的右孩子的所有左孩子找到的，所以原s肯定是没有左孩子的，如果判断没有右孩子，则可以说明原s肯定是没有孩子的），则设置右孩子为替代结点(相当于情况C.2)
                     if (sr != null)
                         replacement = sr;
+                    // 否则，如果原s没有右孩子，则交换后的p就为替代结点(相当于情况C.1)
                     else
                         replacement = p;
                 }
+
+                // 否则，如果原s没有右孩子，则交换后的p就为替代结点(相当于情况C.1)
                 else if (pl != null)
                     replacement = pl;
+
+                // 如果实例结点p只有右孩子时，则替代结点为右孩子pr（相当于情况B）
                 else if (pr != null)
                     replacement = pr;
+
+                // 如果实例结点p只有右孩子时，则替代结点为右孩子pr（相当于情况B）
                 else
                     replacement = p;
+
+                // 到这一步，原p的替代结点replacement已经找到了。如果replacement不为p结点，说明为2-3-4树3结点或者4结点的红结点，即情况B和C.2，为了让replacement代替p结点，则链接pp与replacement并清空p所有的链接，此后p就没有被任何结点引用等待GC回收，相当于p脱离了红黑树
                 if (replacement != p) {
                     TreeNode<K,V> pp = replacement.parent = p.parent;
                     if (pp == null)
@@ -3010,8 +3812,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     p.left = p.right = p.parent = null;
                 }
 
+                // 删除结点前/后平衡红黑树，如果x所在结点为2-3-4树的2结点，则平衡后再删除x，否则在平衡前对应的结点就已经删除了（此时x作为该结点的替代结点而保留下来），r为根结点
                 root = (p.red) ? r : balanceDeletion(r, replacement);
 
+                // 如果替代节点replacement为p结点，说明要删除的是2-3-4树的2结点（相当于情况A和C.1），则脱离p链接
                 if (p == replacement) {  // detach pointers
                     TreeNode<K,V> pp;
                     if ((pp = p.parent) != null) {
@@ -3023,73 +3827,137 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     }
                 }
             } finally {
+                // 重置锁状态, 释放读锁/写锁
                 unlockRoot();
             }
+
+            // 递归检查指定结点是否为红黑树
             assert checkInvariants(root);
+
+            // 返回false, 说明正常插入结点到红黑树了, 不需要拆除当前红黑树退化成普通链表
             return false;
         }
 
         /* ------------------------------------------------------------ */
         // Red-black tree methods, all adapted from CLR
 
+        // 左旋p结点，左右左右右 => 同HashMap#rotateLeft(TreeNode, TreeNode)
         static <K,V> TreeNode<K,V> rotateLeft(TreeNode<K,V> root,
                                               TreeNode<K,V> p) {
             TreeNode<K,V> r, pp, rl;
+
+            // 如果p的右节点r不为null，则有必要进行左旋，否则直接返回root即可
             if (p != null && (r = p.right) != null) {
+                // 如果p有右结点r，且r还有左结点rl, 则旋转后成为p的右结点，并连接上rl与p的关系
                 if ((rl = p.right = r.left) != null)
                     rl.parent = p;
+
+                // 如果p有父结点，则关联p的父结点pp与p的右结点r的关系，且如果pp为null，说明需要更新r为根结点，以及变为黑色
                 if ((pp = r.parent = p.parent) == null)
                     (root = r).red = false;
+
+                // 如果pp不为null，说明r不需要成为根结点，则关联pp与r的关系
                 else if (pp.left == p)
                     pp.left = r;
                 else
                     pp.right = r;
+
+                // 关联p结点与r结点的关系
                 r.left = p;
                 p.parent = r;
             }
+
             return root;
         }
 
+        // 右旋p结点，右左右左左 => 同HashMap#rotateRight(TreeNode, TreeNode)
         static <K,V> TreeNode<K,V> rotateRight(TreeNode<K,V> root,
                                                TreeNode<K,V> p) {
             TreeNode<K,V> l, pp, lr;
+
+            // 如果p的左节点l不为null，则有必要进行右旋，否则直接返回root即可
             if (p != null && (l = p.left) != null) {
+                // 如果p有左结点l，且l还有右结点lr, 则旋转后成为p的左结点，并连接上rl与p的关系
                 if ((lr = p.left = l.right) != null)
                     lr.parent = p;
+
+                // 如果p有父结点，则关联p的父结点pp与p的左结点r的关系，且如果pp为null，说明需要更新l为根结点，以及变为黑色
                 if ((pp = l.parent = p.parent) == null)
                     (root = l).red = false;
+
+                // 如果pp不为null，说明l不需要成为根结点，则关联pp与l的关系
                 else if (pp.right == p)
                     pp.right = l;
                 else
                     pp.left = l;
+
+                // 如果pp不为null，说明l不需要成为根结点，则关联pp与l的关系
                 l.right = p;
                 p.parent = l;
             }
+
             return root;
         }
 
+        /**
+         * balanceInsertion（TreeNode，TreeNode）：对应2-3-4树的情况：
+         *
+         * - a. 空结点新增：成为一个2结点，插入前树为null，插入后x需要变黑色，作为根结点。
+         * - b. 合并到2结点中：成为一个3结点，插入前2结点为黑色，插入后无论是（上黑下左红 |  上黑下右红）, 都符合3结点要求，因此无需调整。
+         * - c. 合并到3结点中：成为一个4结点，插入前为3结点（上黑下左红 |  上黑下右红），插入后成为4结点黑红红的情况，根据x插入位置不同分为6种情况：
+         *   - c.2.1.  左三(中左左*) ，黑红红，不符合红黑树定义 => 需要调整，则中1右旋，中1变红，左1变黑。
+         *   - c.2.2. 中左右*(其实就相当于左三，因为对父结点进行左旋，即得到左三) ，黑红红，不符合红黑树定义 => 需要调整，则左1左旋（得到左三），中1右旋，中1变红，新左变黑。
+         *   - c.2.3. 右三(中 右右*) ，黑红红，不符合红黑树定义 => 需要调整，则中1左旋，中1变红，右1变黑。
+         *   - c.2.4. 中 右左*(其实就相当于右三，因为对父结点进行右旋，即得到右三) 黑红红，不符合红黑树定义 => 需要调整，则右1右旋（得到右三），中1左旋，中1变红，新右变黑。
+         *   - c.2.5. 中左 右*，黑红 红，符合红黑树定义 => 无需调整。
+         *   - c.2.6. 中左* 右，黑红 红，符合红黑树定义 => 无需调整。
+         * - d. 合并到4结点中：成为一个裂变状态（变色后相当于升元了），插入前为4结点（黑红红），插入后4结点颜色反转，爷结点成为新的x结点，准备下一轮的向上调整，根据x插入的位置不同分为4种情况：
+         *   - d.2.1. 中左左* 右(黑红红 红)，不符合红黑树定义 => 需要调整，则中变红，左1变黑，左2保持为红， 右1变黑，中看作为“插入结点”，继续向上调整。
+         *   - d.2.2. 中左右* 右(黑红红 红)，不符合红黑树定义 => 需要调整，则中变红，左1变黑，右1保持为红，右2变黑，中看作为“插入结点”，继续向上调整。
+         *   - d.2.3. 中左 右左*(黑红 红红)，不符合红黑树定义 => 需要调整，则中变红，左1变黑，左2保持为红，右1变黑，中看作为“插入结点”，继续向上调整。
+         *   - d.2.4. 中左 右右*(黑红 红红)，不符合红黑树定义 => 需要调整，则中变红，左1变黑，右1变黑，右2保持为红，中看作为“插入结点”，继续向上调整。
+         */
+        // 插入后平衡红黑树，到了这步红黑树结点的二叉树指针关系已经确定好了的, 只需要进行调整和变色就可以了 => 同HashMap#balanceInsertion(TreeNode, TreeNode)
         static <K,V> TreeNode<K,V> balanceInsertion(TreeNode<K,V> root,
                                                     TreeNode<K,V> x) {
-            x.red = true;
+            x.red = true;// 标记插入结点x为红结点
+
+            // 从x结点向上遍历, 发现需要调整则进行调整
             for (TreeNode<K,V> xp, xpp, xppl, xppr;;) {
+                // x结点父结点xp, 如果为null, 说明x为根结点，相当于情况a，则设置当前结点为黑色(性质2)
                 if ((xp = x.parent) == null) {
                     x.red = false;
                     return x;
                 }
+
+                // 如果x结点不是根结点, 且父结点xp为黑色或者没有爷结点xpp时，相当于情况b，即合并到2结点中，所以无需调整, 直接返回根结点即可。
                 else if (!xp.red || (xpp = xp.parent) == null)
                     return root;
-                if (xp == (xppl = xpp.left)) {
+
+                // 如果x结点不是根结点，且父节点xp为红色，且有爷结点，且父结点为爷结点的左孩子时，相当于插入到3、4结点中，即情况c.2.1 & c.2.2 & d.2.1 & d.2.2
+                if (xp == (xppl = xpp.left)) {// 这里的xppl是为了获取当父结点为爷结点右孩子时的叔结点
+                    // 如果xpp右孩子叔结点不为null, 且为红结点时，相当于情况d.2.1 和 d.2.2，即合并到4结点，因此x结点需要插入到了父结点xp的孩子结点中，此时标记叔结点为黑色, 父节点为黑色, 爷结点为红色（4结点颜色反转），且设置爷结点为新的x结点, 准备进行下一轮的向上调整
                     if ((xppr = xpp.right) != null && xppr.red) {
                         xppr.red = false;
                         xp.red = false;
                         xpp.red = true;
                         x = xpp;
                     }
+
+                    // 如果x没有叔结点，或者叔结点为黑色（不会出现，因为黑色不平衡），相当于插入到3结点中
                     else {
+                        // 如果x结点为父节点xp的右孩子，即父结点为爷结点的左孩子且为红结点, x结点插入到父结点的右孩子时(相当于c.2.2 中左右*, 合并到3结点)
                         if (x == xp.right) {
+                            // 此时将父结点xp左旋即可得到c.2.1左三的情况（相当于x结点与父结点交换了位置），x赋值为了xp
                             root = rotateLeft(root, x = xp);
+
+                            // 左旋后更新指针：原来的x结点作为xp, 如果为null(不会出现), 则xpp设置为null, 否则xpp设置为原来的x结点的爷结点，x为原来x结点的父结点
                             xpp = (xp = x.parent) == null ? null : xp.parent;
+
+                            // 这步if其实做的是把c.2.2的情况转换为c.2.1左三的情况
                         }
+
+                        // 到这里，无论是哪种情况，如果xp不为null那肯定都是红色, 且x肯定为父亲的左孩子(相当于c.2.1, 左三, 合并到3结点) => 父变黑, 爷变红, 爷进行右旋, 变成4结点
                         if (xp != null) {
                             xp.red = false;
                             if (xpp != null) {
@@ -3099,18 +3967,31 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         }
                     }
                 }
+
+                // 如果x结点不是根结点，且父节点xp为红色，且有爷结点，且父结点为爷结点的右孩子时，相当于插入到3、4结点中，即情况c.2.3 & c.2.4 & d.2.3 & d.2.4
                 else {
+                    // 如果xpp做孩子叔结点不为null, 且为红结点时，相当于情况d.2.3 和 d.2.4，即合并到4结点，因此x结点需要插入到了父结点xp的孩子结点中，此时标记叔结点为黑色, 父节点为黑色, 爷结点为红色（4结点颜色反转），且设置爷结点为新的x结点, 准备进行下一轮的向上调整
                     if (xppl != null && xppl.red) {
                         xppl.red = false;
                         xp.red = false;
                         xpp.red = true;
                         x = xpp;
                     }
+
+                    // 如果x没有叔结点，或者叔结点为黑色（不会出现，因为黑色不平衡），相当于插入到3结点中
                     else {
+                        // 如果x结点为父节点xp的左孩子，即父结点为爷结点的右孩子且为红结点, x结点插入到父结点的左孩子时(相当于c.2.4 中右左*, 合并到3结点)
                         if (x == xp.left) {
+                            // 此时将父结点xp右旋即可得到c.2.3右三的情况（相当于x结点与父结点交换了位置），x赋值为了xp
                             root = rotateRight(root, x = xp);
+
+                            // 右旋后更新指针：原来的x结点作为xp, 如果为null(不会出现), 则xpp设置为null, 否则xpp设置为原来的x结点的爷结点，x为原来x结点的父结点
                             xpp = (xp = x.parent) == null ? null : xp.parent;
+
+                            // 这步if其实做的是把c.2.4的情况转换为c.2.3右三的情况
                         }
+
+                        // 到这里，无论是哪种情况，如果xp不为null那肯定都是红色, 且x肯定为父亲的右孩子(相当于c.2.3, 右三, 合并到3结点) => 父变黑, 爷变红, 爷进行左旋, 变成4结点
                         if (xp != null) {
                             xp.red = false;
                             if (xpp != null) {
@@ -3123,36 +4004,76 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
         }
 
+        /**
+         * balanceDeletion（TreeNode，TreeNode）：删除结点前/后平衡红黑树，如果x所在结点为2-3-4树的2结点，则平衡后再删除，如果x所在结点为3结点或者4结点，在平衡前对应的结点就已经删除了，此时x作为该结点的替代结点而保留下来：
+         *
+         * - x自己搞得定：
+         *   - 自己搞得定的意思就是，可以在自己结点内部处理完毕（对应2-3-4树结构），不影响其他树的结构。
+         *   - a.1. x为3结点或者4结点的红结点：直接置黑返回x结点即可调整完毕（因为x是作为替代结点而保留下来的），然后交由上层方法删除x结点。
+         * - x自己搞不定，兄弟搞得定：
+         *   - 自己搞不定的意思就是，自身结点为黑结点，如果直接删除会导致父结点所在的树黑色不平衡。
+         *   - 兄弟搞得定的意思就是，兄弟结点存在多余的子结点（即兄弟结点为3结点或者4结点），此时，x的父结点就可以借出结点下来合并到x结点中，兄弟结点再借出结点合并到父结点中，这样x就可以顺利删除了，同时2-3-4树的结构还保持不变。
+         *   - 但是，前提是x的兄弟结点是真正的兄弟结点，即为黑色的结点，如果为红色的结点，说明其只是父结点（3结点）的红结点，此时需要对父结点进行旋转，以保证x有真正的兄弟结点。
+         *   - b.1. 兄弟结点为3结点，但无右（左）：在x在左子树一方时，x的兄弟结点xpr为右子树，如果xpr无右孩子在对父结点左旋时，会导致xpr为null，导致2-3-4树的结构不正确，因此，b.1是一个临时情况，需要对xpr进行右旋，转换为b.2有右进一步处理。x为右子树一方时则相反。
+         *   - b.2. 兄弟结点为3结点，但有右（左）：在x在左子树一方时，x的兄弟结点xpr为右子树，如果xpr有右，则可以顺利地对父结点xp进行左旋。左旋后，在2-3-4树结构看来，xp作为xpr的左孩子（相当于父结点借出去一个结点，合并到x结点中），xpr作为xp的父亲（相当于兄弟结点借出去一个结点，合并到父结点中），xpr借出去的结点颜色为xp借出去的结点颜色，xp借出去的结点颜色一定要为黑色（相当于3结点），xpr剩余结点一定要为黑色（相当于叶子结点），返回x结点即可调整完毕，交由上层方法删除x结点。x为右子树一方时则相反。
+         *   - b.3. 兄弟结点为4结点，肯定有右：在x在左子树一方时，x的兄弟结点xpr为右子树，如果xpr有右，则可以顺利地对父结点xp进行左旋。左旋后，在2-3-4树结构看来，xp作为xpr的左孩子（相当于父结点借出去一个结点，合并到x结点中），xpr作为xp的父亲（相当于兄弟结点借出去一个结点，合并到父结点中，而且还多借出左孩子合并到x结点中），xpr合并到父结点的颜色为xp借出去的结点颜色（而借出去的左孩子本来为红色所以不用变），xp借出去的结点颜色一定要为黑色（相当于4结点），xpr剩余结点一定要为黑色（相当于叶子结点），返回x结点即可调整完毕，交由上层方法删除x结点。x为右子树一方时则相反。
+         *   - 在b.3中对于兄弟结点为4结点时，兄弟结点可以借出1个结点（需要旋转两次）或者2个结点（只需要旋转一次），在JDK中无论是HashMap还是TreeMap，都选择借出2个结点，因为可以减少花销。
+         * - x自己搞不定，而且兄弟也搞不定：
+         *   - 自己搞不定的意思就是，自身结点为黑结点，如果直接删除会导致父结点所在的树黑色不平衡。
+         *   - 兄弟也搞不定的意思就是，兄弟结点也为黑结点，没有多余的子结点，如果直接删除x，则导致叔结点所在路径多了一个黑色结点，造成黑色不平衡。
+         *   - c.1. 兄弟结点为2结点：此时，为了让x能够顺利删除，兄弟结点需要置红（自损），这样x在删除后，x父结点所在树还是黑色平衡的。但是，如果x父结点为黑色，x爷结点所在树则不黑色平衡了（因为父结点这边少了一个黑色结点），所以父结点的叔结点要也要被置红。因此需要一路向上自损，直到碰到任意一个终止条件即可结束：
+         *     - 自损的终止条件1（向上碰到根结点）：经过一路置红叔结点（置红叔结点是没问题的，因为出现该情况是叶子结点为3结点黑黑黑的时候，此时如果叔结点没有孩子结点即为黑色，而对于更上层的叔结点来说，貌似不会出现叔为黑红红这种情况），直到循环到根结点时（因为上面已经没有父节点了），则代表自损完毕，此时整棵树都是黑色平衡的了（都减少了一个黑色结点）。
+         *     - 自损的终止条件2（向上碰到红结点）：如果碰到红色结点时，只需要把该结点置黑，则不需要在置红叔结点了，此时相当于在父结点这边子树补回了一个黑色结点，而不影响叔结点那边子树的黑色结点数目，因此整棵树还是黑色平衡的。
+         */
+        // 删除结点前/后平衡红黑树，如果x所在结点为2-3-4树的2结点，则平衡后再删除，如果x所在结点为3结点或者4结点，在平衡前对应的结点就已经删除了，此时x作为该结点的替代结点而保留下来 => 同HashMap#balanceDeletion(TreeNode, TreeNode)
         static <K,V> TreeNode<K,V> balanceDeletion(TreeNode<K,V> root,
                                                    TreeNode<K,V> x) {
+            // 传入的根结点root，当前结点x，x的父结点xp，xp的左孩子xpl，xp的右孩子xpr
             for (TreeNode<K,V> xp, xpl, xpr;;)  {
+                // 如果x为null，或者为指定的根结点root，则无需调整，直接返回root即可
                 if (x == null || x == root)
                     return root;
+
+                // 如果x不为null，也不为root，且父节点xp为null，说明为自损的终止条件1（向上碰到根结点），此时x为根结点，此时置黑x结点即可（此时达到整棵树的黑色平衡，因为上一轮已经对叔结点进行置红了），终止循环向上调整，返回x结点作为根结点
                 else if ((xp = x.parent) == null) {
                     x.red = false;
                     return x;
                 }
+
+                // 如果x不为null，也不为root，且父结点xp也不为null，且x为红结点，说明为自损的终止条件2（向上碰到红结点），此时置黑x结点即可（此时达到整棵树的黑色平衡，因为上一轮已经对叔结点进行置红了），终止循环向上调整，返回x结点作为根结点。还有一种情况就是，x自己搞的定（3、4结点的红结点时），置黑直接返回即可。
                 else if (x.red) {
                     x.red = false;
                     return root;
                 }
+
+                // 如果x不为null，也不为根结点，且父结点也不为null，且x为黑色结点(删除2结点时，此时自己搞不定，需要兄弟和父亲帮忙)，且x为xp的左孩子（这里的xpl也等于x为右孩子时的叔结点），则按左的方式调整
                 else if ((xpl = xp.left) == x) {
+                    // 叔结点xpr为xp的右孩子，如果为红结点时，说明xpr不是x真正的兄弟结点（xpr只是为xp的红结点，此时xp为3结点)，则置黑叔结点xpr，置红父结点xp，对xp进行左旋，左旋后xpr成为xp的父结点，原xpr的左结点成为xp的右结点（这时x与x真正的兄弟结点才一一对应）
                     if ((xpr = xp.right) != null && xpr.red) {
                         xpr.red = false;
                         xp.red = true;
                         root = rotateLeft(root, xp);
                         xpr = (xp = x.parent) == null ? null : xp.right;
                     }
+
+                    // 如果xpr为null，说明x没有叔结点，也就是兄弟没有得借，因此当x删除后，xp所在树会少一个黑结点，为了保证黑色平衡，所以把xp赋值给x，继续循环向上调整，直到碰到红结点或者根结点
                     if (xpr == null)
-                        x = xp;
+                        x = xp;// 可以看作xpr为红色（也相当于null），需要向上置红调整
+
+                    // 如果xpr不为null，说明x有真正的兄弟xpr，则继续判断xpr的左孩子sl，右孩子sr，看xpr是否有得借
                     else {
                         TreeNode<K,V> sl = xpr.left, sr = xpr.right;
+
+                        // 如果xpr没有孩子结点，则说明xpr没有得借，或者xpr的孩子结点都为黑色，说明xpr为叶子结点，也没有得借，相当于情况c.1，因此当x删除后，xp所在树会少一个黑结点，为了保证黑色平衡，所以把xp赋值给x，继续循环向上调整，直到碰到红结点或者根结点
                         if ((sr == null || !sr.red) &&
                             (sl == null || !sl.red)) {
                             xpr.red = true;
                             x = xp;
                         }
+
+                        // 如果兄弟结点xpr有得借，则继续判断兄弟结点到底是3结点还是4结点
                         else {
+                            // 如果xpr没有右孩子，为3结点时，对应情况b.1无右，此时对xpr进行右旋成b.2有右的情况，右旋后左孩子成为新的xpr
                             if (sr == null || !sr.red) {
                                 if (sl != null)
                                     sl.red = false;
@@ -3161,6 +4082,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 xpr = (xp = x.parent) == null ?
                                     null : xp.right;
                             }
+
+                            // 如果xpr不为null，说明此时对应情况b.2（xpr为3结点有右）和b.3（xpr为4结点），即xpr为3、4结点的情况，此时需要对xp进行左旋，左旋后xpr成为xp的父结点，sr置黑，xp置黑，并设置x为root结点，代表调整完毕，退出循环
                             if (xpr != null) {
                                 xpr.red = (xp == null) ? false : xp.red;
                                 if ((sr = xpr.right) != null)
@@ -3170,27 +4093,39 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 xp.red = false;
                                 root = rotateLeft(root, xp);
                             }
-                            x = root;
+                            x = root;// 更新x为root结点, 退出循环, 结束调整
                         }
                     }
                 }
+
+                // 同理右边情况，反向操作，如果x不为null，也不为根结点，且父结点也不为null，且x为黑色结点(删除2结点时，此时自己搞不定，需要兄弟和父亲帮忙)，且x为xp的右孩子，xpl为叔结点（上面已赋值），则按右的方式调整
                 else { // symmetric
+                    // 叔结点xpl为xp的左孩子，如果为红结点时，说明xpl不是x真正的兄弟结点（xpl只是为xp的红结点，此时xp为3结点)，则置黑叔结点xpl，置红父结点xp，对xp进行右旋，右旋后xpl成为xp的父结点，原xpl的右结点成为xp的左结点（这时x与x真正的兄弟结点才一一对应）
                     if (xpl != null && xpl.red) {
                         xpl.red = false;
                         xp.red = true;
                         root = rotateRight(root, xp);
                         xpl = (xp = x.parent) == null ? null : xp.left;
                     }
+
+                    // 如果xpl为null，说明x没有叔结点，也就是兄弟没有得借，因此当x删除后，xp所在树会少一个黑结点，为了保证黑色平衡，所以把xp赋值给x，继续循环向上调整，直到碰到红结点或者根结点
                     if (xpl == null)
-                        x = xp;
+                        x = xp;// 可以看作xpl为红色（也相当于null），需要向上置红调整
+
+                    // 如果xpl不为null，说明x有真正的兄弟xpl，则继续判断xpl的左孩子sl，右孩子sr，看xpl是否有得借
                     else {
                         TreeNode<K,V> sl = xpl.left, sr = xpl.right;
+
+                        // 如果xpl没有孩子结点，则说明xpl没有得借，或者xpl的孩子结点都为黑色，说明xpl为叶子结点，也没有得借，相当于情况c.1，因此当x删除后，xp所在树会少一个黑结点，为了保证黑色平衡，所以把xp赋值给x，继续循环向上调整，直到碰到红结点或者根结点
                         if ((sl == null || !sl.red) &&
                             (sr == null || !sr.red)) {
                             xpl.red = true;
                             x = xp;
                         }
+
+                        // 如果兄弟结点xpl有得借，则继续判断兄弟结点到底是3结点还是4结点
                         else {
+                            // 如果xpl没有左孩子，为3结点时，对应情况b.1无左，此时对xpl进行左旋成b.2有左的情况，左旋后右孩子成为新的xpl
                             if (sl == null || !sl.red) {
                                 if (sr != null)
                                     sr.red = false;
@@ -3199,6 +4134,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 xpl = (xp = x.parent) == null ?
                                     null : xp.left;
                             }
+
+                            // 如果xpl不为null，说明此时对应情况b.2（xpl为3结点有左）和b.3（xpl为4结点），即xpl为3、4结点的情况，此时需要对xp进行右旋，右旋后xpl成为xp的父结点，sl置黑，xp置黑，并设置x为root结点，代表调整完毕，退出循环
                             if (xpl != null) {
                                 xpl.red = (xp == null) ? false : xp.red;
                                 if ((sl = xpl.left) != null)
@@ -3208,7 +4145,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                 xp.red = false;
                                 root = rotateRight(root, xp);
                             }
-                            x = root;
+                            x = root;// 更新x为root结点, 退出循环, 结束调整
                         }
                     }
                 }
@@ -3218,30 +4155,51 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         /**
          * Recursive invariant check
          */
+        // 递归检查指定结点是否为红黑树 => 同HashMap#checkInvariants(TreeNode)
         static <K,V> boolean checkInvariants(TreeNode<K,V> t) {
+            // 待检查结点t，父结点tp, 左孩子tl, 右孩子tr, 前驱tb, 后继tn
             TreeNode<K,V> tp = t.parent, tl = t.left, tr = t.right,
                 tb = t.prev, tn = (TreeNode<K,V>)t.next;
+
+            // 待检查结点t，父结点tp, 左孩子tl, 右孩子tr, 前驱tb, 后继tn
             if (tb != null && tb.next != t)
                 return false;
+
+            // 如果后继tn不为null，但后继的prev结点不为t结点, 则返回false
             if (tn != null && tn.prev != t)
                 return false;
+
+            // 如果父结点tp不为null，但t又不是tp的左右孩子, 则返回false
             if (tp != null && t != tp.left && t != tp.right)
                 return false;
+
+            // 如果父结点tp不为null，但t又不是tp的左右孩子, 则返回false
             if (tl != null && (tl.parent != t || tl.hash > t.hash))
                 return false;
+
+            // 如果右孩子tr不为null, 且右孩子的父亲不是t或者小于父亲的hash值，则返回false（右孩子的hash值必须大于根结点的hash值）
             if (tr != null && (tr.parent != t || tr.hash < t.hash))
                 return false;
+
+            // 如果t是红节点, 且左右孩子都是红结点, 则返回false
             if (t.red && tl != null && tl.red && tr != null && tr.red)
+                // bug？如果结点为红结点, 那么左右孩子结点肯定为黑结点! 节点红, 左孩子红, 右孩子黑, 也算红 黑树？估计是不会出现这种情况的，因为不符合2-3-4树结点的特点
                 return false;
+
+            // 如果左孩子tl不为叶子结点，则继续校验左子树
             if (tl != null && !checkInvariants(tl))
                 return false;
+
+            // 如果右孩子tr不为叶子结点，则继续校验右子树
             if (tr != null && !checkInvariants(tr))
                 return false;
+
+            // 如果右孩子tr不为叶子结点，则继续校验右子树
             return true;
         }
 
         private static final sun.misc.Unsafe U;
-        private static final long LOCKSTATE;
+        private static final long LOCKSTATE;// lockState
         static {
             try {
                 U = sun.misc.Unsafe.getUnsafe();
@@ -3255,7 +4213,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /* ----------------Table Traversal -------------- */
+    // 表遍历
 
+    /**
+     * 20210623
+     * 记录表、其长度和遍历器的当前遍历索引，遍历器必须在处理当前表之前处理转发表的区域。
+     */
     /**
      * Records the table, its length, and current traversal index for a
      * traverser that must process a region of a forwarded table before
@@ -3269,9 +4232,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
+     * 20210623
+     * A. 封装了containsValue等方法的遍历； 也用作其他迭代器和拆分器的基类。
+     * B. 方法提前访问每个在迭代器构建时可到达的仍然有效的节点。 它可能会错过一些在访问 bin 后添加到 bin 中的内容，这是可以保证一致性的。
+     *    面对可能的持续调整大小，维护此属性需要相当数量的簿记状态，而这些状态在不稳定的访问中难以优化。 即便如此，遍历仍保持合理的吞吐量。
+     * C. 通常，迭代会逐个bin地遍历列表。 但是，如果表已调整大小，则所有后续步骤都必须遍历当前索引处以及 (index + baseSize) 处的 bin；
+     *    等等以进一步调整大小。 为了偏执地应对跨线程迭代器用户的潜在共享，如果表读取的边界检查失败，则迭代终止。
+     */
+    /**
+     * A.
      * Encapsulates traversal for methods such as containsValue; also
      * serves as a base class for other iterators and spliterators.
      *
+     * B.
      * Method advance visits once each still-valid node that was
      * reachable upon iterator construction. It might miss some that
      * were added to a bin after the bin was visited, which is OK wrt
@@ -3281,6 +4254,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * volatile accesses.  Even so, traversal maintains reasonable
      * throughput.
      *
+     * C.
      * Normally, iteration proceeds bin-by-bin traversing lists.
      * However, if the table has been resized, then all future steps
      * must traverse both the bin at the current index as well as at
@@ -3290,13 +4264,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * for a table read.
      */
     static class Traverser<K,V> {
-        Node<K,V>[] tab;        // current table; updated if resized
-        Node<K,V> next;         // the next entry to use
-        TableStack<K,V> stack, spare; // to save/restore on ForwardingNodes
-        int index;              // index of bin to use next
-        int baseIndex;          // current index of initial table
-        int baseLimit;          // index bound for initial table
-        final int baseSize;     // initial table size
+        Node<K,V>[] tab;        // current table; updated if resized 当前表；如果调整大小则更新
+        Node<K,V> next;         // the next entry to use 下一个要使用的条目
+        TableStack<K,V> stack, spare; // to save/restore on ForwardingNodes 在ForwardingNodes上保存/恢复
+        int index;              // index of bin to use next 下一个要使用的 bin 索引
+        int baseIndex;          // current index of initial table 初始表的当前索引
+        int baseLimit;          // index bound for initial table 初始表的索引边界
+        final int baseSize;     // initial table size 初始表大小
 
         Traverser(Node<K,V>[] tab, int size, int index, int limit) {
             this.tab = tab;
@@ -3309,17 +4283,21 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         /**
          * Advances if possible, returning next valid node, or null if none.
          */
+        // 如果可能，则前进，返回下一个有效节点，如果没有，则返回 null。
         final Node<K,V> advance() {
             Node<K,V> e;
             if ((e = next) != null)
                 e = e.next;
+
             for (;;) {
                 Node<K,V>[] t; int i, n;  // must use locals in checks
+
                 if (e != null)
                     return next = e;
-                if (baseIndex >= baseLimit || (t = tab) == null ||
-                    (n = t.length) <= (i = index) || i < 0)
+
+                if (baseIndex >= baseLimit || (t = tab) == null || (n = t.length) <= (i = index) || i < 0)
                     return next = null;
+
                 if ((e = tabAt(t, i)) != null && e.hash < 0) {
                     if (e instanceof ForwardingNode) {
                         tab = ((ForwardingNode<K,V>)e).nextTable;
@@ -3335,13 +4313,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 if (stack != null)
                     recoverState(n);
                 else if ((index = i + baseSize) >= n)
-                    index = ++baseIndex; // visit upper slots if present
+                    index = ++baseIndex; // visit upper slots if present 如果存在，请访问上面的插槽
             }
         }
 
         /**
          * Saves traversal state upon encountering a forwarding node.
          */
+        // 遇到转发节点时保存遍历状态。
         private void pushState(Node<K,V>[] t, int i, int n) {
             TableStack<K,V> s = spare;  // reuse if possible
             if (s != null)
@@ -3360,6 +4339,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
          *
          * @param n length of current table
          */
+        // 可能会弹出遍历状态。
         private void recoverState(int n) {
             TableStack<K,V> s; int len;
             while ((s = stack) != null && (index += (len = s.length)) >= n) {
@@ -3381,6 +4361,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Base of key, value, and entry Iterators. Adds fields to
      * Traverser to support iterator.remove.
      */
+    // 键、值和条目迭代器的基础。 向 Traverser 添加字段以支持 iterator.remove。
     static class BaseIterator<K,V> extends Traverser<K,V> {
         final ConcurrentHashMap<K,V> map;
         Node<K,V> lastReturned;
@@ -3403,8 +4384,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    static final class KeyIterator<K,V> extends BaseIterator<K,V>
-        implements Iterator<K>, Enumeration<K> {
+    static final class KeyIterator<K,V> extends BaseIterator<K,V> implements Iterator<K>, Enumeration<K> {
         KeyIterator(Node<K,V>[] tab, int index, int size, int limit,
                     ConcurrentHashMap<K,V> map) {
             super(tab, index, size, limit, map);
@@ -3423,8 +4403,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         public final K nextElement() { return next(); }
     }
 
-    static final class ValueIterator<K,V> extends BaseIterator<K,V>
-        implements Iterator<V>, Enumeration<V> {
+    static final class ValueIterator<K,V> extends BaseIterator<K,V> implements Iterator<V>, Enumeration<V> {
         ValueIterator(Node<K,V>[] tab, int index, int size, int limit,
                       ConcurrentHashMap<K,V> map) {
             super(tab, index, size, limit, map);
@@ -3443,10 +4422,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         public final V nextElement() { return next(); }
     }
 
-    static final class EntryIterator<K,V> extends BaseIterator<K,V>
-        implements Iterator<Map.Entry<K,V>> {
-        EntryIterator(Node<K,V>[] tab, int index, int size, int limit,
-                      ConcurrentHashMap<K,V> map) {
+    static final class EntryIterator<K,V> extends BaseIterator<K,V> implements Iterator<Map.Entry<K,V>> {
+        EntryIterator(Node<K,V>[] tab, int index, int size, int limit, ConcurrentHashMap<K,V> map) {
             super(tab, index, size, limit, map);
         }
 
@@ -4804,6 +5781,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Base class for bulk tasks. Repeats some fields and code from
      * class Traverser, because we need to subclass CountedCompleter.
      */
+    // 批量任务的基类。 重复 Traverser 类中的一些字段和代码，因为我们需要继承 CountedCompleter。
     @SuppressWarnings("serial")
     abstract static class BulkTask<K,V,R> extends CountedCompleter<R> {
         Node<K,V>[] tab;        // same as Traverser
@@ -4892,6 +5870,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
+    /**
+     * 20210627
+     * 任务类。 以常规但丑陋的格式/风格编码，以简化检查每个变体与其他变体以正确方式不同的方式。 存在空筛选是因为编译器无法判断我们已经对任务参数进行了空检查，
+     * 因此我们强制使用最简单的提升绕过来帮助避免复杂的陷阱。
+     */
     /*
      * Task classes. Coded in a regular but ugly format/style to
      * simplify checks that each variant differs in the right way from
@@ -6275,14 +7258,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     }
 
     // Unsafe mechanics
+    // Unsafe机制
     private static final sun.misc.Unsafe U;
-    private static final long SIZECTL;
-    private static final long TRANSFERINDEX;
-    private static final long BASECOUNT;
-    private static final long CELLSBUSY;
-    private static final long CELLVALUE;
-    private static final long ABASE;
-    private static final int ASHIFT;
+    private static final long SIZECTL;// sizeCtl
+    private static final long TRANSFERINDEX;// transferIndex
+    private static final long BASECOUNT;// baseCount
+    private static final long CELLSBUSY;// cellsBusy
+    private static final long CELLVALUE;// value
+    private static final long ABASE;// Node[].class
+    private static final int ASHIFT;// 31 - Integer.numberOfLeadingZeros(U.arrayIndexScale(Node[].class));
 
     static {
         try {
