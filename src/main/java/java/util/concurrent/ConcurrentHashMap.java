@@ -3358,7 +3358,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V> implements Concurre
         TreeNode<K,V> root;// 红黑树根结点
         volatile TreeNode<K,V> first;// 链表形式的头结点(等于红黑树根结点)
         volatile Thread waiter;// 等待写锁的线程
-        volatile int lockState;// 红儿黑锁状态
+        volatile int lockState;// 读写锁状态
         // values for lockState
         static final int WRITER = 1; // set while holding write lock 持有写锁时设置
         static final int WAITER = 2; // set when waiting for write lock 等待写锁时设置

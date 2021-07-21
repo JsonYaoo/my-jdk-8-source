@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.nio;
@@ -636,6 +616,7 @@ class Bits {                            // package-private
     // which means that OOME will be thrown after 0.5 s of trying
     private static final int MAX_SLEEPS = 9;
 
+    // 无论何时分配或释放直接内存，都应调用这些方法。 它们允许用户控制进程可以访问的直接内存量。 所有大小均以字节为单位指定。
     // These methods should be called whenever direct memory is allocated or
     // freed.  They allow the user to control the amount of direct memory
     // which a process may access.  All sizes are specified in bytes.

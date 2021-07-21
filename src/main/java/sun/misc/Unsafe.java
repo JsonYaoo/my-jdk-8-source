@@ -966,6 +966,11 @@ public final class Unsafe {
     public native void    putDoubleVolatile(Object o, long offset, double x);
 
     /**
+     * 20210701
+     * {@link #putObjectVolatile(Object, long, Object)} 的版本不保证存储对其他线程的立即可见性。 此方法通常仅在基础字段是 Java volatile字段
+     * （或数组单元格，否则只能使用volatile访问进行访问）时才有用
+     */
+    /**
      * Version of {@link #putObjectVolatile(Object, long, Object)}
      * that does not guarantee immediate visibility of the store to
      * other threads. This method is generally only useful if the

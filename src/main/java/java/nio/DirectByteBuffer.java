@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 // -- This file was mechanically generated: Do not edit! -- //
@@ -34,16 +14,8 @@ import sun.misc.VM;
 import sun.nio.ch.DirectBuffer;
 
 
-class DirectByteBuffer
-
-    extends MappedByteBuffer
-
-
-
-    implements DirectBuffer
+class DirectByteBuffer extends MappedByteBuffer implements DirectBuffer
 {
-
-
 
     // Cached unsafe-access object
     protected static final Unsafe unsafe = Bits.unsafe();
@@ -67,10 +39,7 @@ class DirectByteBuffer
         return att;
     }
 
-
-
-    private static class Deallocator
-        implements Runnable
+    private static class Deallocator implements Runnable
     {
 
         private static Unsafe unsafe = Unsafe.getUnsafe();
@@ -115,13 +84,15 @@ class DirectByteBuffer
     // Primary constructor
     //
     DirectByteBuffer(int cap) {                   // package-private
-
         super(-1, 0, cap, cap);
         boolean pa = VM.isDirectMemoryPageAligned();
         int ps = Bits.pageSize();
         long size = Math.max(1L, (long)cap + (pa ? ps : 0));
+
+        // 保留内存
         Bits.reserveMemory(size, cap);
 
+        // unsafe分配内存
         long base = 0;
         try {
             base = unsafe.allocateMemory(size);
@@ -136,14 +107,11 @@ class DirectByteBuffer
         } else {
             address = base;
         }
+
+        // 底层调用unsafe.freeMemory(address);释放内存
         cleaner = Cleaner.create(this, new Deallocator(base, size, cap));
         att = null;
-
-
-
     }
-
-
 
     // Invoked to construct a direct ByteBuffer referring to the block of
     // memory. A given arbitrary object may also be attached to the buffer.
@@ -183,8 +151,7 @@ class DirectByteBuffer
 
     }
 
-
-
+    // 对于重复和切片
     // For duplicates and slices
     //
     DirectByteBuffer(DirectBuffer db,         // package-private
@@ -194,13 +161,8 @@ class DirectByteBuffer
 
         super(mark, pos, lim, cap);
         address = db.address() + off;
-
         cleaner = null;
-
         att = db;
-
-
-
     }
 
     public ByteBuffer slice() {

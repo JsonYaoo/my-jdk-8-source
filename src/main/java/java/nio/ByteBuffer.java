@@ -1,49 +1,69 @@
 /*
  * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 // -- This file was mechanically generated: Do not edit! -- //
 
 package java.nio;
 
-
-
-
-
-
-
-
-
-
 /**
+ * 20210719
+ * A. 一个字节缓冲区。
+ * B. 此类定义了对字节缓冲区的六类操作：
+ *      a. 读写单个字节的绝对和相对 {@link #get() get} 和 {@link #put(byte) put} 方法；
+ *      b. 相关 {@link #get(byte[]) bulk get} 方法，将连续字节序列从此缓冲区传输到数组中；
+ *      c. 相对的 {@link #put(byte[]) bulk put} 方法将字节数组或其他字节缓冲区中的连续字节序列传输到该缓冲区中；
+ *      d. 绝对和相对 {@link #getChar() get} 和 {@link #putChar(char) put} 方法，用于读取和写入其他原始类型的值，将它们与特定字节顺序的字节序列相互转换；
+ *      e. 创建视图缓冲区的方法，允许将字节缓冲区视为包含某些其他原始类型值的缓冲区；
+ *      f. {@link #compact compacting}、{@link #duplicate duplicating} 和 {@link #slice slicing} 字节缓冲区的方法。
+ * C. 字节缓冲区可以通过 {@link #allocate allocation} 创建，它为缓冲区的内容分配空间，或者通过 {@link #wrap(byte[]) wrapping} 现有的字节数组到缓冲区中。
+ *
+ * 直接与非直接缓冲区
+ * D. 字节缓冲区可以是直接的，也可以是非直接的。 给定一个直接字节缓冲区，Java 虚拟机将尽最大努力直接在其上执行本机 I/O 操作。 也就是说，
+ *    它将尝试避免在每次调用底层操作系统的本机 I/O 操作之前（或之后）将缓冲区的内容复制到（或从）中间缓冲区。
+ * E. 可以通过调用此类的 {@link #allocateDirect(int) allocateDirect} 工厂方法来创建直接字节缓冲区。 此方法返回的缓冲区通常比非直接缓冲区具有更高的分配和解除分配成本。
+ *    直接缓冲区的内容可能驻留在正常的垃圾收集堆之外，因此它们对应用程序内存占用的影响可能并不明显。 因此，建议将直接缓冲区主要分配给受底层系统本地I/O操作影响的大型、
+ *    长期存在的缓冲区。 一般而言，最好仅在程序性能方面产生可衡量的增益时才分配直接缓冲区。
+ * F. 直接字节缓冲区也可以通过{@link java.nio.channels.FileChannel#map mapping}将文件区域直接映射到内存来创建。Java平台的实现可以选择支持通过JNI从本机代码创建直接字节缓冲区。
+ *    如果这些类型的缓冲区之一的实例引用了不可访问的内存区域，则尝试访问该区域将不会更改缓冲区的内容，并且会导致在访问时或稍后抛出未指定的异常。
+ * G. 字节缓冲区是直接的还是非直接的可以通过调用它的 {@link #isDirect isDirect} 方法来确定。 提供此方法是为了可以在性能关键代码中完成显式缓冲区管理。
+ *
+ * 访问二进制数据
+ * H. 该类定义了读取和写入所有其他基本类型值的方法，布尔值除外。根据缓冲区的当前字节顺序，原始值被转换为（或来自）字节序列，可以通过 {@link #order order} 方法检索和修改。
+ *    特定的字节顺序由 {@link ByteOrder} 类的实例表示。 字节缓冲区的初始顺序始终是 {@link ByteOrder#BIG_ENDIAN BIG_ENDIAN}。
+ * I. 为了访问异构二进制数据，即不同类型的值序列，该类为每种类型定义了一系列绝对和相对的 get 和 put 方法。 例如，对于 32 位浮点值，此类定义：
+ *      a. float  {@link #getFloat()}
+ *      b. float  {@link #getFloat(int) getFloat(int index)}
+ *      c. void  {@link #putFloat(float) putFloat(float f)}
+ *      d. void  {@link #putFloat(int, float) putFloat(int index, float f)}
+ * J. 为 char、short、int、long 和 double 类型定义了相应的方法。 绝对 get 和 put 方法的索引参数以字节为单位，而不是读取或写入的类型。
+ * K. 为了访问同类二进制数据，即相同类型的值序列，此类定义了可以创建给定字节缓冲区视图的方法。视图缓冲区只是另一个缓冲区，其内容由字节缓冲区支持。
+ *    对字节缓冲区内容的更改将在视图缓冲区中可见，反之亦然； 两个缓冲区的位置、限制和标记值是独立的。 例如，{@link #asFloatBuffer() asFloatBuffer}方法创建
+ *    {@link FloatBuffer}类的实例，该类由调用该方法的字节缓冲区支持。 为 char、short、int、long 和 double 类型定义了相应的视图创建方法。
+ * L. 与上述特定类型的 get 和 put 方法系列相比，视图缓冲区具有三个重要优势：
+ *      a. 视图缓冲区的索引不是根据字节而是根据其值的特定于类型的大小；
+ *      b. 视图缓冲区提供相对批量的 get 和 put 方法，可以在缓冲区和数组或其他相同类型的缓冲区之间传输连续的值序列；
+ *      c. 视图缓冲区可能更高效，因为当且仅当其后备字节缓冲区是直接的时，它才是直接的。
+ * M. 视图缓冲区的字节顺序固定为创建视图时其字节缓冲区的字节顺序。
+ *
+ * 调用链
+ * N. 此类中没有返回值的方法被指定为返回调用它们的缓冲区。 这允许链接方法调用。 陈述的顺序：
+ *      a. bb.putInt(0xCAFEBABE);
+ *      b. bb.putShort(3);
+ *      c. bb.putShort(45);
+ * 例如，可以替换为单个语句:
+ *      bb.putInt(0xCAFEBABE).putShort(3).putShort(45);
+ */
+/**
+ * A.
  * A byte buffer.
  *
+ * B.
  * <p> This class defines six categories of operations upon
  * byte buffers:
  *
  * <ul>
- *
  *   <li><p> Absolute and relative {@link #get() <i>get</i>} and
  *   {@link #put(byte) <i>put</i>} methods that read and write
  *   single bytes; </p></li>
@@ -57,8 +77,6 @@ package java.nio;
  *   byte array or some other byte
  *   buffer into this buffer; </p></li>
  *
-
- *
  *   <li><p> Absolute and relative {@link #getChar() <i>get</i>}
  *   and {@link #putChar(char) <i>put</i>} methods that read and
  *   write values of other primitive types, translating them to and from
@@ -68,35 +86,24 @@ package java.nio;
  *   which allow a byte buffer to be viewed as a buffer containing values of
  *   some other primitive type; and </p></li>
  *
-
- *
  *   <li><p> Methods for {@link #compact compacting}, {@link
  *   #duplicate duplicating}, and {@link #slice slicing}
  *   a byte buffer.  </p></li>
  *
  * </ul>
  *
+ * C.
  * <p> Byte buffers can be created either by {@link #allocate
  * <i>allocation</i>}, which allocates space for the buffer's
- *
-
- *
  * content, or by {@link #wrap(byte[]) <i>wrapping</i>} an
  * existing byte array  into a buffer.
  *
-
-
-
-
-
-
-
  *
-
  *
  * <a name="direct"></a>
  * <h2> Direct <i>vs.</i> non-direct buffers </h2>
  *
+ * D.
  * <p> A byte buffer is either <i>direct</i> or <i>non-direct</i>.  Given a
  * direct byte buffer, the Java virtual machine will make a best effort to
  * perform native I/O operations directly upon it.  That is, it will attempt to
@@ -104,6 +111,7 @@ package java.nio;
  * before (or after) each invocation of one of the underlying operating
  * system's native I/O operations.
  *
+ * E.
  * <p> A direct byte buffer may be created by invoking the {@link
  * #allocateDirect(int) allocateDirect} factory method of this class.  The
  * buffers returned by this method typically have somewhat higher allocation
@@ -115,6 +123,7 @@ package java.nio;
  * system's native I/O operations.  In general it is best to allocate direct
  * buffers only when they yield a measureable gain in program performance.
  *
+ * F.
  * <p> A direct byte buffer may also be created by {@link
  * java.nio.channels.FileChannel#map mapping} a region of a file
  * directly into memory.  An implementation of the Java platform may optionally
@@ -124,14 +133,18 @@ package java.nio;
  * content and will cause an unspecified exception to be thrown either at the
  * time of the access or at some later time.
  *
+ * G.
  * <p> Whether a byte buffer is direct or non-direct may be determined by
  * invoking its {@link #isDirect isDirect} method.  This method is provided so
  * that explicit buffer management can be done in performance-critical code.
  *
  *
+ *
+ *
  * <a name="bin"></a>
  * <h2> Access to binary data </h2>
  *
+ * H.
  * <p> This class defines methods for reading and writing values of all other
  * primitive types, except <tt>boolean</tt>.  Primitive values are translated
  * to (or from) sequences of bytes according to the buffer's current byte
@@ -140,6 +153,7 @@ package java.nio;
  * ByteOrder} class.  The initial order of a byte buffer is always {@link
  * ByteOrder#BIG_ENDIAN BIG_ENDIAN}.
  *
+ * I.
  * <p> For access to heterogeneous binary data, that is, sequences of values of
  * different types, this class defines a family of absolute and relative
  * <i>get</i> and <i>put</i> methods for each type.  For 32-bit floating-point
@@ -151,11 +165,13 @@ package java.nio;
  *  void  {@link #putFloat(float) putFloat(float f)}
  *  void  {@link #putFloat(int,float) putFloat(int index, float f)}</pre></blockquote>
  *
+ * J.
  * <p> Corresponding methods are defined for the types <tt>char</tt>,
  * <tt>short</tt>, <tt>int</tt>, <tt>long</tt>, and <tt>double</tt>.  The index
  * parameters of the absolute <i>get</i> and <i>put</i> methods are in terms of
  * bytes rather than of the type being read or written.
  *
+ * K.
  * <a name="views"></a>
  *
  * <p> For access to homogeneous binary data, that is, sequences of values of
@@ -170,6 +186,7 @@ package java.nio;
  * the types <tt>char</tt>, <tt>short</tt>, <tt>int</tt>, <tt>long</tt>, and
  * <tt>double</tt>.
  *
+ * L.
  * <p> View buffers have three important advantages over the families of
  * type-specific <i>get</i> and <i>put</i> methods described above:
  *
@@ -187,41 +204,16 @@ package java.nio;
  *
  * </ul>
  *
+ * M.
  * <p> The byte order of a view buffer is fixed to be that of its byte buffer
  * at the time that the view is created.  </p>
  *
-
-*
-
-
-
-
-
-
-
-
-
-
-
-*
-
-
-
-
-
-
-
-
- *
-
  * <h2> Invocation chaining </h2>
-
  *
+ * N.
  * <p> Methods in this class that do not otherwise have a value to return are
  * specified to return the buffer upon which they are invoked.  This allows
  * method invocations to be chained.
- *
-
  *
  * The sequence of statements
  *
@@ -235,33 +227,12 @@ package java.nio;
  * <blockquote><pre>
  * bb.putInt(0xCAFEBABE).putShort(3).putShort(45);</pre></blockquote>
  *
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- *
- *
  * @author Mark Reinhold
  * @author JSR-51 Expert Group
  * @since 1.4
  */
 
-public abstract class ByteBuffer
-    extends Buffer
-    implements Comparable<ByteBuffer>
+public abstract class ByteBuffer extends Buffer implements Comparable<ByteBuffer>
 {
 
     // These fields are declared here rather than in Heap-X-Buffer in order to
@@ -289,11 +260,16 @@ public abstract class ByteBuffer
         this(mark, pos, lim, cap, null, 0);
     }
 
-
-
     /**
+     * 20210719
+     * A. 分配一个新的直接字节缓冲区。
+     * B. 新缓冲区的位置将为零，它的限制将是它的容量，它的标记将是未定义的，并且它的每个元素都将被初始化为零。 它是否具有 {@link #hasArray 支持数组} 未指定。
+     */
+    /**
+     * A.
      * Allocates a new direct byte buffer.
      *
+     * B.
      * <p> The new buffer's position will be zero, its limit will be its
      * capacity, its mark will be undefined, and each of its elements will be
      * initialized to zero.  Whether or not it has a
@@ -310,8 +286,6 @@ public abstract class ByteBuffer
     public static ByteBuffer allocateDirect(int capacity) {
         return new DirectByteBuffer(capacity);
     }
-
-
 
     /**
      * Allocates a new byte buffer.

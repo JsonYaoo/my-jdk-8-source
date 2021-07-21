@@ -398,8 +398,7 @@ public abstract class ClassLoader {
      * @throws  ClassNotFoundException
      *          If the class could not be found
      */
-    protected Class<?> loadClass(String name, boolean resolve)
-        throws ClassNotFoundException
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
     {
         synchronized (getClassLoadingLock(name)) {
             // First, check if the class has already been loaded
@@ -945,6 +944,11 @@ public abstract class ClassLoader {
         return true;
     }
 
+    /**
+     * 20210711
+     * 链接指定的类。 类加载器可能会使用此（误导性命名的）方法来链接类。 如果类 c 已经被链接，那么这个方法简单地返回。
+     * 否则，将按照 The Java&trade; 的“执行”一章中的描述链接该类。 语言规范。
+     */
     /**
      * Links the specified class.  This (misleadingly named) method may be
      * used by a class loader to link a class.  If the class <tt>c</tt> has

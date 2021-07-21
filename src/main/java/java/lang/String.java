@@ -3176,6 +3176,16 @@ public final class String implements java.io.Serializable, Comparable<String>, C
     }
 
     /**
+     * 20210713
+     * A. 返回字符串对象的规范表示。
+     * B. 字符串池最初是空的，由 {@code String} 类私下维护。
+     * C. 当调用intern方法时，如果池中已经包含一个字符串，该字符串等于由 {@link #equals(Object)} 方法确定的此 {@code String} 对象，则返回池中的字符串。
+     *    否则，此 {@code String} 对象将添加到池中，并返回对此 {@code String} 对象的引用。
+     * D. 因此对于任意两个字符串 {@code s} 和 {@code t}，{@code s.intern() == t.intern()} 是 {@code true} 当且仅当 {@code s. equals(t)} 是 {@code true}。
+     * E. 所有文字字符串和字符串值常量表达式都被拘留。 字符串文字在 Java™ 语言规范的第 3.10.5 节中定义。
+     */
+    /**
+     * A.
      * Returns a canonical representation for the string object.
      * <p>
      * A pool of strings, initially empty, is maintained privately by the
