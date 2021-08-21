@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -41,6 +16,13 @@ import java.util.Date;
 import sun.misc.Unsafe;
 
 /**
+ * 20210810
+ * A. {@link AbstractQueuedSynchronizer}的一个版本，其中同步状态保持为{@code long}。 此类具有与 {@code AbstractQueuedSynchronizer} 完全相同的结构、属性和方法，
+ *    不同之处在于所有与状态相关的参数和结果都定义为 {@code long} 而不是 {@code int}。 在创建需要64位状态的多级锁和屏障等同步器时，此类可能很有用。
+ * B. 有关使用说明和示例，请参阅 {@link AbstractQueuedSynchronizer}。
+ */
+/**
+ * A.
  * A version of {@link AbstractQueuedSynchronizer} in
  * which synchronization state is maintained as a {@code long}.
  * This class has exactly the same structure, properties, and methods
@@ -51,15 +33,14 @@ import sun.misc.Unsafe;
  * multilevel locks and barriers that require
  * 64 bits of state.
  *
+ * B.
  * <p>See {@link AbstractQueuedSynchronizer} for usage
  * notes and examples.
  *
  * @since 1.6
  * @author Doug Lea
  */
-public abstract class AbstractQueuedLongSynchronizer
-    extends AbstractOwnableSynchronizer
-    implements java.io.Serializable {
+public abstract class AbstractQueuedLongSynchronizer extends AbstractOwnableSynchronizer implements java.io.Serializable {
 
     private static final long serialVersionUID = 7373984972572414692L;
 

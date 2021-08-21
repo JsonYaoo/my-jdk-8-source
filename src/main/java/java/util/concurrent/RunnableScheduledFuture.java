@@ -37,5 +37,6 @@ public interface RunnableScheduledFuture<V> extends RunnableFuture<V>, Scheduled
      *
      * @return {@code true} if this task is periodic
      */
+    // 判断任务是否为周期性的, 如果是则返回true, 否则返回false; 定期任务可以根据一些时间表重新运行, 而非定期任务只能运行一次
     boolean isPeriodic();
 }

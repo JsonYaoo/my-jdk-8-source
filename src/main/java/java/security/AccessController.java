@@ -1,26 +1,6 @@
 /*
  * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 package java.security;
@@ -804,6 +784,11 @@ public final class AccessController {
 
     static native AccessControlContext getInheritedAccessControlContext();
 
+    /**
+     * 20210725
+     * 该方法获取当前调用上下文的“快照”，其中包括当前线程继承的AccessControlContext和任何有限的权限范围，并将其放置在AccessControlContext对象中。
+     * 然后可以在稍后检查此上下文，可能在另一个线程中。
+     */
     /**
      * This method takes a "snapshot" of the current calling context, which
      * includes the current Thread's inherited AccessControlContext and any

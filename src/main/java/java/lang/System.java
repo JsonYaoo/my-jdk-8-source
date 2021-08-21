@@ -318,6 +318,12 @@ public final class System {
     }
 
     /**
+     * 20210723
+     * A. 以毫秒为单位返回当前时间。 请注意，虽然返回值的时间单位是毫秒，但该值的粒度取决于底层操作系统，可能会更大。 例如，许多操作系统以几十毫秒为单位测量时间。
+     * B. 有关“计算机时间”和协调世界时(UTC)之间可能出现的细微差异的讨论，请参阅类 Date 的描述。
+     */
+    /**
+     * A.
      * Returns the current time in milliseconds.  Note that
      * while the unit of time of the return value is a millisecond,
      * the granularity of the value depends on the underlying
@@ -325,6 +331,7 @@ public final class System {
      * operating systems measure time in units of tens of
      * milliseconds.
      *
+     * B.
      * <p> See the description of the class <code>Date</code> for
      * a discussion of slight discrepancies that may arise between
      * "computer time" and coordinated universal time (UTC).

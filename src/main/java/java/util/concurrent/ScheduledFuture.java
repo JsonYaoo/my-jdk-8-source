@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -35,6 +10,10 @@
 
 package java.util.concurrent;
 
+/**
+ * 20210815
+ * 可以取消的延迟的产生结果的行动。 通常预定的未来是使用 {@link ScheduledExecutorService} 调度任务的结果。
+ */
 /**
  * A delayed result-bearing action that can be cancelled.
  * Usually a scheduled future is the result of scheduling

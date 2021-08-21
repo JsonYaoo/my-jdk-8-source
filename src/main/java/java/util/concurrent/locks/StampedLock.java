@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -42,6 +17,85 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.LockSupport;
 
 /**
+ * 20210811
+ * A. 一种基于能力的锁，具有三种用于控制读/写访问的模式。 StampedLock 的状态由版本和模式组成。 锁定获取方法返回一个标记，表示和控制与锁定状态相关的访问；
+ *    这些方法的“尝试”版本可能会返回特殊值零以表示获取访问失败。 锁释放和转换方法需要标记作为参数，如果它们与锁的状态不匹配则失败。 这三种模式是：
+ *      a. 写: 方法 {@link #writeLock} 可能会阻塞等待独占访问，返回可以在方法 {@link #unlockWrite} 中使用以释放锁的戳记。
+ *         还提供了 {@code tryWriteLock} 的不定时和定时版本。 当锁处于写模式时，可能无法获得读锁，所有乐观读验证都将失败。
+ *      b. 读: 方法 {@link #readLock} 可能会阻塞等待非独占访问，返回可以在方法 {@link #unlockRead} 中使用以释放锁的戳记。
+ *         还提供了 {@code tryReadLock} 的不定时和定时版本。
+ *      c. 乐观读: 方法 {@link #tryOptimisticRead} 仅在当前未以写入模式持有锁时才返回非零戳记。如果自从获得给定的戳记后没有在写模式下获得锁，
+ *         则方法 {@link #validate} 返回 true。这种模式可以被认为是读锁的一个非常弱的版本，它可以随时被写者打破。对短的只读代码段使用乐观模式通常会减少争用并提高吞吐量。
+ *         然而，它的使用本质上是脆弱的。乐观读取部分应该只读取字段并将它们保存在局部变量中以供验证后以后使用。在乐观模式下读取的字段可能非常不一致，
+ *         因此仅当您对数据表示足够熟悉以检查一致性和/或重复调用方法 {@code validate()} 时才适用。例如，当首先读取对象或数组引用，然后访问其字段、元素或方法之一时，通常需要这些步骤。
+ * B. 此类还支持有条件地提供跨三种模式的转换的方法。 例如，方法 {@link #tryConvertToWriteLock} 尝试“升级”模式，
+ *    如果（1）已经处于写入模式（2）处于读取模式并且没有其他读取器或（3）处于乐观模式，则返回有效的写戳 并且锁可用。
+ *    这些方法的形式旨在帮助减少一些在基于重试的设计中出现的代码膨胀。
+ * C. StampedLocks 旨在用作开发线程安全组件的内部实用程序。它们的使用依赖于对它们所保护的数据、对象和方法的内部属性的了解。它们不是可重入的，
+ *    因此锁定的主体不应调用其他可能尝试重新获取锁的未知方法（尽管您可以将标记传递给其他可以使用或转换它的方法）。读取锁定模式的使用依赖于无副作用的相关代码段。
+ *    未经验证的乐观读取部分不能调用已知的方法来容忍潜在的不一致。Stamp使用有限的表示，并且在密码学上不是安全的（即，一个有效的邮票可能是可猜到的）。
+ *    Stamp值可以在（不早于）连续运行一年后回收。超过此期限而未使用或验证的邮票可能无法正确验证。 StampedLocks 是可序列化的，但总是反序列化为初始解锁状态，
+ *    因此它们对远程锁定没有用。
+ * D. StampedLock的调度策略并不总是喜欢读而不是作，反之亦然。 所有“尝试”方法都是尽力而为，不一定符合任何调度或公平策略。
+ *    任何用于获取或转换锁的“尝试”方法的零返回不携带有关锁状态的任何信息； 随后的调用可能会成功。
+ * E. 因为它支持跨多个锁模式的协调使用，所以这个类不直接实现 {@link Lock} 或 {@link ReadWriteLock} 接口。 但是，在仅需要相关功能集的应用程序中，
+ *    可以查看 StampedLock {@link #asReadLock()}、{@link #asWriteLock()} 或 {@link #asReadWriteLock()}。
+ * F. 示例用法。 下面举例说明在一个维护简单二维点的类中的一些使用习惯用法。 示例代码说明了一些 try/catch 约定，尽管此处并不严格需要它们，因为它们的主体中不会发生异常。
+ * {@code
+ * class Point {
+ *   private double x, y;
+ *   private final StampedLock sl = new StampedLock();
+ *
+ *   void move(double deltaX, double deltaY) { // an exclusively locked method
+ *     long stamp = sl.writeLock();
+ *     try {
+ *       x += deltaX;
+ *       y += deltaY;
+ *     } finally {
+ *       sl.unlockWrite(stamp);
+ *     }
+ *   }
+ *
+ *   double distanceFromOrigin() { // A read-only method
+ *     long stamp = sl.tryOptimisticRead();
+ *     double currentX = x, currentY = y;
+ *     if (!sl.validate(stamp)) {
+ *        stamp = sl.readLock();
+ *        try {
+ *          currentX = x;
+ *          currentY = y;
+ *        } finally {
+ *           sl.unlockRead(stamp);
+ *        }
+ *     }
+ *     return Math.sqrt(currentX * currentX + currentY * currentY);
+ *   }
+ *
+ *   void moveIfAtOrigin(double newX, double newY) { // upgrade
+ *     // Could instead start with optimistic, not read mode
+ *     long stamp = sl.readLock();
+ *     try {
+ *       while (x == 0.0 && y == 0.0) {
+ *         long ws = sl.tryConvertToWriteLock(stamp);
+ *         if (ws != 0L) {
+ *           stamp = ws;
+ *           x = newX;
+ *           y = newY;
+ *           break;
+ *         }
+ *         else {
+ *           sl.unlockRead(stamp);
+ *           stamp = sl.writeLock();
+ *         }
+ *       }
+ *     } finally {
+ *       sl.unlock(stamp);
+ *     }
+ *   }
+ * }}
+ */
+/**
+ * A.
  * A capability-based lock with three modes for controlling read/write
  * access.  The state of a StampedLock consists of a version and mode.
  * Lock acquisition methods return a stamp that represents and
@@ -85,6 +139,7 @@ import java.util.concurrent.locks.LockSupport;
  *
  * </ul>
  *
+ * B.
  * <p>This class also supports methods that conditionally provide
  * conversions across the three modes. For example, method {@link
  * #tryConvertToWriteLock} attempts to "upgrade" a mode, returning
@@ -94,6 +149,7 @@ import java.util.concurrent.locks.LockSupport;
  * help reduce some of the code bloat that otherwise occurs in
  * retry-based designs.
  *
+ * C.
  * <p>StampedLocks are designed for use as internal utilities in the
  * development of thread-safe components. Their use relies on
  * knowledge of the internal properties of the data, objects, and
@@ -112,6 +168,7 @@ import java.util.concurrent.locks.LockSupport;
  * into initial unlocked state, so they are not useful for remote
  * locking.
  *
+ * D.
  * <p>The scheduling policy of StampedLock does not consistently
  * prefer readers over writers or vice versa.  All "try" methods are
  * best-effort and do not necessarily conform to any scheduling or
@@ -119,6 +176,7 @@ import java.util.concurrent.locks.LockSupport;
  * or converting locks does not carry any information about the state
  * of the lock; a subsequent invocation may succeed.
  *
+ * E.
  * <p>Because it supports coordinated usage across multiple lock
  * modes, this class does not directly implement the {@link Lock} or
  * {@link ReadWriteLock} interfaces. However, a StampedLock may be
@@ -126,6 +184,7 @@ import java.util.concurrent.locks.LockSupport;
  * #asReadWriteLock()} in applications requiring only the associated
  * set of functionality.
  *
+ * F.
  * <p><b>Sample Usage.</b> The following illustrates some usage idioms
  * in a class that maintains simple two-dimensional points. The sample
  * code illustrates some try/catch conventions even though they are
@@ -189,9 +248,34 @@ import java.util.concurrent.locks.LockSupport;
  * @author Doug Lea
  */
 public class StampedLock implements java.io.Serializable {
+
+    /**
+     * 20210811
+     * 算法笔记：
+     * A. 该设计采用了序列锁的元素（在 linux 内核中使用；参见 Lameter 的 http://www.lameter.com/gelato2005.pdf 和其他地方；
+     *    参见 Boehm 的 http://www.hpl.hp.com/techreports/2012/ HPL-2012-68.html) 和 Ordered RW 锁（参见 Shirako 等人 http://dl.acm.org/citation.cfm?id=2312015）
+     * B. 从概念上讲，锁的主要状态包括一个序列号，在写锁定时为奇数，否则为偶数。 但是，这会被读取锁定时非零的读取器计数所抵消。 验证“乐观”seqlock-reader-style stamp时，
+     *    读取计数被忽略。 因为我们必须为阅读器使用少量的有限位（当前为 7），所以当阅读器的数量超过计数字段时使用补充阅读器溢出字。
+     *    为此，我们将最大读取器计数值 (RBITS) 视为保护溢出更新的自旋锁。
+     * C. Waiters 使用 AbstractQueuedSynchronizer 中使用的 CLH 锁的修改形式（请参阅其内部文档以获得更完整的帐户），其中每个节点都被标记（字段模式）为读取器或写入器。
+     *    等待阅读器的集合被分组（链接）在一个公共节点（字段 cowait）下，因此对于大多数 CLH 机制而言，它们充当单个节点。凭借队列结构，等待节点实际上不需要携带序列号；
+     *    我们知道每一个都比它的前身更伟大。这将调度策略简化为包含 Phase-Fair 锁元素的主要 FIFO 方案（参见 Brandenburg & Anderson，
+     *    尤其是 http://www.cs.unc.edu/~bbb/diss/）。特别是，我们使用阶段公平反插入规则：如果在持有读锁时传入的读取器到达但有一个排队的写入器，则该传入的读取器排队。
+     *    （这条规则导致方法acquireRead的一些复杂性，但没有它，锁变得非常不公平。）方法释放本身不会（有时不能）唤醒cowaiters。这是由主线程完成的，
+     *    但由任何其他线程提供帮助，在方法acquireRead 和acquireWrite 中没有更好的事情可做。
+     * D. 这些规则适用于实际排队的线程。 所有 tryLock 形式都会随机尝试获取锁，而不管偏好规则如何，因此可能会“闯入”。在获取方法中使用随机旋转来减少（越来越昂贵）上下文切换，
+     *    同时还避免在许多线程之间持续内存抖动。 我们限制旋转到队列的头部。 在阻塞之前，线程自旋等待最多 SPINS 次（其中每次迭代以 50% 的概率减少自旋计数）。
+     *    如果在唤醒后无法获得锁，并且仍然（或成为）第一个等待线程（这表明某个其他线程闯入并获得了锁），它会升级自旋（最高 MAX_HEAD_SPINS）以减少持续丢失的可能性 插入线程。
+     * E. 几乎所有这些机制都在方法acquireWrite 和acquireRead 中执行，作为此类代码的典型特征，由于操作和重试依赖于一致的本地缓存读取集，因此它们会蔓延开来。
+     * F. 正如 Boehm 的论文（上面）所指出的，序列验证（主要是方法 validate()）需要比应用于正常易失性读取（“状态”）更严格的排序规则。
+     *    为了在验证之前强制读取顺序以及在尚未强制执行的情况下验证本身，我们使用 Unsafe.loadFence。
+     * G. 内存布局将锁状态和队列指针保持在一起（通常在同一缓存行上）。 这通常适用于以读取为主的负载。 在大多数其他情况下，
+     *    自适应自旋 CLH 锁减少内存争用的自然趋势会减少进一步分散竞争位置的动机，但可能会受到未来改进的影响。
+     */
     /*
      * Algorithmic notes:
      *
+     * A.
      * The design employs elements of Sequence locks
      * (as used in linux kernels; see Lameter's
      * http://www.lameter.com/gelato2005.pdf
@@ -200,6 +284,7 @@ public class StampedLock implements java.io.Serializable {
      * and Ordered RW locks (see Shirako et al
      * http://dl.acm.org/citation.cfm?id=2312015)
      *
+     * B.
      * Conceptually, the primary state of the lock includes a sequence
      * number that is odd when write-locked and even otherwise.
      * However, this is offset by a reader count that is non-zero when
@@ -211,6 +296,7 @@ public class StampedLock implements java.io.Serializable {
      * reader count value (RBITS) as a spinlock protecting overflow
      * updates.
      *
+     * C.
      * Waiters use a modified form of CLH lock used in
      * AbstractQueuedSynchronizer (see its internal documentation for
      * a fuller account), where each node is tagged (field mode) as
@@ -232,6 +318,7 @@ public class StampedLock implements java.io.Serializable {
      * with nothing better to do in methods acquireRead and
      * acquireWrite.
      *
+     * D.
      * These rules apply to threads actually queued. All tryLock forms
      * opportunistically try to acquire locks regardless of preference
      * rules, and so may "barge" their way in.  Randomized spinning is
@@ -246,11 +333,13 @@ public class StampedLock implements java.io.Serializable {
      * spins (up to MAX_HEAD_SPINS) to reduce the likelihood of
      * continually losing to barging threads.
      *
+     * E.
      * Nearly all of these mechanics are carried out in methods
      * acquireWrite and acquireRead, that, as typical of such code,
      * sprawl out because actions and retries rely on consistent sets
      * of locally cached reads.
      *
+     * F.
      * As noted in Boehm's paper (above), sequence validation (mainly
      * method validate()) requires stricter ordering rules than apply
      * to normal volatile reads (of "state").  To force orderings of
@@ -258,6 +347,7 @@ public class StampedLock implements java.io.Serializable {
      * cases where this is not already forced, we use
      * Unsafe.loadFence.
      *
+     * G.
      * The memory layout keeps lock state and queue pointers together
      * (normally on the same cache line). This usually works well for
      * read-mostly loads. In most other cases, the natural tendency of

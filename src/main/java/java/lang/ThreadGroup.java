@@ -34,7 +34,7 @@ import sun.misc.VM;
 /**
  * 20210613
  * 这段代码的锁定策略是尽可能只锁定树的一层，否则从底向上锁定。即从子线程组到父线程组。这样做的好处是限制了需要持有的锁定数量，特别是避免必须获取根线程组的锁（或全局锁），
- * 这将成为具有许多线程组的多处理器系统上的争用源。此策略通常导致采取 线程组状态的快照并处理该快照，而不是在我们处理子线程时锁定线程组。
+ * 这将成为具有许多线程组的多处理器系统上的争用源。此策略通常导致采取线程组状态的快照并处理该快照，而不是在我们处理子线程时锁定线程组。
  */
 /* The locking strategy for this code is to try to lock only one level of the
  * tree wherever possible, but otherwise to lock from the bottom up.
@@ -298,8 +298,16 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     /**
+     * 20210725
+     * A. 确定当前运行的线程是否有权限修改这个线程组。
+     * B. 如果存在安全管理器，则使用该线程组作为参数调用其checkAccess方法。这可能会导致抛出SecurityException。
+     */
+    /**
+     * A.
      * Determines if the currently running thread has permission to
      * modify this thread group.
+     *
+     * B.
      * <p>
      * If there is a security manager, its <code>checkAccess</code> method
      * is called with this thread group as its argument. This may result
@@ -310,6 +318,7 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * @see        java.lang.SecurityManager#checkAccess(java.lang.ThreadGroup)
      * @since      JDK1.0
      */
+    // 确定当前运行的线程是否有权限修改这个线程组
     public final void checkAccess() {
         SecurityManager security = System.getSecurityManager();
         if (security != null) {
@@ -854,7 +863,10 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
         }
     }
 
-
+    /**
+     * 20210725
+     * 增加线程组中未启动线程的计数。未启动的线程不会被添加到线程组中，以便在它们从未启动的情况下可以收集它们，但必须对其进行计数，以便其中包含未启动线程的守护线程组不会被销毁。
+     */
     /**
      * Increments the count of unstarted threads in the thread group.
      * Unstarted threads are not added to the thread group so that they
@@ -862,6 +874,7 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * counted so that daemon thread groups with unstarted threads in
      * them are not destroyed.
      */
+    // 增加线程组中未启动线程的计数, 未启动的线程不会被添加到线程组中, 但必须对其进行计数, 以便其中包含未启动线程的守护线程组不会被销毁
     void addUnstarted() {
         synchronized(this) {
             if (destroyed) {
@@ -872,8 +885,15 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     /**
+     * 20210725
+     * A. 将指定线程添加到此线程组。
+     * B. 注意：此方法从库代码和虚拟机中调用。 从VM调用它以将某些系统线程添加到系统线程组中。
+     */
+    /**
+     * A.
      * Adds the specified thread to this thread group.
      *
+     * B.
      * <p> Note: This method is called from both library code
      * and the Virtual Machine. It is called from VM to add
      * certain system threads to the system thread group.
@@ -884,6 +904,7 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * @throws  IllegalThreadStateException
      *          if the Thread group has been destroyed
      */
+    // 将指定线程添加到线程组中
     void add(Thread t) {
         synchronized (this) {
             if (destroyed) {
@@ -909,9 +930,16 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     /**
+     * 20210725
+     * A. 通知组线程 {@code t} 尝试启动失败。
+     * B. 该线程组的状态被回滚，就好像从未发生过启动线程的尝试一样。 该线程再次被视为线程组的未启动成员，并且允许随后尝试启动该线程。
+     */
+    /**
+     * A.
      * Notifies the group that the thread {@code t} has failed
      * an attempt to start.
      *
+     * B.
      * <p> The state of this thread group is rolled back as if the
      * attempt to start the thread has never occurred. The thread is again
      * considered an unstarted member of the thread group, and a subsequent
@@ -920,6 +948,7 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * @param  t
      *         the Thread whose start method was invoked
      */
+    // 通知组线程 {@code t} 尝试启动失败, 线程组的状态被回滚，就好像从未发生过启动线程的尝试一样
     void threadStartFailed(Thread t) {
         synchronized(this) {
             remove(t);

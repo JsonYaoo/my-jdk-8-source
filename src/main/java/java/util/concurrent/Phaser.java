@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -41,11 +16,119 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 /**
+ * 20210813
+ * A. 一个可重用的同步屏障，功能类似于 {@link java.util.concurrent.CyclicBarrier CyclicBarrier} 和 {@link java.util.concurrent.CountDownLatch CountDownLatch}，但支持更灵活的使用。
+ * B. 登记。与其他障碍的情况不同，在移相器上注册同步的参与方数量可能会随时间变化。任务可以在任何时间注册（使用方法 {@link #register}、{@link #bulkRegister}
+ *    或建立初始参与方数量的构造函数的形式），并且可以在任何到达时选择性地取消注册（使用 {@link #arriveAndDeregister}）. 与大多数基本同步构造的情况一样，
+ *    注册和注销仅影响内部计数；它们不建立任何进一步的内部簿记，因此任务无法查询它们是否已注册。 （但是，您可以通过继承此类来引入这种簿记。）
+ * C. 同步。像 {@code CyclicBarrier} 一样，可能会重复等待 {@code Phaser}。方法 {@link #arriveAndAwaitAdvance} 的效果类似于
+ *    {@link java.util.concurrent.CyclicBarrier#await CyclicBarrier.await}。 每一代移相器都有一个相关的阶段号。 相位编号从零开始，并在所有各方到达移相器时前进，
+ *    在达到 {@code Integer.MAX_VALUE} 后环绕为零。 使用阶段编号可以在到达移相器和等待其他移相器时独立控制动作，通过任何注册方都可以调用的两种方法：
+ *      a. 到达。方法 {@link #arrive} 和 {@link #arriveAndDeregister} 记录到达。这些方法不会阻塞，而是返回一个相关的到达阶段号； 也就是说，到达应用的移相器的相位编号。
+ *         当给定阶段的最后一方到达时，将执行可选操作并推进阶段。 这些操作由触发阶段提前的一方执行，并由覆盖方法 {@link #onAdvance(int, int)} 安排，该方法也控制终止。
+ *         覆盖此方法类似于向 {@code CyclicBarrier} 提供屏障操作，但比它更灵活。
+ *      b. 等待。 方法 {@link #awaitAdvance} 需要一个指示到达阶段编号的参数，并在移相器前进到（或已经处于）不同的阶段时返回。
+ *         与使用 {@code CyclicBarrier} 的类似构造不同，即使等待线程被中断，方法 {@code awaitAdvance} 也会继续等待。 也可以使用可中断和超时版本，
+ *         但在任务可中断等待或超时时遇到的异常不会改变移相器的状态。 如有必要，您可以在这些异常的处理程序中执行任何相关的恢复，
+ *         通常是在调用 {@code forceTermination} 之后。 移相器也可以由在 {@link ForkJoinPool} 中执行的任务使用，这将确保在其他任务被阻塞等待阶段推进时有足够的并行性来执行任务。
+ * D. 终止。移相器可以进入终止状态，可以使用方法 {@link #isTerminated} 进行检查。 终止时，所有同步方法立即返回而不等待提前，如负返回值所示。 同样，在终止时尝试注册也无效。
+ *    当调用 {@code onAdvance} 返回 {@code true} 时触发终止。 如果注销导致注册方数量为零，则默认实现返回 {@code true}。 如下图所示，当移相器控制具有固定迭代次数的动作时，
+ *    通常可以方便地覆盖此方法以在当前阶段数达到阈值时终止。 方法 {@link #forceTermination} 也可用于突然释放等待线程并允许它们终止。
+ * E. 分层。 移相器可以分层（即以树结构构建）以减少争用。 可以改为设置具有大量参与方的相位器，否则它们将经历沉重的同步争用成本，以便子相位器组共享一个共同的父级。
+ *    这可能会大大增加吞吐量，即使它会导致更大的每个操作开销。
+ * F. 在分层移相器树中，子移相器与其父移相器的注册和注销是自动管理的。 每当子移相器的注册方数量变为非零时（如在 {@link #Phaser(Phaser,int)} 构造函数、
+ *    {@link #register} 或 {@link #bulkRegister} 中建立的那样），子移相器 移相器已注册到其父级。 每当由于调用 {@link #arriveAndDeregister} 而注册方的数量变为零时，
+ *    子移相器就会从其父移相器中注销。
+ * G. 监控。虽然同步方法只能由注册方调用，但任何调用者都可以监视移相器的当前状态。 在任何给定时刻，总共有 {@link #getRegisteredParties} 方，
+ *    其中 {@link #getArrivedParties} 已到达当前阶段 ({@link #getPhase})。 当剩余的 ({@link #getUnarrivedParties}) 方到达时，阶段前进。
+ *    这些方法返回的值可能反映瞬态，因此通常对同步控制没有用。 方法 {@link #toString} 以方便非正式监控的形式返回这些状态查询的快照。
+ * H. 示例用法：
+ *    可以使用 {@code Phaser} 代替 {@code CountDownLatch} 来控制为可变数量的参与方提供服务的一次性动作。 典型的习惯用法是将方法设置为首先注册，然后启动操作，
+ *    然后取消注册，如下所示：
+ * {@code
+ * void runTasks(List tasks) {
+ *   final Phaser phaser = new Phaser(1); // "1" to register self
+ *   // create and start threads
+ *   for (final Runnable task : tasks) {
+ *     phaser.register();
+ *     new Thread() {
+ *       public void run() {
+ *         phaser.arriveAndAwaitAdvance(); // await all creation
+ *         task.run();
+ *       }
+ *     }.start();
+ *   }
+ *
+ *   // 允许线程启动和注销自己
+ *   // allow threads to start and deregister self
+ *   phaser.arriveAndDeregister();
+ * }}
+ * I. 使一组线程重复执行给定迭代次数的操作的一种方法是覆盖 {@code onAdvance}：
+ *  {@code
+ * void startTasks(List tasks, final int iterations) {
+ *   final Phaser phaser = new Phaser() {
+ *     protected boolean onAdvance(int phase, int registeredParties) {
+ *       return phase >= iterations || registeredParties == 0;
+ *     }
+ *   };
+ *   phaser.register();
+ *   for (final Runnable task : tasks) {
+ *     phaser.register();
+ *     new Thread() {
+ *       public void run() {
+ *         do {
+ *           task.run();
+ *           phaser.arriveAndAwaitAdvance();
+ *         } while (!phaser.isTerminated());
+ *       }
+ *     }.start();
+ *   }
+ *   phaser.arriveAndDeregister(); // deregister self, don't wait
+ * }}
+ * 如果主任务稍后必须等待终止，它可能会重新注册，然后执行类似的循环：
+ *  {@code
+ *   // ...
+ *   phaser.register();
+ *   while (!phaser.isTerminated())
+ *     phaser.arriveAndAwaitAdvance();}
+ * J. 在您确定阶段永远不会环绕 {@code Integer.MAX_VALUE} 的上下文中，相关构造可用于等待特定阶段编号。 例如：
+ *  {@code
+ * void awaitPhase(Phaser phaser, int phase) {
+ *   int p = phaser.register(); // assumes caller not already registered
+ *   while (p < phase) {
+ *     if (phaser.isTerminated())
+ *       // ... deal with unexpected termination
+ *     else
+ *       p = phaser.arriveAndAwaitAdvance();
+ *   }
+ *   phaser.arriveAndDeregister();
+ * }}
+ * K. 要使用移相器树创建一组 {@code n} 任务，您可以使用以下形式的代码，假设 Task 类的构造函数接受它在构造时注册的 {@code Phaser}。
+ *    在调用 {@code build(new Task[n], 0, n, new Phaser())} 之后，可以开始这些任务，例如通过提交到池：
+ *  {@code
+ * void build(Task[] tasks, int lo, int hi, Phaser ph) {
+ *   if (hi - lo > TASKS_PER_PHASER) {
+ *     for (int i = lo; i < hi; i += TASKS_PER_PHASER) {
+ *       int j = Math.min(i + TASKS_PER_PHASER, hi);
+ *       build(tasks, i, j, new Phaser(ph));
+ *     }
+ *   } else {
+ *     for (int i = lo; i < hi; ++i)
+ *       tasks[i] = new Task(ph);
+ *       // assumes new Task(ph) performs ph.register()
+ *   }
+ * }}
+ * {@code TASKS_PER_PHASER} 的最佳值主要取决于预期的同步率。 低至 4 的值可能适用于极小的每阶段任务主体（因此高速率），或高达数百个适用于极大的任务主体。
+ * L. 实现说明：此实现将最大参与方数量限制为 65535。尝试注册其他参与方会导致 {@code IllegalStateException}。 但是，您可以并且应该创建分层移相器以容纳任意大量的参与者。
+ */
+/**
+ * A.
  * A reusable synchronization barrier, similar in functionality to
  * {@link java.util.concurrent.CyclicBarrier CyclicBarrier} and
  * {@link java.util.concurrent.CountDownLatch CountDownLatch}
  * but supporting more flexible usage.
  *
+ * B.
  * <p><b>Registration.</b> Unlike the case for other barriers, the
  * number of parties <em>registered</em> to synchronize on a phaser
  * may vary over time.  Tasks may be registered at any time (using
@@ -59,6 +142,7 @@ import java.util.concurrent.locks.LockSupport;
  * (However, you can introduce such bookkeeping by subclassing this
  * class.)
  *
+ * C.
  * <p><b>Synchronization.</b> Like a {@code CyclicBarrier}, a {@code
  * Phaser} may be repeatedly awaited.  Method {@link
  * #arriveAndAwaitAdvance} has effect analogous to {@link
@@ -103,6 +187,7 @@ import java.util.concurrent.locks.LockSupport;
  *
  * </ul>
  *
+ * D.
  * <p><b>Termination.</b> A phaser may enter a <em>termination</em>
  * state, that may be checked using method {@link #isTerminated}. Upon
  * termination, all synchronization methods immediately return without
@@ -118,6 +203,7 @@ import java.util.concurrent.locks.LockSupport;
  * also available to abruptly release waiting threads and allow them
  * to terminate.
  *
+ * E.
  * <p><b>Tiering.</b> Phasers may be <em>tiered</em> (i.e.,
  * constructed in tree structures) to reduce contention. Phasers with
  * large numbers of parties that would otherwise experience heavy
@@ -126,6 +212,7 @@ import java.util.concurrent.locks.LockSupport;
  * increase throughput even though it incurs greater per-operation
  * overhead.
  *
+ * F.
  * <p>In a tree of tiered phasers, registration and deregistration of
  * child phasers with their parent are managed automatically.
  * Whenever the number of registered parties of a child phaser becomes
@@ -136,6 +223,7 @@ import java.util.concurrent.locks.LockSupport;
  * {@link #arriveAndDeregister}, the child phaser is deregistered
  * from its parent.
  *
+ * G.
  * <p><b>Monitoring.</b> While synchronization methods may be invoked
  * only by registered parties, the current state of a phaser may be
  * monitored by any caller.  At any given moment there are {@link
@@ -150,6 +238,7 @@ import java.util.concurrent.locks.LockSupport;
  *
  * <p><b>Sample usages:</b>
  *
+ * H.
  * <p>A {@code Phaser} may be used instead of a {@code CountDownLatch}
  * to control a one-shot action serving a variable number of parties.
  * The typical idiom is for the method setting this up to first
@@ -206,6 +295,7 @@ import java.util.concurrent.locks.LockSupport;
  *   while (!phaser.isTerminated())
  *     phaser.arriveAndAwaitAdvance();}</pre>
  *
+ * I.
  * <p>Related constructions may be used to await particular phase numbers
  * in contexts where you are sure that the phase will never wrap around
  * {@code Integer.MAX_VALUE}. For example:
@@ -222,7 +312,7 @@ import java.util.concurrent.locks.LockSupport;
  *   phaser.arriveAndDeregister();
  * }}</pre>
  *
- *
+ * J.
  * <p>To create a set of {@code n} tasks using a tree of phasers, you
  * could use code of the following form, assuming a Task class with a
  * constructor accepting a {@code Phaser} that it registers with upon
@@ -244,11 +334,13 @@ import java.util.concurrent.locks.LockSupport;
  *   }
  * }}</pre>
  *
+ * K.
  * The best value of {@code TASKS_PER_PHASER} depends mainly on
  * expected synchronization rates. A value as low as four may
  * be appropriate for extremely small per-phase task bodies (thus
  * high rates), or up to hundreds for extremely large ones.
  *
+ * L.
  * <p><b>Implementation notes</b>: This implementation restricts the
  * maximum number of parties to 65535. Attempts to register additional
  * parties result in {@code IllegalStateException}. However, you can and
@@ -259,6 +351,8 @@ import java.util.concurrent.locks.LockSupport;
  * @author Doug Lea
  */
 public class Phaser {
+
+    // 此类实现了 X10“时钟”的扩展。 感谢 Vijay Saraswat 的想法，感谢 Vivek Sarkar 的增强功能以扩展功能。
     /*
      * This class implements an extension of X10 "clocks".  Thanks to
      * Vijay Saraswat for the idea, and to Vivek Sarkar for
@@ -266,6 +360,19 @@ public class Phaser {
      */
 
     /**
+     * 20210813
+     * A. 主要状态表示，包含四个位域：
+     * unarrived  -- the number of parties yet to hit barrier (bits  0-15)
+     * parties    -- the number of parties to wait            (bits 16-31)
+     * phase      -- the generation of the barrier            (bits 32-62)
+     * terminated -- set if barrier is terminated             (bit  63 / sign)
+     * B. 除了没有注册方的移相器的区别在于具有零方和一个未到达方的非法状态（下面编码为 EMPTY）。
+     * C. 为了有效地保持原子性，这些值被打包成一个（原子）长的。 良好的性能依赖于保持状态解码和编码简单，并保持竞争窗口较短。
+     * D. 除了子移相器的初始注册（即具有非空父移相器）之外，所有状态更新都通过 CAS 执行。 在这种（相对罕见）的情况下，我们使用内置同步来锁定，同时首先向其父级注册。
+     * E. 允许子相位器的相位滞后于其祖先的相位，直到它被实际访问——请参阅方法 reconcileState。
+     */
+    /**
+     * A.
      * Primary state representation, holding four bit-fields:
      *
      * unarrived  -- the number of parties yet to hit barrier (bits  0-15)
@@ -273,21 +380,25 @@ public class Phaser {
      * phase      -- the generation of the barrier            (bits 32-62)
      * terminated -- set if barrier is terminated             (bit  63 / sign)
      *
+     * B.
      * Except that a phaser with no registered parties is
      * distinguished by the otherwise illegal state of having zero
      * parties and one unarrived parties (encoded as EMPTY below).
      *
+     * C.
      * To efficiently maintain atomicity, these values are packed into
      * a single (atomic) long. Good performance relies on keeping
      * state decoding and encoding simple, and keeping race windows
      * short.
      *
+     * D.
      * All state updates are performed via CAS except initial
      * registration of a sub-phaser (i.e., one with a non-null
      * parent).  In this (relatively rare) case, we use built-in
      * synchronization to lock while first registering with its
      * parent.
      *
+     * E.
      * The phase of a subphaser is allowed to lag that of its
      * ancestors until it is actually accessed -- see method
      * reconcileState.

@@ -1,33 +1,8 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
- *
- *
- *
- *
- *
  * Written by Doug Lea, Bill Scherer, and Michael Scott with
  * assistance from members of JCP JSR-166 Expert Group and released to
  * the public domain, as explained at
@@ -40,6 +15,53 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 /**
+ * 20210813
+ * A. 线程可以配对和交换元素对的同步点。 每个线程在进入 {@link #exchange exchange} 方法时呈现一些对象，与伙伴线程匹配，并在返回时接收其伙伴的对象。
+ *    Exchanger 可以被视为 {@link SynchronousQueue} 的双向形式。 交换器可能在遗传算法和管道设计等应用中很有用。
+ * B. 示例用法：以下是使用 {@code Exchanger} 在线程之间交换缓冲区的类的亮点，以便填充缓冲区的线程在需要时获得新清空的缓冲区，将已填充的线程移交给清空缓冲区的线程缓冲。
+ *  {@code
+ * class FillAndEmpty {
+ *   Exchanger exchanger = new Exchanger();
+ *   DataBuffer initialEmptyBuffer = ... a made-up type
+ *   DataBuffer initialFullBuffer = ...
+ *
+ *   class FillingLoop implements Runnable {
+ *     public void run() {
+ *       DataBuffer currentBuffer = initialEmptyBuffer;
+ *       try {
+ *         while (currentBuffer != null) {
+ *           addToBuffer(currentBuffer);
+ *           if (currentBuffer.isFull())
+ *             currentBuffer = exchanger.exchange(currentBuffer);
+ *         }
+ *       } catch (InterruptedException ex) { ... handle ... }
+ *     }
+ *   }
+ *
+ *   class EmptyingLoop implements Runnable {
+ *     public void run() {
+ *       DataBuffer currentBuffer = initialFullBuffer;
+ *       try {
+ *         while (currentBuffer != null) {
+ *           takeFromBuffer(currentBuffer);
+ *           if (currentBuffer.isEmpty())
+ *             currentBuffer = exchanger.exchange(currentBuffer);
+ *         }
+ *       } catch (InterruptedException ex) { ... handle ...}
+ *     }
+ *   }
+ *
+ *   void start() {
+ *     new Thread(new FillingLoop()).start();
+ *     new Thread(new EmptyingLoop()).start();
+ *   }
+ * }}
+ * C. 内存一致性影响：对于通过 {@code Exchanger} 成功交换对象的每对线程，每个线程中 {@code exchange()} 之前的操作发生在从相应
+ *    {@code Exchange 返回之后的操作之前 ()} 在另一个线程中。
+ */
+
+/**
+ * A.
  * A synchronization point at which threads can pair and swap elements
  * within pairs.  Each thread presents some object on entry to the
  * {@link #exchange exchange} method, matches with a partner thread,
@@ -48,6 +70,7 @@ import java.util.concurrent.locks.LockSupport;
  * Exchangers may be useful in applications such as genetic algorithms
  * and pipeline designs.
  *
+ * B.
  * <p><b>Sample Usage:</b>
  * Here are the highlights of a class that uses an {@code Exchanger}
  * to swap buffers between threads so that the thread filling the
@@ -91,6 +114,7 @@ import java.util.concurrent.locks.LockSupport;
  *   }
  * }}</pre>
  *
+ * C.
  * <p>Memory consistency effects: For each pair of threads that
  * successfully exchange objects via an {@code Exchanger}, actions
  * prior to the {@code exchange()} in each thread
@@ -104,7 +128,61 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class Exchanger<V> {
 
+    /**
+     * 20210813
+     * A. 概述：核心算法是，对于一个交换“槽”，一个参与者（调用者）有一个项目：
+     * for (;;) {
+     *   if (slot is empty) {                       // offer
+     *     place item in a Node;
+     *     if (can CAS slot from empty to node) {
+     *       wait for release;
+     *       return matching item in node;
+     *     }
+     *   }
+     *   else if (can CAS slot from node to empty) { // release
+     *     get the item in node;
+     *     set matching item in node;
+     *     release waiting thread;
+     *   }
+     *   // else retry on CAS failure
+     * }
+     * B. 这是“双重数据结构”的最简单形式之一——参见 Scott 和 Scherer 的 DISC 04 论文和 http://www.cs.rochester.edu/research/synchronization/pseudocode/duals.html
+     * C. 这在原理上非常有效。但在实践中，就像许多以原子更新为中心的单一位置的算法一样，当有多个参与者使用同一个 Exchange 时，它​​的扩展性会很糟糕。
+     *    因此，实现改为使用一种消除竞技场的形式，通过安排一些线程通常使用不同的插槽来分散这种争用，同时仍然确保最终任何两方都能够交换项目。
+     *    也就是说，我们不能完全跨线程分区，而是提供线程 arena 索引，这些索引将在争用时平均增长并在没有争用时收缩。我们通过将我们需要的节点定义为
+     *    ThreadLocals 来解决这个问题，并在其中包含每个线程的索引和相关的簿记状态。 （我们可以安全地重用每线程节点，而不是每次都创建它们，因为插槽在指向节点和空之间交替，
+     *    所以不会遇到 ABA 问题。但是，在使用之间重置它们时，我们确实需要小心。）
+     * D. 实现一个有效的 arena 需要分配一堆空间，所以我们只在检测到争用时才这样做（单处理器除外，它们没有帮助，所以不使用）。 否则，交易所使用单槽 slotExchange 方法。
+     *    在争用时，不仅插槽必须位于不同的位置，而且这些位置不得因位于同一高速缓存行（或更一般地说，相同的一致性单元）而遇到内存争用。
+     *    因为，在撰写本文时，无法确定缓存行大小，所以我们定义了一个足以用于通用平台的值。 此外，在其他地方要格外小心，以避免其他错误/意外共享并增强局部性，
+     *    包括向节点添加填充（通过 sun.misc.Contended），将“绑定”嵌入为 Exchanger 字段，以及重新修改一些与比较相比的停放/取消停放机制 到 LockSupport 版本。
+     * E. 竞技场开始时只有一个使用过的插槽。 我们通过跟踪碰撞来扩大有效的竞技场大小； 即，尝试交换时失败的 CASes。 根据上述算法的性质，
+     *    唯一能够可靠地指示争用的冲突类型是两个尝试发布的版本发生冲突——两个尝试的提供之一可以合法地失败 CAS，而不会指示多个其他线程的争用。
+     *    （注意：通过在 CAS 失败后读取槽值来更精确地检测争用是可能的，但不值得。）当一个线程在当前 arena 边界内的每个槽发生冲突时，它会尝试将 arena 大小扩大 1。
+     *    我们通过在“绑定”字段上使用版本（序列）号来跟踪边界内的碰撞，并在参与者注意到边界已更新（在任一方向）时保守地重置碰撞计数。
+     * F. 通过在一段时间后放弃等待并尝试在到期时减少 arena 大小来减少有效的 arena 大小（当有多个插槽时）。 “一段时间”的值是一个经验问题。
+     *    我们通过使用 spin->yield->block 来实现，这对于合理的等待性能是必不可少的——在一个繁忙的交换器中，提供通常几乎立即释放，在这种情况下，
+     *    多处理器上的上下文切换非常缓慢/浪费。 Arena 等待只是省略阻塞部分，而是取消。旋转计数根据经验选择为在一系列测试机器上在最大持续汇率下避免阻塞 99% 的时间的值。
+     *    自旋和产量需要一些有限的随机性（使用廉价的 xorshift）以避免可能导致非生产性增长/收缩周期的规则模式。
+     *    （使用伪随机也有助于通过使分支不可预测来规范旋转周期持续时间。）此外，在报价期间，服务员可以“知道”当其槽位改变时它将被释放，但在匹配设置之前还不能继续。
+     *    与此同时，它不能取消报价，而是旋转/收益。注意：可以通过将线性化点更改为匹配字段的 CAS（如 Scott & Scherer DISC 论文中的一个案例中所做的那样）来避免这种二次检查，
+     *    这也会稍微增加异步性，但代价是更差冲突检测和无法始终重用每线程节点。所以目前的方案通常是一个更好的权衡。
+     * G. 在碰撞时，索引以相反的顺序循环遍历竞技场，当边界改变时从最大索引（往往是最稀疏的）重新开始。 （在到期时，索引会减半，直到达到 0。）可以（并且已经尝试过）使用随机、
+     *    素值步进或双哈希样式遍历而不是简单的循环遍历来减少聚集。 但从经验上看，这些可能带来的任何好处并不能克服它们增加的开销：除非存在持续的争用，
+     *    否则我们正在管理发生得非常快的操作，因此更简单/更快的控制策略比更准确但更慢的控制策略更有效。
+     * H. 因为我们使用过期来控制竞技场大小，所以我们不能在公共交换方法的定时版本中抛出 TimeoutExceptions，直到竞技场大小缩小为零（或竞技场未启用）。
+     *    这可能会延迟对超时的响应，但仍在规范范围内。
+     * I. 基本上所有的实现都在方法 slotExchange 和 arenaExchange 中。 它们具有相似的整体结构，但在许多细节上不同，无法组合。
+     *    slotExchange 方法使用单个 Exchanger 字段“slot”而不是 arena 数组元素。 然而，它仍然需要最少的碰撞检测来触发竞技场建设。
+     *    （最麻烦的部分是确保中断状态和 InterruptedExceptions 在转换期间当这两种方法都可能被调用时正确出现。这是通过使用 null 返回作为重新检查中断状态的哨兵来完成的。）
+     * J. 在这类代码中太常见了，方法是整体的，因为大多数逻辑依赖于读取作为局部变量维护的字段，因此不能很好地分解——主要是，在这里，
+     *    笨重的 spin->yield->block /cancel code)，并且严重依赖于内在函数 (Unsafe) 来使用内联的嵌入式 CAS 和相关的内存访问操作
+     *    （当动态编译器隐藏在其他可以更好地命名和封装预期效果）。这包括使用 putOrderedX 在使用之间清除每线程节点的字段。请注意，即使通过释放线程读取，
+     *    字段 Node.item 也不会声明为 volatile，因为它们仅在必须先于访问的 CAS 操作之后才这样做，并且拥有线程的所有使用都可以接受其他操作的排序。
+     *    （因为原子性的实际点是槽 CASes，在一个版本中写入 Node.match 比完全易失性写入弱也是合法的。但是，这不是这样做的，因为它可能允许进一步推迟写入，拖延进度。）
+     */
     /*
+     * A.
      * Overview: The core algorithm is, for an exchange "slot",
      * and a participant (caller) with an item:
      *
@@ -124,10 +202,12 @@ public class Exchanger<V> {
      *   // else retry on CAS failure
      * }
      *
+     * B.
      * This is among the simplest forms of a "dual data structure" --
      * see Scott and Scherer's DISC 04 paper and
      * http://www.cs.rochester.edu/research/synchronization/pseudocode/duals.html
      *
+     * C.
      * This works great in principle. But in practice, like many
      * algorithms centered on atomic updates to a single location, it
      * scales horribly when there are more than a few participants
@@ -146,6 +226,7 @@ public class Exchanger<V> {
      * encounter ABA problems. However, we do need some care in
      * resetting them between uses.)
      *
+     * D.
      * Implementing an effective arena requires allocating a bunch of
      * space, so we only do so upon detecting contention (except on
      * uniprocessors, where they wouldn't help, so aren't used).
@@ -162,6 +243,7 @@ public class Exchanger<V> {
      * field, and reworking some park/unpark mechanics compared to
      * LockSupport versions.
      *
+     * E.
      * The arena starts out with only one used slot. We expand the
      * effective arena size by tracking collisions; i.e., failed CASes
      * while trying to exchange. By nature of the above algorithm, the
@@ -178,6 +260,7 @@ public class Exchanger<V> {
      * participant notices that bound has been updated (in either
      * direction).
      *
+     * F.
      * The effective arena size is reduced (when there is more than
      * one slot) by giving up on waiting after a while and trying to
      * decrement the arena size on expiration. The value of "a while"
@@ -204,6 +287,7 @@ public class Exchanger<V> {
      * detection and inability to always reuse per-thread nodes. So
      * the current scheme is typically a better tradeoff.
      *
+     * G.
      * On collisions, indices traverse the arena cyclically in reverse
      * order, restarting at the maximum index (which will tend to be
      * sparsest) when bounds change. (On expirations, indices instead
@@ -216,12 +300,14 @@ public class Exchanger<V> {
      * so simpler/faster control policies work better than more
      * accurate but slower ones.
      *
+     * H.
      * Because we use expiration for arena size control, we cannot
      * throw TimeoutExceptions in the timed version of the public
      * exchange method until the arena size has shrunken to zero (or
      * the arena isn't enabled). This may delay response to timeout
      * but is still within spec.
      *
+     * I.
      * Essentially all of the implementation is in methods
      * slotExchange and arenaExchange. These have similar overall
      * structure, but differ in too many details to combine. The
@@ -233,6 +319,7 @@ public class Exchanger<V> {
      * both methods may be called. This is done by using null return
      * as a sentinel to recheck interrupt status.)
      *
+     * J.
      * As is too common in this sort of code, methods are monolithic
      * because most of the logic relies on reads of fields that are
      * maintained as local variables so can't be nicely factored --
@@ -525,16 +612,31 @@ public class Exchanger<V> {
     }
 
     /**
+     * 20210813
+     * A. 等待另一个线程到达这个交换点（除非当前线程是{@linkplain Thread#interrupt interrupted}），然后将给定的对象传递给它，作为回报接收它的对象。
+     * B. 如果另一个线程已经在交换点等待，那么它会出于线程调度目的而恢复并接收当前线程传入的对象。 当前线程立即返回，接收其他线程传递给交换的对象。
+     * C. 如果没有其他线程已经在交换中等待，则当前线程将被禁用以进行线程调度并处于休眠状态，直到发生以下两种情况之一：
+     *      a. 一些其他线程进入交易所；
+     *      b. 其他一些线程 {@linkplain Thread#interrupt 中断}当前线程。
+     *    如果当前线程：
+     *      a. 在进入此方法时设置其中断状态；
+     *      b. 在等待交换时{@linkplain Thread#interrupt interrupted}，
+     *    然后抛出 {@link InterruptedException} 并清除当前线程的中断状态。
+     */
+    /**
+     * A.
      * Waits for another thread to arrive at this exchange point (unless
      * the current thread is {@linkplain Thread#interrupt interrupted}),
      * and then transfers the given object to it, receiving its object
      * in return.
      *
+     * B.
      * <p>If another thread is already waiting at the exchange point then
      * it is resumed for thread scheduling purposes and receives the object
      * passed in by the current thread.  The current thread returns immediately,
      * receiving the object passed to the exchange by that other thread.
      *
+     * C.
      * <p>If no other thread is already waiting at the exchange then the
      * current thread is disabled for thread scheduling purposes and lies
      * dormant until one of two things happens:
@@ -570,16 +672,33 @@ public class Exchanger<V> {
     }
 
     /**
+     * 20210813
+     * A. 等待另一个线程到达这个交换点（除非当前线程是{@linkplain Thread#interrupt interrupted}或指定的等待时间过去），然后将给定的对象传递给它，接收其对象作为回报。
+     * B. 如果另一个线程已经在交换点等待，那么它会出于线程调度目的而恢复并接收当前线程传入的对象。 当前线程立即返回，接收其他线程传递给交换的对象。
+     * C. 如果没有其他线程已经在交换中等待，则当前线程将被禁用以进行线程调度并处于休眠状态，直到发生以下三种情况之一：
+     *      a. 一些其他线程进入交易所；
+     *      b. 其他一些线程 {@linkplain Thread#interrupt 中断}当前线程；
+     *      c. 指定的等待时间已过。
+     *    如果当前线程：
+     *      a. 在进入此方法时设置其中断状态；
+     *      b. 在等待交换时{@linkplain Thread#interrupt interrupted}，
+     *    然后抛出 {@link InterruptedException} 并清除当前线程的中断状态。
+     * D. 如果指定的等待时间已过，则抛出 {@link TimeoutException}。 如果时间小于或等于零，则该方法根本不会等待。
+     */
+    /**
+     * A.
      * Waits for another thread to arrive at this exchange point (unless
      * the current thread is {@linkplain Thread#interrupt interrupted} or
      * the specified waiting time elapses), and then transfers the given
      * object to it, receiving its object in return.
      *
+     * B.
      * <p>If another thread is already waiting at the exchange point then
      * it is resumed for thread scheduling purposes and receives the object
      * passed in by the current thread.  The current thread returns immediately,
      * receiving the object passed to the exchange by that other thread.
      *
+     * C.
      * <p>If no other thread is already waiting at the exchange then the
      * current thread is disabled for thread scheduling purposes and lies
      * dormant until one of three things happens:
@@ -598,6 +717,7 @@ public class Exchanger<V> {
      * then {@link InterruptedException} is thrown and the current thread's
      * interrupted status is cleared.
      *
+     * D.
      * <p>If the specified waiting time elapses then {@link
      * TimeoutException} is thrown.  If the time is less than or equal
      * to zero, the method will not wait at all.

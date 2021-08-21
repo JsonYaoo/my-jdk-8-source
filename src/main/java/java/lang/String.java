@@ -618,6 +618,11 @@ public final class String implements java.io.Serializable, Comparable<String>, C
         this.value = Arrays.copyOf(builder.getValue(), builder.length());
     }
 
+    /**
+     * 20210728
+     * 包私有构造函数，它共享值数组以提高速度。这个构造函数总是期望使用share==true调用。
+     * 需要一个单独的构造函数，因为我们已经有一个公共String(char[])构造函数，它可以复制给定的 char[]。
+     */
     /*
     * Package private constructor which shares value array for speed.
     * this constructor is always expected to be called with share==true.

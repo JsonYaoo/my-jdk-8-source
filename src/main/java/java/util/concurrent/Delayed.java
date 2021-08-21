@@ -45,5 +45,6 @@ public interface Delayed extends Comparable<Delayed> {
      * @return the remaining delay; zero or negative values indicate
      * that the delay has already elapsed
      */
+    // 以给定的时间单位返回与此对象关联的剩余延迟
     long getDelay(TimeUnit unit);
 }
