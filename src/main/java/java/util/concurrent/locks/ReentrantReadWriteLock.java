@@ -584,7 +584,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
         protected final boolean tryReleaseShared(int unused) {
             Thread current = Thread.currentThread();
 
-            // 如果当前线程为第一个读线程, 则释放共享计数
+            // 如果命中一级缓存, 则直接减少一级缓存的计数值
             if (firstReader == current) {
                 // assert firstReaderHoldCount > 0;
                 if (firstReaderHoldCount == 1)
@@ -746,7 +746,7 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
                             }
                         }
 
-                        // 如果缓存为0, 则返回-1, 代表读锁获取失败
+                        // 如果本地线程缓存计数值为0, 说明当前线程读锁重入次数为0, 也就是释放了读锁, 则返回-1, 代表读锁获取失败
                         if (rh.count == 0)
                             return -1;
                     }
@@ -891,19 +891,22 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
             return isHeldExclusively() ? exclusiveCount(getState()) : 0;
         }
 
-        // 获取缓存计数
+        // 查询当前线程对该锁持有的可重入读次数
         final int getReadHoldCount() {
             if (getReadLockCount() == 0)
                 return 0;
 
+            // 从一级缓存中获取
             Thread current = Thread.currentThread();
             if (firstReader == current)
                 return firstReaderHoldCount;
 
+            // 从二级缓存中获取
             HoldCounter rh = cachedHoldCounter;
             if (rh != null && rh.tid == getThreadId(current))
                 return rh.count;
 
+            // 从ThreadLocal本体中获取
             int count = readHolds.get().count;
             if (count == 0) readHolds.remove();
             return count;

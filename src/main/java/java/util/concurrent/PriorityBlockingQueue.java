@@ -495,7 +495,7 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E> implements Blocki
         Comparator<? super E> cmp = comparator;
         if (cmp == null) {
             for (int i = half; i >= 0; i--)// 直到根结点, 经过调整后, 整个树就成为了最小堆
-                siftDownComparable(i, (E) array[i], array, n);// 自然排序
+                siftDownComparable(, (E) array[i], array, n);// 自然排序
         }
         else {
             for (int i = half; i >= 0; i--)

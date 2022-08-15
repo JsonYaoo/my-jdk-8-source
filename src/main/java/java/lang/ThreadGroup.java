@@ -1043,10 +1043,25 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
     }
 
     /**
+     * 20210824
+     * A. 当此线程组中的线程由于未捕获的异常而停止，并且该线程没有安装特定的 {@link Thread.UncaughtExceptionHandler} 时，由 Java 虚拟机调用。
+     * B. ThreadGroup 的 uncaughtException 方法执行以下操作：
+     *      a. 如果此线程组具有父线程组，则使用相同的两个参数调用该父线程组的 uncaughtException 方法
+     *      b. 否则，此方法会检查是否安装了 {@linkplain Thread#getDefaultUncaughtExceptionHandler 默认未捕获异常处理程序}，
+     *         如果安装了，则使用相同的两个参数调用其 uncaughtException 方法。
+     *      c. 否则，此方法确定 Throwable 参数是否是 {@link ThreadDeath} 的实例。 如果是这样，则不会执行任何特殊操作。
+     *         否则，将包含线程名称的消息（从线程的 {@link Thread#getName getName} 方法返回）和
+     *         堆栈回溯（使用 Throwable 的 {@link Throwable#printStackTrace printStackTrace} 方法）打印到 {@linkplain System #err 标准错误流}。
+     * C. 应用程序可以在 ThreadGroup 的子类中覆盖此方法，以提供对未捕获异常的替代处理。
+     */
+    /**
+     * A.
      * Called by the Java Virtual Machine when a thread in this
      * thread group stops because of an uncaught exception, and the thread
      * does not have a specific {@link Thread.UncaughtExceptionHandler}
      * installed.
+     *
+     * B.
      * <p>
      * The <code>uncaughtException</code> method of
      * <code>ThreadGroup</code> does the following:
@@ -1068,6 +1083,8 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
      *     Throwable#printStackTrace printStackTrace} method, is
      *     printed to the {@linkplain System#err standard error stream}.
      * </ul>
+     *
+     * C.
      * <p>
      * Applications can override this method in subclasses of
      * <code>ThreadGroup</code> to provide alternative handling of
@@ -1077,17 +1094,16 @@ public class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * @param   e   the uncaught exception.
      * @since   JDK1.0
      */
+    // 当此线程组中的线程由于未捕获的异常而停止，并且该线程没有安装特定的 {@link Thread.UncaughtExceptionHandler} 时，由Java虚拟机调用
     public void uncaughtException(Thread t, Throwable e) {
         if (parent != null) {
             parent.uncaughtException(t, e);
         } else {
-            Thread.UncaughtExceptionHandler ueh =
-                Thread.getDefaultUncaughtExceptionHandler();
+            Thread.UncaughtExceptionHandler ueh = Thread.getDefaultUncaughtExceptionHandler();
             if (ueh != null) {
                 ueh.uncaughtException(t, e);
             } else if (!(e instanceof ThreadDeath)) {
-                System.err.print("Exception in thread \""
-                                 + t.getName() + "\" ");
+                System.err.print("Exception in thread \"" + t.getName() + "\" ");
                 e.printStackTrace(System.err);
             }
         }
